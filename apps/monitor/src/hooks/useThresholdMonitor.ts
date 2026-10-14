@@ -39,12 +39,32 @@ export function useThresholdMonitor({
   const dispatch = useAppDispatch();
   const cfg = useAppSelector((state) => state.threshold);
   const detector = useRef<DetectorState>({ side: null });
+  // The config the detector state was last classified against.
+  const appliedCfg = useRef(cfg);
   const [side, setSide] = useState<Side | null>(null);
+
+  // The readout should show the new side as soon as the settings change, not
+  // on the next reading. Adjusting state during render when an input changes
+  // is React's documented alternative to a state-syncing effect.
+  const [displayedCfg, setDisplayedCfg] = useState(cfg);
+  if (displayedCfg !== cfg) {
+    setDisplayedCfg(cfg);
+    setSide(classify(readings.latest()?.value, cfg.threshold).side);
+  }
 
   // An Effect Event always sees the latest `cfg` without being a dependency,
   // so changing the threshold takes effect on the very next reading and does
   // not resubscribe to the source (no stale closure, no subscription churn).
   const onReading = useEffectEvent((reading: Reading) => {
+    // Settings changed since the last reading: re-derive the side from the
+    // last value first, silently. Only a new reading can raise an alert, never
+    // a settings change (ADR 0003). Doing it here rather than in an effect
+    // means no reading can ever see the new threshold with the old side.
+    if (appliedCfg.current !== cfg) {
+      appliedCfg.current = cfg;
+      detector.current = classify(readings.latest()?.value, cfg.threshold);
+    }
+
     readings.push(reading);
 
     const [next, event] = step(detector.current, reading.value, cfg);
@@ -63,12 +83,6 @@ export function useThresholdMonitor({
   });
 
   useEffect(() => source.subscribe((reading) => onReading(reading)), [source]);
-
-  // A configuration change re-derives the side from the latest value, silently.
-  // Only a new reading can raise an alert, never a settings change (ADR 0003).
-  useEffect(() => {
-    detector.current = classify(readings.latest()?.value, cfg.threshold);
-  }, [cfg.threshold, cfg.hysteresis, readings]);
 
   return { side };
 }

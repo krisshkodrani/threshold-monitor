@@ -17,10 +17,14 @@ export function statusText(alert: AlertEntity): string {
   }
 }
 
-/** Event time to server receipt, i.e. how long the alert took to be stored. */
+/**
+ * From the reading to this tab learning the server stored it. Both times come
+ * from the browser clock: mixing in the server's `acceptedAt` would add any
+ * clock difference between the two machines, even making latency negative.
+ */
 function latency(alert: AlertEntity): string {
-  if (!alert.acceptedAt) return "—";
-  return `${Date.parse(alert.acceptedAt) - Date.parse(alert.eventTime)} ms`;
+  if (!alert.acceptedLocalAt) return "—";
+  return `${Date.parse(alert.acceptedLocalAt) - Date.parse(alert.eventTime)} ms`;
 }
 
 export function AlertLog({ alerts }: { alerts: readonly AlertEntity[] }) {

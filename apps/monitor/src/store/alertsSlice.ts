@@ -16,7 +16,10 @@ export type AlertEntity = Alert & {
   status: DeliveryStatus;
   attempts: number;
   sentAt?: string;
+  /** Server clock: when the relay stored the alert. */
   acceptedAt?: string;
+  /** Browser clock: when this tab learned it was accepted. Used for latency. */
+  acceptedLocalAt?: string;
   acknowledgement?: { operator: string; at: string };
 };
 
@@ -76,6 +79,7 @@ const alertsSlice = createSlice({
           alert.sentAt = update.now;
         } else if (update.status === "accepted") {
           alert.acceptedAt = update.receivedAt;
+          alert.acceptedLocalAt = update.now;
         } else if (update.status === "acknowledged") {
           alert.acknowledgement = { operator: update.operator, at: update.at };
         }

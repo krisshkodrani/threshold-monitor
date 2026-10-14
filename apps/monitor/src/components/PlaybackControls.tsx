@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { rateOptions } from "../config";
+import { defaults, rateOptions } from "../config";
 
 type Props = {
   paused: boolean;
@@ -15,6 +15,10 @@ export function PlaybackControls({
   onRateChange,
 }: Props) {
   const rateId = useId();
+  const hintId = useId();
+  // The window is a reading count, so its duration depends on the rate (see config).
+  const windowSeconds = defaults.windowSize / rateHz;
+
   return (
     <div className="field">
       <label htmlFor={rateId}>Readings per second</label>
@@ -22,6 +26,7 @@ export function PlaybackControls({
         <select
           id={rateId}
           value={rateHz}
+          aria-describedby={hintId}
           onChange={(event) => onRateChange(Number(event.target.value))}
         >
           {rateOptions.map((rate) => (
@@ -34,6 +39,9 @@ export function PlaybackControls({
           {paused ? "▶ Resume" : "⏸ Pause"}
         </button>
       </div>
+      <p id={hintId} className="field__hint">
+        {`The chart shows the last ${defaults.windowSize} readings (${windowSeconds} s).`}
+      </p>
     </div>
   );
 }

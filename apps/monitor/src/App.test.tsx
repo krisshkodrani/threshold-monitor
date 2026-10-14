@@ -1,4 +1,5 @@
 import { act, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { Provider } from "react-redux";
 import { expect, test } from "vitest";
@@ -44,6 +45,24 @@ test("shows live readings and logs a crossing with its delivery status", () => {
   });
   const log = screen.getByRole("region", { name: "Alert log" });
   expect(within(log).getByText("Acknowledged by Ana")).toBeInTheDocument();
+});
+
+// Regression: the form used to be keyed by the threshold, so committing a new
+// value remounted it and dropped keyboard focus to <body>.
+test("the threshold field keeps focus after committing with Enter", async () => {
+  renderApp();
+  const user = userEvent.setup();
+  const input = screen.getByLabelText("Threshold (°C)");
+
+  await user.clear(input);
+  await user.type(input, "24{Enter}");
+
+  expect(screen.getByLabelText("Threshold (°C)")).toBe(input); // same element
+  expect(input).toHaveFocus();
+  expect(input).toHaveValue("24.0");
+  expect(screen.getByText("Threshold").nextElementSibling).toHaveTextContent(
+    "24.0 °C",
+  );
 });
 
 test("has no detectable accessibility violations", async () => {

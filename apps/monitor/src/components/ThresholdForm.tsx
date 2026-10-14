@@ -4,7 +4,7 @@ import { parseThresholdInput } from "../domain/thresholdInput";
 import { formatThreshold, withUnit } from "../format";
 
 type Props = {
-  /** The active threshold. Render with `key={threshold}` so a new value resets the draft. */
+  /** The active threshold. Only this form changes it, so the draft is reset on commit. */
   threshold: number;
   onCommit: (value: number) => void;
 };

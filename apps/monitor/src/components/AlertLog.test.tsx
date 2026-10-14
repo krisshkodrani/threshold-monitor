@@ -22,7 +22,9 @@ test("follows an alert through its status transitions", () => {
     ...base,
     status: "accepted",
     attempts: 1,
-    acceptedAt: "2026-10-14T09:30:00.120Z", // 120 ms after the event
+    // The server clock runs 5 s behind; latency must only use the local clock.
+    acceptedAt: "2026-10-14T09:29:55.000Z",
+    acceptedLocalAt: "2026-10-14T09:30:00.120Z", // 120 ms after the event
   };
   rerender(<AlertLog alerts={[accepted]} />);
   expect(screen.getByText("Accepted")).toBeInTheDocument();

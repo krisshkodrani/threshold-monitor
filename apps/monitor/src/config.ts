@@ -17,6 +17,9 @@ export const defaults = {
   threshold: 25,
   hysteresis: 0.6,
   rateHz: 2,
+  // The chart keeps a fixed number of readings, not a fixed duration, so memory
+  // is bounded independently of the rate. The visible time span therefore
+  // depends on the rate: 120 readings = 2 min at 1/s, 12 s at 10/s.
   windowSize: 120,
   seed: 20261014,
 };

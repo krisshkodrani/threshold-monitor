@@ -61,6 +61,7 @@ describe("alertsSlice", () => {
       attempts: 1,
       sentAt: NOW,
       acceptedAt: NOW,
+      acceptedLocalAt: NOW,
       acknowledgement: { operator: "Ana", at: NOW },
     });
   });

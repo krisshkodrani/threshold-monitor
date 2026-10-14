@@ -93,7 +93,6 @@ export function App({
         </section>
         <section className="panel app__controls" aria-label="Settings">
           <ThresholdForm
-            key={cfg.threshold}
             threshold={cfg.threshold}
             onCommit={(value) => dispatch(thresholdCommitted(value))}
           />

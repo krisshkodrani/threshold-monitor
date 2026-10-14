@@ -8,10 +8,16 @@ afterEach(() => {
   cleanup();
 });
 
-// jsdom has no layout engine and no ResizeObserver, which Recharts'
-// ResponsiveContainer needs. A no-op is enough: tests never assert on chart pixels.
+// jsdom has no layout engine and no ResizeObserver. Recharts' ResponsiveContainer
+// measures its box through ResizeObserver and draws nothing at 0 x 0, so this
+// stub reports a fixed size once, like a browser would on first layout.
+// Tests still never assert on pixels, only on what gets drawn.
 globalThis.ResizeObserver ??= class {
-  observe() {}
+  constructor(private readonly callback: ResizeObserverCallback) {}
+  observe(target: Element) {
+    const contentRect = { width: 600, height: 300 } as DOMRectReadOnly;
+    this.callback([{ target, contentRect } as ResizeObserverEntry], this);
+  }
   unobserve() {}
   disconnect() {}
 };

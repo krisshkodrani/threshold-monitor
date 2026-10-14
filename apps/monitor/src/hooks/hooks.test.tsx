@@ -101,6 +101,31 @@ describe("threshold changes", () => {
     expect(sent()[0]?.direction).toBe("down");
   });
 
+  test("the readout side follows a threshold change immediately, without a new reading", () => {
+    const source = new FakeSource();
+    const { hook, store } = mount(source);
+    act(() => source.emit(26));
+    expect(hook.result.current.side).toBe("above");
+
+    act(() => {
+      store.dispatch(thresholdCommitted(30));
+    });
+    expect(hook.result.current.side).toBe("below");
+  });
+
+  test("the first reading after a threshold change is judged from the re-derived side", () => {
+    const source = new FakeSource();
+    const { sent, store } = mount(source);
+    act(() => source.emit(26)); // above 25
+    act(() => {
+      store.dispatch(thresholdCommitted(30));
+    });
+    // With the stale side ("above") and the new band (29.5 .. 30.5), 26.1 would
+    // look like a down crossing. Re-deriving first makes it "below": no alert.
+    act(() => source.emit(26.1));
+    expect(sent()).toHaveLength(0);
+  });
+
   test("exposes the current side for the readout", () => {
     const source = new FakeSource();
     const { hook } = mount(source);
