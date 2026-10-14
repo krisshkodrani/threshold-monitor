@@ -1,10 +1,57 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
+import axe from "axe-core";
+import { Provider } from "react-redux";
 import { expect, test } from "vitest";
 import { App } from "./App";
+import { createReadingsStore } from "./data/readingsStore";
+import { createAppStore } from "./store";
+import { FakeSource, fakeTransportFactory } from "./test/fakes";
 
-test("renders the app heading", () => {
-  render(<App />);
-  expect(
-    screen.getByRole("heading", { name: "Threshold Monitor" }),
-  ).toBeDefined();
+function renderApp() {
+  const source = new FakeSource();
+  const transports = fakeTransportFactory();
+  const store = createAppStore();
+  const view = render(
+    <Provider store={store}>
+      <App
+        source={source}
+        readings={createReadingsStore(120)}
+        createTransport={transports.create}
+        identity={{ sourceId: "source-1", sourceLabel: "Monitor TST" }}
+        initialRateHz={2}
+      />
+    </Provider>,
+    { reactStrictMode: true },
+  );
+  return { ...view, source, transports };
+}
+
+test("shows live readings and logs a crossing with its delivery status", () => {
+  const { source, transports } = renderApp();
+  expect(screen.getByText("Monitor TST")).toBeInTheDocument();
+
+  act(() => source.emit(24, 26.2));
+  expect(screen.getByText("26.20 °C")).toBeInTheDocument();
+
+  const alertId = transports.alive()[0]!.sent[0]!.id;
+  act(() => {
+    transports.alive()[0]!.emitDelivery({
+      alertId,
+      status: "acknowledged",
+      operator: "Ana",
+      at: "2026-10-14T09:30:05.000Z",
+    });
+  });
+  const log = screen.getByRole("region", { name: "Alert log" });
+  expect(within(log).getByText("Acknowledged by Ana")).toBeInTheDocument();
+});
+
+test("has no detectable accessibility violations", async () => {
+  const { container, source } = renderApp();
+  act(() => source.emit(24, 26.2, 24.1));
+  const results = await axe.run(container, {
+    // jsdom cannot compute colors, so contrast is checked by hand in the browser.
+    rules: { "color-contrast": { enabled: false } },
+  });
+  expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });

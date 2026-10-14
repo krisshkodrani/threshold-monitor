@@ -71,6 +71,19 @@ describe("toChartData", () => {
     expect(a).toEqual(b);
   });
 
+  test("time ticks sit on round seconds and end at now", () => {
+    // 25 readings at 2 Hz span 12 s; a 2 s step gives 6 intervals.
+    const values = Array.from({ length: 25 }, () => 24);
+    expect(toChartData(readings(...values), [], cfg).timeTicks).toEqual([
+      -12, -10, -8, -6, -4, -2, 0,
+    ]);
+    // 241 readings span 120 s: a 30 s step keeps it readable.
+    const long = Array.from({ length: 241 }, () => 24);
+    expect(toChartData(readings(...long), [], cfg).timeTicks).toEqual([
+      -120, -90, -60, -30, 0,
+    ]);
+  });
+
   test("with no readings there are no rows and the domain frames the band", () => {
     const data = toChartData([], [], cfg);
     expect(data.rows).toEqual([]);

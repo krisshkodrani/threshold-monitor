@@ -16,11 +16,16 @@ export type ChartData = {
   band: { upper: number; lower: number };
   /** Y axis range, always including the band so the threshold stays visible. */
   domain: [number, number];
+  /** X axis ticks in seconds (<= 0) on round values, ending at 0 ("now"). */
+  timeTicks: number[];
 };
 
 /** Minimum padding above and below the data, in value units. */
 const MIN_PADDING = 1;
 const PADDING_RATIO = 0.1;
+/** Tick spacings in seconds; the smallest giving at most MAX_INTERVALS wins. */
+const TICK_STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 300];
+const MAX_INTERVALS = 6;
 
 /**
  * Everything the chart needs, precomputed so the chart component only renders.
@@ -60,5 +65,14 @@ export function toChartData(
     Math.ceil(high + padding),
   ];
 
-  return { rows, threshold: cfg.threshold, band, domain };
+  const timeTicks = roundTicks(rows[0]?.t ?? 0);
+  return { rows, threshold: cfg.threshold, band, domain, timeTicks };
+}
+
+/** 0, -step, -2*step ... back to the oldest reading, so labels read "−5 s", not "−4.901 s". */
+function roundTicks(oldest: number): number[] {
+  const step = TICK_STEPS.find((s) => -oldest / s <= MAX_INTERVALS) ?? 300;
+  const ticks: number[] = [];
+  for (let t = 0; t >= oldest; t -= step) ticks.unshift(t);
+  return ticks;
 }
