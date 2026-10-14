@@ -1,0 +1,6 @@
+packages:
+  - apps/*
+  - server
+  - packages/*
+allowBuilds:
+  esbuild: true

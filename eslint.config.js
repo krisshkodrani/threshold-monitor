@@ -1,0 +1,41 @@
+import js from "@eslint/js";
+import { defineConfig } from "eslint/config";
+import reactHooks from "eslint-plugin-react-hooks";
+import globals from "globals";
+import tseslint from "typescript-eslint";
+
+export default defineConfig(
+  {
+    ignores: [
+      "**/dist/**",
+      "**/coverage/**",
+      "**/playwright-report/**",
+      "**/test-results/**",
+    ],
+  },
+  js.configs.recommended,
+  // Type-aware rules catch unhandled promises, which matter in socket and timer code.
+  tseslint.configs.recommendedTypeChecked,
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    files: ["**/*.js"],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    files: ["apps/**/*.{ts,tsx}"],
+    extends: [reactHooks.configs.flat.recommended],
+    languageOptions: { globals: globals.browser },
+  },
+  {
+    files: ["server/**/*.ts"],
+    languageOptions: { globals: globals.node },
+  },
+);
