@@ -23,6 +23,13 @@ export default defineConfig(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      // Allows `const { a, ...rest } = obj` to omit a field without an unused-variable error.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { ignoreRestSiblings: true },
+      ],
+    },
   },
   {
     files: ["**/*.js"],
