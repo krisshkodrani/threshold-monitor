@@ -1,0 +1,280 @@
+import {
+  encode,
+  MAX_MESSAGE_BYTES,
+  parseClientMessage,
+  PROTOCOL_VERSION,
+  WELCOME_RECENT_LIMIT,
+  type ServerMessage,
+} from "@app/protocol";
+import type { IncomingMessage, Server } from "node:http";
+import { once } from "node:events";
+import type { Duplex } from "node:stream";
+import { WebSocket, WebSocketServer, type RawData } from "ws";
+import type { AlertStore } from "./alertStore";
+import { isOriginAllowed, type Config } from "./config";
+import type { Logger } from "./logger";
+import {
+  createBucket,
+  DEFAULT_BUCKET,
+  take,
+  type Bucket,
+  type BucketConfig,
+} from "./rateLimiter";
+import { error, route, type Outgoing, type Role } from "./routing";
+
+export type RelayDeps = {
+  config: Pick<Config, "mode" | "allowedOrigins">;
+  store: AlertStore;
+  logger: Logger;
+  clock?: () => number;
+  newId?: () => string;
+  helloTimeoutMs?: number;
+  heartbeatMs?: number;
+  bucket?: BucketConfig;
+};
+
+type Client = {
+  id: string;
+  ws: WebSocket;
+  role: Role | null; // null until a valid hello
+  name: string;
+  connectedAt: number;
+  bucket: Bucket;
+  limitedInARow: number;
+  alive: boolean;
+  helloTimer: ReturnType<typeof setTimeout>;
+};
+
+/** Close codes in the 4000-4999 range are free for applications. */
+const CLOSE = {
+  helloRequired: 4001,
+  unsupportedVersion: 4002,
+  rateLimited: 4008,
+  goingAway: 1001,
+};
+const MAX_LIMITED_IN_A_ROW = 100;
+
+/** Accepts WebSocket upgrades on /ws and relays messages between monitors and control rooms. */
+export function attachRelay(server: Server, deps: RelayDeps) {
+  const {
+    config,
+    store,
+    logger,
+    clock = Date.now,
+    newId = () => crypto.randomUUID(),
+    helloTimeoutMs = 5_000,
+    heartbeatMs = 15_000,
+    bucket: bucketConfig = DEFAULT_BUCKET,
+  } = deps;
+  const wss = new WebSocketServer({
+    noServer: true,
+    maxPayload: MAX_MESSAGE_BYTES,
+  });
+  const clients = new Set<Client>();
+  const ctx = { store, now: () => new Date(clock()).toISOString() };
+
+  function onUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer) {
+    // Node hands "upgrade" sockets over without an error listener. Without
+    // this, a client resetting the connection (e.g. after a 403) would be an
+    // uncaught exception and take the whole server down.
+    socket.on("error", (err) =>
+      logger.debug("upgrade socket error", { error: err.message }),
+    );
+
+    const { pathname } = new URL(req.url ?? "/", "http://localhost");
+    if (pathname !== "/ws") return reject(socket, "404 Not Found");
+    if (!isOriginAllowed(req.headers.origin, req.headers.host, config)) {
+      logger.warn("origin rejected", { origin: req.headers.origin });
+      return reject(socket, "403 Forbidden");
+    }
+    wss.handleUpgrade(req, socket, head, onConnection);
+  }
+
+  function onConnection(ws: WebSocket) {
+    const client: Client = {
+      id: newId(),
+      ws,
+      role: null,
+      name: "",
+      connectedAt: clock(),
+      bucket: createBucket(clock(), bucketConfig),
+      limitedInARow: 0,
+      alive: true,
+      helloTimer: setTimeout(
+        () => ws.close(CLOSE.helloRequired, "Hello timeout"),
+        helloTimeoutMs,
+      ),
+    };
+    clients.add(client);
+
+    ws.on("pong", () => (client.alive = true));
+    ws.on("message", (data, isBinary) => onMessage(client, data, isBinary));
+    ws.on("error", (err) =>
+      logger.warn("socket error", {
+        connectionId: client.id,
+        error: err.message,
+      }),
+    );
+    ws.on("close", (code) => {
+      clearTimeout(client.helloTimer);
+      clients.delete(client);
+      logger.info("disconnected", {
+        connectionId: client.id,
+        role: client.role,
+        name: client.name,
+        code,
+        durationMs: clock() - client.connectedAt,
+      });
+    });
+  }
+
+  function onMessage(client: Client, data: RawData, isBinary: boolean) {
+    const limited = take(client.bucket, clock(), bucketConfig);
+    client.bucket = limited.bucket;
+    if (!limited.allowed) {
+      client.limitedInARow += 1;
+      send(
+        client,
+        error("RATE_LIMITED", "Too many messages; slow down.").message,
+      );
+      if (client.limitedInARow >= MAX_LIMITED_IN_A_ROW) {
+        client.ws.close(CLOSE.rateLimited, "Rate limit exceeded");
+      }
+      return;
+    }
+    client.limitedInARow = 0;
+
+    const parsed = isBinary ? null : parseClientMessage(toText(data));
+
+    if (client.role === null) {
+      // Nothing is accepted before a valid hello, not even a retry.
+      if (!parsed?.ok || parsed.value.type !== "hello") {
+        send(
+          client,
+          error("HELLO_REQUIRED", "The first message must be hello.").message,
+        );
+        return client.ws.close(CLOSE.helloRequired, "Hello required");
+      }
+      if (parsed.value.v !== PROTOCOL_VERSION) {
+        send(
+          client,
+          error(
+            "UNSUPPORTED_VERSION",
+            `This server speaks version ${PROTOCOL_VERSION}.`,
+          ).message,
+        );
+        return client.ws.close(CLOSE.unsupportedVersion, "Unsupported version");
+      }
+      clearTimeout(client.helloTimer);
+      // Role and name come only from the handshake, never from later messages.
+      client.role = parsed.value.role;
+      client.name = parsed.value.clientName;
+      send(client, {
+        type: "welcome",
+        connectionId: client.id,
+        recent: store.recent(WELCOME_RECENT_LIMIT),
+      });
+      logger.info("connected", {
+        connectionId: client.id,
+        role: client.role,
+        name: client.name,
+      });
+      return;
+    }
+
+    if (!parsed?.ok) {
+      // One bad message is reported, not punished: the connection stays open.
+      const reason = parsed
+        ? parsed.error.message
+        : "Binary frames are not supported.";
+      return send(client, error("BAD_MESSAGE", reason).message);
+    }
+
+    for (const out of route(client.role, parsed.value, ctx))
+      deliver(client, out);
+  }
+
+  function deliver(sender: Client, out: Outgoing) {
+    const recipients =
+      out.to === "sender"
+        ? [sender]
+        : [...clients].filter((c) =>
+            out.to === "controls" ? c.role === "control" : c.role !== null,
+          );
+    for (const client of recipients) send(client, out.message);
+    log(sender, out);
+  }
+
+  function log(sender: Client, { to, message }: Outgoing) {
+    const base = { connectionId: sender.id, name: sender.name };
+    if (message.type === "accepted") {
+      logger.info("alert accepted", {
+        ...base,
+        alertId: message.alertId,
+        duplicate: message.duplicate,
+      });
+    } else if (message.type === "acknowledged" && to === "everyone") {
+      logger.info("alert acknowledged", {
+        ...base,
+        alertId: message.alertId,
+        operator: message.operator,
+      });
+    } else if (message.type === "error") {
+      logger.warn("client error", {
+        ...base,
+        code: message.code,
+        ref: message.ref,
+      });
+    }
+  }
+
+  // Browsers answer pings automatically. A client that missed the previous
+  // ping is gone (network dropped without a close frame) and is terminated.
+  const heartbeat = setInterval(() => {
+    for (const client of clients) {
+      if (!client.alive) {
+        logger.warn("heartbeat missed", {
+          connectionId: client.id,
+          name: client.name,
+        });
+        client.ws.terminate();
+        continue;
+      }
+      client.alive = false;
+      client.ws.ping();
+    }
+  }, heartbeatMs);
+
+  server.on("upgrade", onUpgrade);
+
+  return {
+    /** Stops accepting connections and closes every socket with 1001 "going away". */
+    async close() {
+      clearInterval(heartbeat);
+      server.off("upgrade", onUpgrade);
+      const closing = [...clients].map((client) => {
+        client.ws.close(CLOSE.goingAway, "Server shutting down");
+        return once(client.ws, "close");
+      });
+      await Promise.all(closing);
+      wss.close();
+    },
+  };
+}
+
+function send(client: Client, message: ServerMessage) {
+  if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encode(message));
+}
+
+function reject(socket: Duplex, status: string) {
+  socket.end(
+    `HTTP/1.1 ${status}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
+  );
+}
+
+/** ws delivers a Buffer, an ArrayBuffer or fragments, depending on settings. */
+function toText(data: RawData): string {
+  if (Array.isArray(data)) return Buffer.concat(data).toString("utf8");
+  if (data instanceof ArrayBuffer) return Buffer.from(data).toString("utf8");
+  return data.toString("utf8");
+}
