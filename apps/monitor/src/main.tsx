@@ -9,7 +9,10 @@ import { getSourceIdentity } from "./identity";
 import { readLaunchOptions } from "./launchOptions";
 import { createAppStore } from "./store";
 import { loadSettings, persistSettings } from "./store/persistence";
-import { createInMemoryTransport } from "./transport/inMemoryTransport";
+import {
+  createWebSocketTransport,
+  relayUrl,
+} from "./transport/websocketTransport";
 import "./styles.css";
 
 // Composition root: every long-lived object is created exactly once, here,
@@ -27,8 +30,9 @@ const source = createRandomWalkSource({
 });
 const readings = createReadingsStore(defaults.windowSize);
 const identity = getSourceIdentity(session);
-// Replaced by the WebSocket transport in M5.
-const createTransport = () => createInMemoryTransport();
+// inMemoryTransport.ts remains as a server-free alternative (M7 decides if it stays).
+const createTransport = () =>
+  createWebSocketTransport({ url: relayUrl(window.location), identity });
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");

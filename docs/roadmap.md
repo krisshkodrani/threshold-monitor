@@ -14,8 +14,8 @@ instead of the full control room: M2 and M3 quality matters more than M6.
 | M2        | Monitor domain: crossing detector (+ property tests), random walk, ring buffer, chart data, threshold input, backoff, outbox | Done    | `1345bcf`            |
 | M3        | Monitor UI with an in-memory transport, Redux, persistence, hooks, components                                                | Done    | `a912d2c`, `914358b` |
 | M4        | Relay server: validation, dedupe, routing, rate limit, heartbeat, static files, shutdown                                     | Done    | `3d2c023`            |
-| M5        | Monitor WebSocket transport + contract tests                                                                                 | Next    |                      |
-| M6        | Control room app                                                                                                             | Planned |                      |
+| M5        | Monitor WebSocket transport + contract tests                                                                                 | Done    |                      |
+| M6        | Control room app                                                                                                             | Next    |                      |
 | M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Planned |                      |
 
 ## Decisions so far
@@ -87,31 +87,27 @@ These feed the ADRs and the README in M7.
 - Upgrade sockets get their own error listener (regression: an ECONNRESET after a
   403 used to crash the server).
 
-## Next: M5 — WebSocket transport
+### Transport (M5) — ADR 0004
 
-Goal: the monitor talks to the real relay and survives server restarts.
+- `websocketTransport.ts` takes a socket factory (`open`/`message`/`close`
+  events, `send`/`close` methods) instead of the WebSocket constructor, so the
+  same file runs on a fake socket in jsdom and on Node's built-in WebSocket
+  against the real relay. The URL comes from `relayUrl(window.location)` in
+  `main.tsx`; the transport never reads globals.
+- Status is `connecting` during every attempt and `reconnecting` (attempt, retryAt)
+  while it waits; the attempt count resets on `welcome`. Close code 4002 is final.
+- `welcome.recent` reconciliation emits `accepted` (and `acknowledged`, if an
+  operator acknowledged while this tab was offline) for every record with this
+  tab's `sourceId`; the store ignores ids it does not hold or that would move back.
+- Timeouts and disconnects report `queued` again for the alerts they put back.
+- The fake relay delivers events as microtasks, not timers: a round trip takes no
+  fake time, so the contract suite counts deadlines and backoff delays exactly.
+- The real-relay integration test lives in the server package
+  (`monitorTransport.integration.test.ts`): it needs Node types and the relay
+  source, which the monitor's DOM-only tsconfig does not have.
+- `inMemoryTransport.ts` is no longer used by the app; M7 decides if it stays.
 
-- `transport/websocketTransport.ts` implementing `AlertTransport`:
-  relative `/ws` URL (ws/wss from the page protocol), `hello` → wait for `welcome`
-  → flush the outbox in order; reconcile `welcome.recent` for this tab's `sourceId`
-  (emit `accepted`/`acknowledged`, remove from the outbox); `accepted` →
-  `outbox.accept`; one timer for the next pending deadline (`nextDeadline`);
-  socket close → `requeueAll`, status `reconnecting` with `backoffDelay`; attempt
-  reset after `welcome`; no reconnect after `dispose()` or close code 4002;
-  invalid server messages ignored and logged.
-- WebSocket constructor, scheduler, clock and random injected, so the contract suite
-  can run on a fake socket with fake timers (real sockets and fake timers do not mix).
-- `transport.contract.ts`: `runTransportContract(makeTransport, makeServer)` with the
-  cases from spec §8.4 (delivery, queued while offline then in order, lost `accepted`
-  → resend → one record, overflow drops oldest, backoff bounds, dispose stops
-  everything, `acknowledged` surfaced). Plus one integration test against the real
-  relay with real timers.
-- Wire into `main.tsx` (in-memory transport kept for tests); restart `pnpm dev` so the
-  server runs in development mode.
-- Done when: the monitor shows `accepted` against the dev server and recovers after a
-  server restart, with queued alerts delivered exactly once.
-
-## M6 — Control room
+## Next: M6 — Control room
 
 - `useReducer` with a pure, tested reducer: `welcomed`, `alertReceived`,
   `acknowledged`, `cleared`; dedupe by id; newest first; cap 500.
