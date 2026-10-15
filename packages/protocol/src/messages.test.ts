@@ -16,6 +16,20 @@ const ALERT_ID = "3f0c6a8e-6b1d-4c2a-9f4e-2a7d5b9c1e01";
 const SOURCE_ID = "8b2e4d71-0c3f-4a59-b6e8-5d1a9f7c3b02";
 const CONNECTION_ID = "c4a7e9b2-5f18-4d3c-8a6e-0b9d2f1c7e03";
 const NOW = "2026-10-14T09:30:00.000Z";
+const SENSOR = {
+  sensorId: "5d0a2f6e-1c3b-4e7a-9b8d-2f4e6a8c0b13",
+  label: "Sensor 1",
+  rateHz: 10,
+};
+const SETTINGS = { threshold: 25, hysteresis: 0.6 };
+const emptyWelcome: Extract<ServerMessage, { type: "welcome" }> = {
+  type: "welcome",
+  connectionId: CONNECTION_ID,
+  recent: [],
+  settings: null,
+  sensor: null,
+  readings: [],
+};
 
 function makeAlert(overrides: Partial<Alert> = {}): Alert {
   return {
@@ -44,19 +58,42 @@ function makeRecord(overrides: Partial<AlertRecord> = {}): AlertRecord {
 
 describe("valid messages round trip through encode and parse", () => {
   const clientMessages: ClientMessage[] = [
-    { type: "hello", v: 2, role: "monitor", clientName: "Monitor A3F" },
-    { type: "hello", v: 2, role: "control", clientName: "Control room" },
+    { type: "hello", v: 3, role: "monitor", clientName: "Monitor A3F" },
+    { type: "hello", v: 3, role: "control", clientName: "Control room" },
+    {
+      type: "hello",
+      v: 3,
+      role: "sensor",
+      clientName: "Sensor 1",
+      token: "a-long-sensor-token",
+      sensor: SENSOR,
+    },
     { type: "alert", alert: makeAlert() },
     { type: "ack", alertId: ALERT_ID },
+    { type: "reading", reading: { t: 1_791_000_000_000, value: 24.31 } },
+    { type: "settingsApplied", settings: SETTINGS },
+    { type: "setSettings", settings: { threshold: -12.5, hysteresis: 0 } },
   ];
 
   const serverMessages: ServerMessage[] = [
-    { type: "welcome", connectionId: CONNECTION_ID, recent: [] },
+    emptyWelcome,
     {
-      type: "welcome",
-      connectionId: CONNECTION_ID,
+      ...emptyWelcome,
       recent: [makeRecord({ acknowledgement: { operator: "Ana", at: NOW } })],
+      settings: { ...SETTINGS, updatedBy: "Ana", at: NOW },
+      sensor: SENSOR,
+      readings: [
+        { t: 1_791_000_000_000, value: 24.3 },
+        { t: 1_791_000_000_100, value: 24.35 },
+      ],
     },
+    { type: "reading", reading: { t: 1_791_000_000_000, value: 24.31 } },
+    {
+      type: "settings",
+      settings: { ...SETTINGS, updatedBy: null, at: NOW },
+    },
+    { type: "sensorStatus", sensor: SENSOR },
+    { type: "sensorStatus", sensor: null },
     { type: "alert", record: makeRecord() },
     { type: "accepted", alertId: ALERT_ID, receivedAt: NOW, duplicate: false },
     { type: "acknowledged", alertId: ALERT_ID, operator: "Ana", at: NOW },
@@ -85,7 +122,7 @@ describe("valid messages round trip through encode and parse", () => {
 
   test("an unknown protocol version still parses, so the server can reject it explicitly", () => {
     const result = parseClientMessage(
-      JSON.stringify({ type: "hello", v: 3, role: "monitor", clientName: "x" }),
+      JSON.stringify({ type: "hello", v: 4, role: "monitor", clientName: "x" }),
     );
     expect(result.ok).toBe(true);
   });
@@ -121,13 +158,10 @@ describe("invalid input is rejected without throwing", () => {
     ["an array", []],
     ["a missing type", { alertId: ALERT_ID }],
     ["an unknown type", { type: "subscribe", topic: "all" }],
-    [
-      "a server-only type sent by a client",
-      { type: "welcome", connectionId: CONNECTION_ID, recent: [] },
-    ],
+    ["a server-only type sent by a client", emptyWelcome],
     [
       "a role that does not exist",
-      { type: "hello", v: 2, role: "admin", clientName: "x" },
+      { type: "hello", v: 3, role: "admin", clientName: "x" },
     ],
     [
       "a fractional version",
@@ -135,9 +169,36 @@ describe("invalid input is rejected without throwing", () => {
     ],
     [
       "an empty client name",
-      { type: "hello", v: 2, role: "monitor", clientName: "" },
+      { type: "hello", v: 3, role: "monitor", clientName: "" },
     ],
     ["a non uuid alert id", { type: "ack", alertId: "42" }],
+    [
+      "a reading with a fractional time",
+      { type: "reading", reading: { t: 1.5, value: 24 } },
+    ],
+    [
+      "a reading out of range",
+      { type: "reading", reading: { t: 1, value: 1e7 } },
+    ],
+    [
+      "a threshold above the settings limit",
+      { type: "setSettings", settings: { threshold: 80.1, hysteresis: 0.6 } },
+    ],
+    [
+      "a hysteresis above the settings limit",
+      { type: "setSettings", settings: { threshold: 25, hysteresis: 2.1 } },
+    ],
+    [
+      "a sensor hello with a bad sensor id",
+      {
+        type: "hello",
+        v: 3,
+        role: "sensor",
+        clientName: "S",
+        token: "t",
+        sensor: { ...SENSOR, sensorId: "x" },
+      },
+    ],
   ])("client message with %s", (_label, payload) => {
     const result = parseClientMessage(JSON.stringify(payload));
     expect(result.ok).toBe(false);
@@ -180,9 +241,16 @@ describe("invalid input is rejected without throwing", () => {
 
   test("welcome with more than 100 recent records", () => {
     const message = {
-      type: "welcome",
-      connectionId: CONNECTION_ID,
+      ...emptyWelcome,
       recent: Array.from({ length: 101 }, () => makeRecord()),
+    };
+    expect(serverMessageSchema.safeParse(message).success).toBe(false);
+  });
+
+  test("welcome with more than 120 readings", () => {
+    const message = {
+      ...emptyWelcome,
+      readings: Array.from({ length: 121 }, (_, t) => ({ t, value: 1 })),
     };
     expect(serverMessageSchema.safeParse(message).success).toBe(false);
   });
