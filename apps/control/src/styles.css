@@ -293,6 +293,42 @@ button:disabled {
 }
 
 /* Unacknowledged rows carry a bar on the left; the button says it in words too. */
+/*
+ * The alarm table keeps its layout when an alarm is acknowledged: the first
+ * four columns have fixed widths, and the acknowledgement cell is as high as
+ * the Acknowledge button. Narrow screens scroll (.table-scroll).
+ */
+.alarm-table {
+  table-layout: fixed;
+  min-width: 52rem;
+}
+.col--time {
+  width: 7.5rem;
+}
+.col--source {
+  width: 10rem;
+}
+.col--direction {
+  width: 8.5rem;
+}
+.col--value {
+  width: 13.5rem;
+}
+.alarm-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ack-cell {
+  display: flex;
+  align-items: center;
+  height: 2.5rem; /* more than the button, so the content never sets it */
+}
+.ack-cell .chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .alarm--open td:first-child {
   box-shadow: inset 3px 0 0 var(--alarm);
 }
