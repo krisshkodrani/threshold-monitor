@@ -50,8 +50,8 @@ Alternatives:
 
 - The apps are static files and stay public. Their data comes only through
   `/ws`, which needs a session.
-- The relay checks the session when a socket connects. An expired session
-  stays connected until the next reconnect. Logout closes the sockets of that
-  session at once.
+- The relay checks the session when a socket connects, and again on each
+  heartbeat (every 15 s). An expired or deleted session loses its sockets
+  within one heartbeat, with 4003. Logout closes them at once.
 - There is no page to manage users or to change a password yet.
 - Behind TLS, set `COOKIE_SECURE=true`.

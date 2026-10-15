@@ -4,6 +4,7 @@ import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createHttpServer, safeNext, type AuthDeps } from "./http";
 import { silentLogger } from "./logger";
+import { escapeHtml } from "./loginPage";
 import { sessionCookie } from "./sessions";
 import { createTestAuth } from "./testing";
 import { addDemoUsers, hashPassword, verifyPassword } from "./users";
@@ -97,6 +98,26 @@ describe("session store", () => {
     expect(sessions.find("not-a-token")).toBeNull();
   });
 
+  test("isActive follows expiry and logout", async () => {
+    let now = 1_000_000;
+    const { sessions, signIn } = createTestAuth({
+      clock: () => now,
+      ttlMs: 1000,
+    });
+    const first = (await signIn({ username: "ana" })).cookie.split("=")[1]!;
+    const second = sessions.create(1);
+    const id = (token: string) => sessions.find(token)!.id;
+    const firstId = id(first);
+    const secondId = id(second);
+    expect(sessions.isActive(firstId)).toBe(true);
+
+    expect(sessions.remove(second)).toBe(secondId);
+    expect(sessions.isActive(secondId)).toBe(false);
+
+    now += 1000;
+    expect(sessions.isActive(firstId)).toBe(false);
+  });
+
   test("stores only a hash of the token", async () => {
     const { db, signIn } = createTestAuth();
     const { cookie } = await signIn({ username: "ana" });
@@ -134,6 +155,12 @@ describe("session store", () => {
   });
 });
 
+test("escapeHtml escapes the five special characters", () => {
+  expect(escapeHtml(`<a href="x">Tom & 'Jerry'</a>`)).toBe(
+    "&lt;a href=&quot;x&quot;&gt;Tom &amp; &#39;Jerry&#39;&lt;/a&gt;",
+  );
+});
+
 describe("safeNext", () => {
   test.each([
     ["/control/", "/control/"],
@@ -144,6 +171,14 @@ describe("safeNext", () => {
     ["//evil.example", "/"],
     ["/\\evil.example", "/"],
     ["https://evil.example", "/"],
+    // Browsers remove tab and newline, so these would become "//evil.example".
+    ["/\t/evil.example", "/"],
+    ["/\n/evil.example", "/"],
+    ["/\r/evil.example", "/"],
+    ["/\u0000/evil.example", "/"],
+    ["/\\/evil.example", "/"],
+    ["/control/?view=open#top", "/control/?view=open#top"],
+    ["/%09/evil.example", "/%09/evil.example"], // encoded: stays a path here
   ])("%j becomes %j", (next, expected) => {
     expect(safeNext(next)).toBe(expected);
   });
@@ -202,7 +237,9 @@ describe("login routes", () => {
       "default-src 'none'",
     );
     const html = await res.text();
-    expect(html).toContain('value="/control/&quot;&gt;&lt;b&gt;"');
+    // The URL parser encodes the quote and brackets; the HTML stays intact.
+    expect(html).toContain('value="/control/%22%3E%3Cb%3E"');
+    expect(html).not.toContain("<b>");
     expect(html).not.toContain("<script");
   });
 
@@ -259,6 +296,19 @@ describe("login routes", () => {
       password: "secret-1",
       next: "//evil.example/",
     });
+    expect(res.headers.get("location")).toBe("/");
+  });
+
+  // Regression: a TAB after the first slash passed the check, and browsers
+  // removed it from the Location header, which gave "//evil.example".
+  test("a tab in next cannot make an open redirect", async () => {
+    const { login } = await start();
+    const res = await login({
+      username: "ana",
+      password: "secret-1",
+      next: "/\t/evil.example",
+    });
+    expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe("/");
   });
 

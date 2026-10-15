@@ -15,7 +15,7 @@ and with typecheck, lint, format and tests green.
 | M5        | Monitor WebSocket transport + contract tests                                                                                 | Done   | `0ca55f9`            |
 | M6        | Control room app                                                                                                             | Done   | `5955cb6`            |
 | M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Done   | `33c8823`            |
-| M8        | Login with sessions for both apps, SQLite for users, sessions and alerts                                                     | Done   | branch `feat/auth`   |
+| M8        | Login with sessions for both apps, SQLite for users, sessions and alerts                                                     | Done   | `e64a52e`–`2b3bcda`  |
 
 ## Decisions
 

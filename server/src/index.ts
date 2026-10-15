@@ -44,6 +44,7 @@ const relay = attachRelay(server, {
   store,
   logger,
   authenticate: (req) => authenticate(req, sessions),
+  isSessionActive: (sessionId) => sessions.isActive(sessionId),
 });
 
 server.on("error", (err) => {

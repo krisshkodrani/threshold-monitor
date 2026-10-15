@@ -29,6 +29,8 @@ export type RelayDeps = {
   store: AlertStore;
   /** The session of an upgrade request, from its cookie. Null if there is none. */
   authenticate: (req: IncomingMessage) => Session | null;
+  /** Checked on each heartbeat, so an expired or deleted session loses its sockets. */
+  isSessionActive: (sessionId: string) => boolean;
   logger: Logger;
   clock?: () => number;
   newId?: () => string;
@@ -72,6 +74,7 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     config,
     store,
     authenticate,
+    isSessionActive,
     logger,
     clock = Date.now,
     newId = () => crypto.randomUUID(),
@@ -275,8 +278,17 @@ export function attachRelay(server: Server, deps: RelayDeps) {
 
   // Browsers answer pings automatically. A client that missed the previous
   // ping is gone (network dropped without a close frame) and is terminated.
+  // A client whose session expired or was deleted is closed with 4003.
   const heartbeat = setInterval(() => {
     for (const client of clients) {
+      if (!isSessionActive(client.session.id)) {
+        logger.info("session ended, socket closed", {
+          connectionId: client.id,
+          username: client.session.username,
+        });
+        client.ws.close(CLOSE.unauthorized, "Session expired");
+        continue;
+      }
       if (!client.alive) {
         logger.warn("heartbeat missed", {
           connectionId: client.id,

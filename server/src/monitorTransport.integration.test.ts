@@ -53,6 +53,7 @@ async function startRelay(port = 0) {
       displayName: "Ada",
       roles: ["operator", "monitor"],
     }),
+    isSessionActive: () => true,
   });
   server.listen(port, "127.0.0.1");
   await once(server, "listening");
