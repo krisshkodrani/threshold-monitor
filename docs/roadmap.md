@@ -177,6 +177,14 @@ The ADRs and the README use these decisions.
   definitions with a `cell` render function. The rule "share the contract, not
   the logic" now also allows generic UI parts.
 
+### Hidden tabs
+
+- Browsers slow timers in hidden tabs (1 tick each second, later 1 each
+  minute), so the temperature looked stuck. The random-walk source now takes
+  the due readings from the clock, each with its scheduled time, and makes up
+  at most the last minute (`MAX_CATCH_UP_MS`). A pause or a rate change starts
+  a new schedule and is never made up.
+
 ## Out of scope
 
 User management page, single sign-on (OIDC), horizontal scaling,

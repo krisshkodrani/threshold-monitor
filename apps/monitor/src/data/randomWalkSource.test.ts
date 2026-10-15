@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Reading } from "./DataSource";
-import { createRandomWalkSource } from "./randomWalkSource";
+import { createRandomWalkSource, MAX_CATCH_UP_MS } from "./randomWalkSource";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -73,6 +73,46 @@ describe("randomWalkSource", () => {
     listen();
     source.setRate(10);
     expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(1000);
+    expect(readings).toHaveLength(10);
+  });
+
+  // A hidden tab: the browser fires the timer late. Date.now moves on, but
+  // the interval does not fire until the end.
+  test("a late tick emits every reading that is due, each at its own time", () => {
+    const { readings, listen } = setup(10);
+    listen();
+    const start = Date.now();
+    vi.setSystemTime(start + 5_000);
+    vi.advanceTimersByTime(100);
+
+    expect(readings).toHaveLength(51);
+    expect(readings.map((r) => r.t - start)).toEqual(
+      Array.from({ length: 51 }, (_, i) => (i + 1) * 100),
+    );
+  });
+
+  test("after a long hidden time only the last minute is made up", () => {
+    const { readings, listen } = setup(10);
+    listen();
+    const start = Date.now();
+    vi.setSystemTime(start + 10 * 60_000);
+    vi.advanceTimersByTime(100);
+
+    const now = start + 10 * 60_000 + 100;
+    expect(readings).toHaveLength(MAX_CATCH_UP_MS / 100 + 1);
+    expect(now - readings[0]!.t).toBe(MAX_CATCH_UP_MS);
+    expect(readings.at(-1)!.t).toBe(now);
+    // Still on the original 100 ms grid.
+    expect(readings.every((r) => (r.t - start) % 100 === 0)).toBe(true);
+  });
+
+  test("a pause is not made up after resume", () => {
+    const { source, readings, listen } = setup(10);
+    listen();
+    source.pause();
+    vi.setSystemTime(Date.now() + 60_000);
+    source.resume();
     vi.advanceTimersByTime(1000);
     expect(readings).toHaveLength(10);
   });

@@ -74,6 +74,12 @@ the control room as `monitor` to see the role check.
 The monitor reads two optional URL parameters: `rate` (1, 2, 5 or 10 readings
 each second) and `seed` (an integer for the random data).
 
+Browsers slow the timers of a hidden tab. The data source therefore takes the
+number of due readings from the clock, not from the timer: when the tab is
+visible again, it makes the missed readings with their own times, so the data
+has no gap and the crossings in that time are still sent. After more than one
+minute hidden, only the last minute is made up.
+
 ## Production build
 
 ```sh
@@ -248,7 +254,7 @@ builds the Docker image and waits until the container reports healthy.
 
 | Package             | Tests | What they cover                                                                                                                                                                         |
 | ------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/monitor`      | 207   | Detector (with fast-check properties), outbox, backoff, transport contract on a fake relay, components, accessibility (axe)                                                             |
+| `apps/monitor`      | 210   | Detector (with fast-check properties), outbox, backoff, transport contract on a fake relay, components, accessibility (axe)                                                             |
 | `server`            | 120   | Routing rules, relay on real sockets, sessions and roles, login routes, passwords, both alert stores, configuration, HTTP, and one test of the monitor transport against the real relay |
 | `packages/protocol` | 40    | Each message schema, valid and invalid                                                                                                                                                  |
 | `packages/ui`       | 5     | DataTable: rows and cells from the columns, widths, classes, tooltips, the named scroll region, the empty state, accessibility (axe)                                                    |
