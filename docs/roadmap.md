@@ -1,9 +1,7 @@
 # Roadmap
 
-Working plan for the take-home, built milestone by milestone. Each milestone ends
-with typecheck, lint, format and tests green, one focused commit, and a review stop.
-Time budget: 2 days. If time runs short, stop after M5 with a minimal log page
-instead of the full control room: M2 and M3 quality matters more than M6.
+The project was built in eight milestones. Each milestone ended with one commit,
+and with typecheck, lint, format and tests green.
 
 ## Status
 
@@ -16,11 +14,11 @@ instead of the full control room: M2 and M3 quality matters more than M6.
 | M4        | Relay server: validation, dedupe, routing, rate limit, heartbeat, static files, shutdown                                     | Done   | `3d2c023`            |
 | M5        | Monitor WebSocket transport + contract tests                                                                                 | Done   | `0ca55f9`            |
 | M6        | Control room app                                                                                                             | Done   | `5955cb6`            |
-| M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Done   |                      |
+| M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Done   | `33c8823`            |
 
-## Decisions so far
+## Decisions
 
-These feed the ADRs and the README in M7.
+The ADRs and the README use these decisions.
 
 ### Platform and tooling
 
@@ -31,8 +29,9 @@ These feed the ADRs and the README in M7.
   pinned to 1.63.0 because 1.64.1 was too new).
 - **Server bundled with tsup**, `@app/protocol` inlined (`noExternal`), so the
   source-only protocol package never needs a build step.
-- Approved additions beyond the spec list: `@testing-library/jest-dom`; `axe-core`
-  used directly because `vitest-axe` is unmaintained.
+- Additions to the dependency list of the specification:
+  `@testing-library/jest-dom`; `axe-core` used directly because `vitest-axe` is
+  unmaintained.
 
 ### Protocol (M1)
 
@@ -147,7 +146,7 @@ These feed the ADRs and the README in M7.
   done. Buttons use a new `--on-accent` token: dark text on the light
   dark-mode blue, because white text on it had low contrast.
 
-## Out of scope (README "next steps")
+## Out of scope
 
 Authentication, a database (SQLite behind `AlertStore`), horizontal scaling,
 high and low thresholds, multiple data sources, Turborepo, canvas charts for high
