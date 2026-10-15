@@ -19,7 +19,7 @@ export default defineConfig({
   webServer: {
     command: "node ../server/dist/index.js",
     url: `http://127.0.0.1:${PORT}/healthz`,
-    // A fresh in-memory database for each run, with the two demo users.
+    // A fresh in-memory database for each run, with the demo users.
     env: {
       PORT: String(PORT),
       LOG_LEVEL: "error",

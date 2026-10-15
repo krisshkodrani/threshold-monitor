@@ -35,7 +35,10 @@ text, so "Acknowledged by" could not be trusted.
   `next` value that must be a local path (no open redirect). The login page
   has no scripts and a strict Content-Security-Policy.
 - **Users** are added with a CLI (`user:add`); the password comes from stdin.
-  `DEMO_USERS=true` adds two demo users for development and tests.
+  `DEMO_USERS=true` adds three demo users for development and tests:
+  `operator` and `monitor` (one role each) and `demo` (both roles). One
+  browser keeps one cookie for `localhost`, so `demo` opens both apps in one
+  browser.
 
 Alternatives:
 

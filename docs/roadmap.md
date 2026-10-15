@@ -160,6 +160,11 @@ The ADRs and the README use these decisions.
   implements `AlertStore`; `RECENT_LIMIT` is removed.
 - The control room lost its operator name form. Both apps show the user and a
   **Log out** button.
+- Review fixes after M8: `safeNext` refuses control characters and uses the
+  URL parser (a TAB made an open redirect); the relay checks each session on
+  every heartbeat, so an expired session loses its sockets within 15 s.
+- Demo user `demo` with both roles: one browser has one cookie for
+  `localhost`, so one login must open both apps.
 
 ## Out of scope
 
