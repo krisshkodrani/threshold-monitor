@@ -7,6 +7,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createHttpServer } from "./http";
 import { silentLogger } from "./logger";
+import { createTestAuth } from "./testing";
 
 let root: string;
 let server: Server;
@@ -31,7 +32,11 @@ beforeAll(async () => {
   );
   writeFileSync(path.join(root, "secret.txt"), "TOP SECRET");
 
-  server = createHttpServer({ staticDir: root, logger: silentLogger });
+  server = createHttpServer({
+    staticDir: root,
+    logger: silentLogger,
+    auth: createTestAuth().auth,
+  });
   server.listen(0);
   await once(server, "listening");
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -96,7 +101,11 @@ describe("http server", () => {
 
 test("without built apps it still answers health checks and 404s pages", async () => {
   const empty = mkdtempSync(path.join(tmpdir(), "relay-empty-"));
-  const bare = createHttpServer({ staticDir: empty, logger: silentLogger });
+  const bare = createHttpServer({
+    staticDir: empty,
+    logger: silentLogger,
+    auth: createTestAuth().auth,
+  });
   bare.listen(0);
   await once(bare, "listening");
   const url = `http://127.0.0.1:${(bare.address() as AddressInfo).port}`;
