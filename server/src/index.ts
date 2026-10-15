@@ -1,5 +1,6 @@
-import { createMemoryAlertStore } from "./alertStore";
+import { createSqliteAlertStore } from "./alertStore";
 import { loadConfig, type Config } from "./config";
+import { openDatabase } from "./db";
 import { createHttpServer } from "./http";
 import { createLogger } from "./logger";
 import { attachRelay } from "./relay";
@@ -16,7 +17,8 @@ try {
 }
 
 const logger = createLogger(config.logLevel);
-const store = createMemoryAlertStore(config.recentLimit);
+const db = openDatabase(config.databasePath);
+const store = createSqliteAlertStore(db);
 const server = createHttpServer({ staticDir: config.staticDir, logger });
 const relay = attachRelay(server, { config, store, logger });
 
@@ -30,6 +32,7 @@ server.listen(config.port, () => {
     port: config.port,
     mode: config.mode,
     staticDir: config.staticDir,
+    databasePath: config.databasePath,
   });
 });
 
@@ -49,6 +52,7 @@ async function shutdown(signal: string) {
   server.close(); // stop accepting new connections
   await relay.close(); // 1001 "going away" to every client; they reconnect elsewhere
   server.closeAllConnections(); // idle keep-alive HTTP connections
+  db.close();
   logger.info("stopped");
   process.exit(0);
 }

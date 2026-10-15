@@ -9,12 +9,20 @@ describe("loadConfig", () => {
       port: 8080,
       mode: "production",
       allowedOrigins: [],
-      recentLimit: 500,
       logLevel: "info",
     });
     expect(config.staticDir).toBe(
       path.resolve(import.meta.dirname, "../../apps"),
     );
+    expect(config).toMatchObject({
+      databasePath: path.resolve(
+        import.meta.dirname,
+        "../../data/threshold-monitor.db",
+      ),
+      sessionTtlMs: 12 * 60 * 60 * 1000,
+      cookieSecure: false,
+      demoUsers: false,
+    });
   });
 
   test("treats empty variables as unset", () => {
@@ -29,14 +37,20 @@ describe("loadConfig", () => {
       PORT: "9000",
       NODE_ENV: "development",
       ALLOWED_ORIGINS: " https://a.example , https://b.example ,",
-      RECENT_LIMIT: "50",
       LOG_LEVEL: "debug",
+      DATABASE_PATH: ":memory:",
+      SESSION_TTL_HOURS: "1",
+      COOKIE_SECURE: "true",
+      DEMO_USERS: "1",
     });
     expect(config).toMatchObject({
+      databasePath: ":memory:",
+      sessionTtlMs: 60 * 60 * 1000,
+      cookieSecure: true,
+      demoUsers: true,
       port: 9000,
       mode: "development",
       allowedOrigins: ["https://a.example", "https://b.example"],
-      recentLimit: 50,
       logLevel: "debug",
     });
   });
@@ -44,9 +58,10 @@ describe("loadConfig", () => {
   test.each([
     [{ PORT: "eighty" }, "PORT"],
     [{ PORT: "70000" }, "PORT"],
-    [{ RECENT_LIMIT: "0" }, "RECENT_LIMIT"],
     [{ NODE_ENV: "staging" }, "NODE_ENV"],
     [{ LOG_LEVEL: "loud" }, "LOG_LEVEL"],
+    [{ SESSION_TTL_HOURS: "0" }, "SESSION_TTL_HOURS"],
+    [{ COOKIE_SECURE: "maybe" }, "COOKIE_SECURE"],
   ])("rejects %j, naming the variable", (env, name) => {
     expect(() => loadConfig(env)).toThrow(
       new RegExp(`Invalid configuration: .*${name}`),

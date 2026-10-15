@@ -9,4 +9,6 @@ export default defineConfig({
   // into the server output. It is a devDependency for the same reason: it never
   // needs to exist in the production node_modules.
   noExternal: ["@app/protocol"],
+  // Keep "node:" in imports: node:sqlite has no name without the prefix.
+  removeNodeProtocol: false,
 });
