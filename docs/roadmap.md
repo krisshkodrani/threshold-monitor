@@ -15,8 +15,8 @@ instead of the full control room: M2 and M3 quality matters more than M6.
 | M3        | Monitor UI with an in-memory transport, Redux, persistence, hooks, components                                                | Done   | `a912d2c`, `914358b` |
 | M4        | Relay server: validation, dedupe, routing, rate limit, heartbeat, static files, shutdown                                     | Done   | `3d2c023`            |
 | M5        | Monitor WebSocket transport + contract tests                                                                                 | Done   | `0ca55f9`            |
-| M6        | Control room app                                                                                                             | Done   |                      |
-| M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Next   |                      |
+| M6        | Control room app                                                                                                             | Done   | `5955cb6`            |
+| M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Done   |                      |
 
 ## Decisions so far
 
@@ -105,7 +105,7 @@ These feed the ADRs and the README in M7.
 - The real-relay integration test lives in the server package
   (`monitorTransport.integration.test.ts`): it needs Node types and the relay
   source, which the monitor's DOM-only tsconfig does not have.
-- `inMemoryTransport.ts` is no longer used by the app; M7 decides if it stays.
+- `inMemoryTransport.ts` was no longer used by the app and was removed in M7.
 
 ### Control room (M6)
 
@@ -125,21 +125,27 @@ These feed the ADRs and the README in M7.
 - Relay errors with a `ref` end the pending ack; the message is shown in a
   `role="alert"` notice.
 
-## Next: M7 — Packaging and docs
+### Packaging and docs (M7)
 
-- Multi-stage Dockerfile (node:24-alpine, non-root, `pnpm deploy --prod`,
-  HEALTHCHECK on `/healthz`), `docker-compose.yml`, `.dockerignore`.
-- One Playwright spec against the production build: set operator → alarm appears →
-  monitor shows `accepted` → acknowledge → monitor shows `acknowledged by <name>` →
-  no duplicate rows.
-- CI: add Playwright and `docker build`; update GitHub Actions to current major
-  versions (Node 20 deprecation notice).
-- README (summary + GIF placeholder, quick start, two-minute demo, architecture,
-  decisions, testing strategy, spec interpretation, scaling, next steps), ADRs
-  0001–0005, `docs/architecture.md` with the scaling section.
-- Final pass: remove dead code; every file explainable. Known candidates:
-  split `server/src/relay.ts` (280 lines) if it reads better; mention bundle
-  code-splitting for Recharts (monitor bundle ~200 KB gzipped).
+- Docker: two stages on `node:24-alpine`. `pnpm deploy --prod --legacy` gives
+  the server's production dependencies only (sirv, ws, zod); `--legacy` is
+  enough because no workspace package is needed at run time (protocol is
+  bundled). Files are owned by root, the process runs as `node`. The health
+  check uses Node's `fetch`, so the image needs no curl or wget.
+- `docker-compose.yml` runs the container read-only, with all capabilities
+  dropped and `no-new-privileges`: the relay only reads files.
+- The Playwright test is its own workspace package (`e2e/`), so it has its own
+  tsconfig and lint setup. It runs against `server/dist` on port 8090, the way
+  production runs, with two browser contexts (operator and monitor).
+- CI: actions updated to checkout v7, setup-node v7, pnpm/action-setup v6,
+  upload-artifact v7 (all run on Node 24). The check job adds the Playwright
+  run; a second job builds the image and waits for "healthy".
+- README uses two screenshots in `docs/images/` in place of a GIF.
+- Final pass: `inMemoryTransport.ts` removed (unused since M5). `relay.ts`
+  stays one file: the rules already live in `routing.ts`, and what remains is
+  one socket lifecycle. Recharts code splitting is listed as a next step, not
+  done. Buttons use a new `--on-accent` token: dark text on the light
+  dark-mode blue, because white text on it had low contrast.
 
 ## Out of scope (README "next steps")
 

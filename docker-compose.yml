@@ -1,0 +1,16 @@
+services:
+  relay:
+    build: .
+    image: threshold-monitor
+    ports:
+      - "8080:8080"
+    environment:
+      LOG_LEVEL: info
+      # RECENT_LIMIT: "500"
+      # ALLOWED_ORIGINS: "https://monitor.example.com"
+    restart: unless-stopped
+    # The server only reads its files and keeps all state in memory.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 10s

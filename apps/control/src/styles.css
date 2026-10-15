@@ -13,6 +13,7 @@
   --text-muted: #5b6573;
 
   --accent: #2563c9;
+  --on-accent: #ffffff;
   --ok: #1d7a46;
   --warn: #a35a00;
   --alarm: #b42318;
@@ -44,6 +45,7 @@
     --text-muted: #9aa5b1;
 
     --accent: #6ea2ff;
+    --on-accent: #0f1419; /* white on the light dark-mode blue is too faint */
     --ok: #4cc38a;
     --warn: #f0a640;
     --alarm: #ff6b5e;
@@ -170,7 +172,7 @@ input[aria-invalid="true"] {
 button {
   font: inherit;
   font-weight: 600;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent);
   border: 0;
   border-radius: var(--radius);

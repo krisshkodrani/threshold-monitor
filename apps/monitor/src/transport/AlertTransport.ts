@@ -17,7 +17,7 @@ export type DeliveryStatus = DeliveryUpdate["status"];
 
 /**
  * How alerts leave the monitor. The app only depends on this interface, so the
- * in-memory and WebSocket implementations are interchangeable.
+ * WebSocket transport and the test fakes are interchangeable.
  */
 export interface AlertTransport {
   send(alert: Alert): void;

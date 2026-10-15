@@ -30,7 +30,6 @@ const source = createRandomWalkSource({
 });
 const readings = createReadingsStore(defaults.windowSize);
 const identity = getSourceIdentity(session);
-// inMemoryTransport.ts remains as a server-free alternative (M7 decides if it stays).
 const createTransport = () =>
   createWebSocketTransport({ url: relayUrl(window.location), identity });
 

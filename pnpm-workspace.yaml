@@ -2,5 +2,6 @@ packages:
   - apps/*
   - server
   - packages/*
+  - e2e
 allowBuilds:
   esbuild: true
