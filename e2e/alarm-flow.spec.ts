@@ -41,6 +41,17 @@ test("an alarm goes from the monitor to the control room and back", async ({
 
   // 4. Acknowledge the newest alarm; the monitor learns who did it, by the
   //    name from the operator's session.
+  // The table must not move: the same column widths and row heights after.
+  const layout = () =>
+    control.evaluate(() => ({
+      columns: [...document.querySelectorAll("thead th")].map(
+        (th) => th.getBoundingClientRect().width,
+      ),
+      rows: [...document.querySelectorAll("tbody tr")].map(
+        (tr) => tr.getBoundingClientRect().height,
+      ),
+    }));
+  const before = await layout();
   await control
     .getByRole("button", { name: /^Acknowledge / })
     .first()
@@ -48,6 +59,7 @@ test("an alarm goes from the monitor to the control room and back", async ({
   await expect(
     control.getByText(/^Acknowledged by Demo Operator at/),
   ).toHaveCount(1);
+  expect(await layout()).toEqual(before);
   await expect(
     monitor.locator(".chip--acknowledged", {
       hasText: "Acknowledged by Demo Operator",

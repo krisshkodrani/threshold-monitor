@@ -19,7 +19,15 @@ export function AlarmList({
   return (
     // Scrolls horizontally on narrow screens instead of squashing columns.
     <div className="table-scroll">
-      <table>
+      <table className="alarm-table">
+        {/* Fixed widths: an acknowledgement does not move the columns. */}
+        <colgroup>
+          <col className="col--time" />
+          <col className="col--source" />
+          <col className="col--direction" />
+          <col className="col--value" />
+          <col />
+        </colgroup>
         <thead>
           <tr>
             <th scope="col">Time</th>
@@ -38,7 +46,7 @@ export function AlarmList({
                 className={alarm.acknowledgement ? undefined : "alarm--open"}
               >
                 <td className="num">{formatClock(alarm.eventTime)}</td>
-                <td>{alarm.sourceLabel}</td>
+                <td title={alarm.sourceLabel}>{alarm.sourceLabel}</td>
                 <td>
                   <span aria-hidden="true">
                     {alarm.direction === "up" ? "▲" : "▼"}
@@ -50,21 +58,27 @@ export function AlarmList({
                   {formatThreshold(alarm.threshold)} {alarm.unit}
                 </td>
                 <td>
-                  {alarm.acknowledgement ? (
-                    <span className="chip chip--acknowledged">
-                      Acknowledged by {alarm.acknowledgement.operator} at{" "}
-                      {formatClock(alarm.acknowledgement.at)}
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={!canAcknowledge || pending}
-                      aria-label={`Acknowledge ${alarm.direction} crossing at ${formatClock(alarm.eventTime)} from ${alarm.sourceLabel}`}
-                      onClick={() => onAcknowledge(alarm.id)}
-                    >
-                      {pending ? "Acknowledging…" : "Acknowledge"}
-                    </button>
-                  )}
+                  {/* As high as the button, so the row keeps its height after the ack. */}
+                  <div className="ack-cell">
+                    {alarm.acknowledgement ? (
+                      <span
+                        className="chip chip--acknowledged"
+                        title={`Acknowledged by ${alarm.acknowledgement.operator}`}
+                      >
+                        Acknowledged by {alarm.acknowledgement.operator} at{" "}
+                        {formatClock(alarm.acknowledgement.at)}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={!canAcknowledge || pending}
+                        aria-label={`Acknowledge ${alarm.direction} crossing at ${formatClock(alarm.eventTime)} from ${alarm.sourceLabel}`}
+                        onClick={() => onAcknowledge(alarm.id)}
+                      >
+                        {pending ? "Acknowledging…" : "Acknowledge"}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );
