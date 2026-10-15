@@ -6,6 +6,11 @@ const DEV_ORIGINS = ["http://localhost:5173", "http://localhost:5174"];
 // The built apps live next to the server in the repo and in the Docker image:
 // <root>/server/dist/index.js (or src/ under tsx) and <root>/apps/*/dist.
 const DEFAULT_STATIC_DIR = path.resolve(import.meta.dirname, "../../apps");
+// The same way: <root>/data, which is a volume in Docker.
+const DEFAULT_DATABASE_PATH = path.resolve(
+  import.meta.dirname,
+  "../../data/threshold-monitor.db",
+);
 
 // Environment variables are strings; empty strings count as "not set".
 const optional = <T extends z.ZodType>(schema: T) =>
@@ -19,12 +24,21 @@ const envSchema = z.object({
   ),
   ALLOWED_ORIGINS: optional(z.string().default("")),
   STATIC_DIR: optional(z.string().default(DEFAULT_STATIC_DIR)),
-  RECENT_LIMIT: optional(
-    z.coerce.number().int().min(1).max(100_000).default(500),
-  ),
   LOG_LEVEL: optional(
     z.enum(["debug", "info", "warn", "error"]).default("info"),
   ),
+  DATABASE_PATH: optional(z.string().default(DEFAULT_DATABASE_PATH)),
+  SESSION_TTL_HOURS: optional(
+    z.coerce
+      .number()
+      .positive()
+      .max(24 * 30)
+      .default(12),
+  ),
+  // Off by default, so plain http://localhost works; set it behind TLS.
+  COOKIE_SECURE: optional(z.stringbool().default(false)),
+  // Adds the demo users "operator" and "monitor" (password "demo") at start.
+  DEMO_USERS: optional(z.stringbool().default(false)),
 });
 
 export type Config = {
@@ -32,8 +46,11 @@ export type Config = {
   mode: "production" | "development" | "test";
   allowedOrigins: string[];
   staticDir: string;
-  recentLimit: number;
   logLevel: "debug" | "info" | "warn" | "error";
+  databasePath: string;
+  sessionTtlMs: number;
+  cookieSecure: boolean;
+  demoUsers: boolean;
 };
 
 /** Parses the environment once at startup. Throws a readable error so the process can fail fast. */
@@ -53,8 +70,14 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
       .map((origin) => origin.trim())
       .filter(Boolean),
     staticDir: path.resolve(e.STATIC_DIR),
-    recentLimit: e.RECENT_LIMIT,
     logLevel: e.LOG_LEVEL,
+    databasePath:
+      e.DATABASE_PATH === ":memory:"
+        ? e.DATABASE_PATH
+        : path.resolve(e.DATABASE_PATH),
+    sessionTtlMs: e.SESSION_TTL_HOURS * 60 * 60 * 1000,
+    cookieSecure: e.COOKIE_SECURE,
+    demoUsers: e.DEMO_USERS,
   };
 }
 
