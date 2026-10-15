@@ -44,10 +44,10 @@ function makeRecord(overrides: Partial<AlertRecord> = {}): AlertRecord {
 
 describe("valid messages round trip through encode and parse", () => {
   const clientMessages: ClientMessage[] = [
-    { type: "hello", v: 1, role: "monitor", clientName: "Monitor A3F" },
-    { type: "hello", v: 1, role: "control", clientName: "Control room" },
+    { type: "hello", v: 2, role: "monitor", clientName: "Monitor A3F" },
+    { type: "hello", v: 2, role: "control", clientName: "Control room" },
     { type: "alert", alert: makeAlert() },
-    { type: "ack", alertId: ALERT_ID, operator: "Ana" },
+    { type: "ack", alertId: ALERT_ID },
   ];
 
   const serverMessages: ServerMessage[] = [
@@ -85,11 +85,12 @@ describe("valid messages round trip through encode and parse", () => {
 
   test("an unknown protocol version still parses, so the server can reject it explicitly", () => {
     const result = parseClientMessage(
-      JSON.stringify({ type: "hello", v: 2, role: "monitor", clientName: "x" }),
+      JSON.stringify({ type: "hello", v: 3, role: "monitor", clientName: "x" }),
     );
     expect(result.ok).toBe(true);
   });
 
+  // Version 1 clients sent an operator name; it is now dropped, never trusted.
   test("unknown extra fields are stripped, not passed through", () => {
     const result = parseClientMessage(
       JSON.stringify({
@@ -101,7 +102,7 @@ describe("valid messages round trip through encode and parse", () => {
     );
     expect(result).toEqual({
       ok: true,
-      value: { type: "ack", alertId: ALERT_ID, operator: "Ana" },
+      value: { type: "ack", alertId: ALERT_ID },
     });
   });
 });
@@ -118,7 +119,7 @@ describe("invalid input is rejected without throwing", () => {
   test.each([
     ["null", null],
     ["an array", []],
-    ["a missing type", { alertId: ALERT_ID, operator: "Ana" }],
+    ["a missing type", { alertId: ALERT_ID }],
     ["an unknown type", { type: "subscribe", topic: "all" }],
     [
       "a server-only type sent by a client",
@@ -126,7 +127,7 @@ describe("invalid input is rejected without throwing", () => {
     ],
     [
       "a role that does not exist",
-      { type: "hello", v: 1, role: "admin", clientName: "x" },
+      { type: "hello", v: 2, role: "admin", clientName: "x" },
     ],
     [
       "a fractional version",
@@ -134,13 +135,9 @@ describe("invalid input is rejected without throwing", () => {
     ],
     [
       "an empty client name",
-      { type: "hello", v: 1, role: "monitor", clientName: "" },
+      { type: "hello", v: 2, role: "monitor", clientName: "" },
     ],
-    ["a non uuid alert id", { type: "ack", alertId: "42", operator: "Ana" }],
-    [
-      "an oversize operator name",
-      { type: "ack", alertId: ALERT_ID, operator: "x".repeat(41) },
-    ],
+    ["a non uuid alert id", { type: "ack", alertId: "42" }],
   ])("client message with %s", (_label, payload) => {
     const result = parseClientMessage(JSON.stringify(payload));
     expect(result.ok).toBe(false);

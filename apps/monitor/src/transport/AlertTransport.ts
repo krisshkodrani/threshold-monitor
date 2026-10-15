@@ -4,7 +4,8 @@ export type ConnectionStatus =
   | { kind: "connecting" }
   | { kind: "open" }
   | { kind: "reconnecting"; attempt: number; retryAt: number }
-  | { kind: "closed" }; // disposed or given up; no more retries
+  | { kind: "closed" } // disposed or given up; no more retries
+  | { kind: "signedOut" }; // the relay needs a login (close code 4003); no more retries
 
 export type DeliveryUpdate =
   | { alertId: string; status: "queued" }

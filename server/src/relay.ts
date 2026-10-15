@@ -21,10 +21,14 @@ import {
   type BucketConfig,
 } from "./rateLimiter";
 import { error, route, type Outgoing, type Role } from "./routing";
+import type { Session } from "./sessions";
+import type { UserRole } from "./users";
 
 export type RelayDeps = {
   config: Pick<Config, "mode" | "allowedOrigins">;
   store: AlertStore;
+  /** The session of an upgrade request, from its cookie. Null if there is none. */
+  authenticate: (req: IncomingMessage) => Session | null;
   logger: Logger;
   clock?: () => number;
   newId?: () => string;
@@ -36,6 +40,7 @@ export type RelayDeps = {
 type Client = {
   id: string;
   ws: WebSocket;
+  session: Session;
   role: Role | null; // null until a valid hello
   name: string;
   connectedAt: number;
@@ -49,16 +54,24 @@ type Client = {
 const CLOSE = {
   helloRequired: 4001,
   unsupportedVersion: 4002,
+  unauthorized: 4003,
   rateLimited: 4008,
   goingAway: 1001,
 };
 const MAX_LIMITED_IN_A_ROW = 100;
+
+/** The user role that a hello role needs. */
+const NEEDED_ROLE: Record<Role, UserRole> = {
+  monitor: "monitor",
+  control: "operator",
+};
 
 /** Accepts WebSocket upgrades on /ws and relays messages between monitors and control rooms. */
 export function attachRelay(server: Server, deps: RelayDeps) {
   const {
     config,
     store,
+    authenticate,
     logger,
     clock = Date.now,
     newId = () => crypto.randomUUID(),
@@ -87,13 +100,21 @@ export function attachRelay(server: Server, deps: RelayDeps) {
       logger.warn("origin rejected", { origin: req.headers.origin });
       return reject(socket, "403 Forbidden");
     }
-    wss.handleUpgrade(req, socket, head, onConnection);
+    const session = authenticate(req);
+    wss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, session));
   }
 
-  function onConnection(ws: WebSocket) {
+  function onConnection(ws: WebSocket, session: Session | null) {
+    if (!session) {
+      // A browser cannot read the status of a refused upgrade, but it can
+      // read a close code: 4003 tells the app to show the login page.
+      logger.info("unauthorized connection closed");
+      return ws.close(CLOSE.unauthorized, "Unauthorized");
+    }
     const client: Client = {
       id: newId(),
       ws,
+      session,
       role: null,
       name: "",
       connectedAt: clock(),
@@ -166,6 +187,21 @@ export function attachRelay(server: Server, deps: RelayDeps) {
         return client.ws.close(CLOSE.unsupportedVersion, "Unsupported version");
       }
       clearTimeout(client.helloTimer);
+      if (!client.session.roles.includes(NEEDED_ROLE[parsed.value.role])) {
+        send(
+          client,
+          error(
+            "NOT_ALLOWED",
+            `This account cannot connect as ${parsed.value.role}.`,
+          ).message,
+        );
+        logger.warn("role refused", {
+          connectionId: client.id,
+          username: client.session.username,
+          role: parsed.value.role,
+        });
+        return client.ws.close(CLOSE.unauthorized, "Role not allowed");
+      }
       // Role and name come only from the handshake, never from later messages.
       client.role = parsed.value.role;
       client.name = parsed.value.clientName;
@@ -178,6 +214,7 @@ export function attachRelay(server: Server, deps: RelayDeps) {
         connectionId: client.id,
         role: client.role,
         name: client.name,
+        username: client.session.username,
       });
       return;
     }
@@ -190,8 +227,12 @@ export function attachRelay(server: Server, deps: RelayDeps) {
       return send(client, error("BAD_MESSAGE", reason).message);
     }
 
-    for (const out of route(client.role, parsed.value, ctx))
-      deliver(client, out);
+    const sender = {
+      role: client.role,
+      operator: client.session.displayName,
+      userId: client.session.userId,
+    };
+    for (const out of route(sender, parsed.value, ctx)) deliver(client, out);
   }
 
   function deliver(sender: Client, out: Outgoing) {
@@ -206,7 +247,11 @@ export function attachRelay(server: Server, deps: RelayDeps) {
   }
 
   function log(sender: Client, { to, message }: Outgoing) {
-    const base = { connectionId: sender.id, name: sender.name };
+    const base = {
+      connectionId: sender.id,
+      name: sender.name,
+      username: sender.session.username,
+    };
     if (message.type === "accepted") {
       logger.info("alert accepted", {
         ...base,
@@ -248,6 +293,13 @@ export function attachRelay(server: Server, deps: RelayDeps) {
   server.on("upgrade", onUpgrade);
 
   return {
+    /** Closes the sockets of a session after its logout, with 4003. */
+    closeSession(sessionId: string) {
+      for (const client of clients)
+        if (client.session.id === sessionId)
+          client.ws.close(CLOSE.unauthorized, "Signed out");
+    },
+
     /** Stops accepting connections and closes every socket with 1001 "going away". */
     async close() {
       clearInterval(heartbeat);

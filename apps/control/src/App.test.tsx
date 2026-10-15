@@ -1,20 +1,19 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { App } from "./App";
-import { saveOperator } from "./operator";
-import { fakeConnect, memoryStorage, record, uuid } from "./test/fakes";
+import { fakeConnect, record, uuid } from "./test/fakes";
 
-function renderApp({ operator }: { operator?: string } = {}) {
-  const storage = memoryStorage();
-  if (operator) saveOperator(() => storage, operator);
+function renderApp() {
   const relay = fakeConnect();
-  const view = render(<App connect={relay.connect} storage={() => storage} />, {
-    reactStrictMode: true,
-  });
+  const onLogout = vi.fn();
+  const view = render(
+    <App connect={relay.connect} account={{ displayName: "Ada", onLogout }} />,
+    { reactStrictMode: true },
+  );
   const connection = () => relay.alive()[0]!;
-  return { ...view, relay, storage, connection };
+  return { ...view, relay, connection, onLogout };
 }
 
 const ackButtons = () =>
@@ -26,7 +25,7 @@ test("keeps exactly one connection alive under StrictMode", () => {
 });
 
 test("shows alarms from the welcome and new ones, with the unacknowledged count", () => {
-  const { connection } = renderApp({ operator: "Ada" });
+  const { connection } = renderApp();
   act(() => connection().welcome([record(1)]));
   act(() => connection().receive({ type: "alert", record: record(2) }));
 
@@ -36,44 +35,21 @@ test("shows alarms from the welcome and new ones, with the unacknowledged count"
   expect(ackButtons()).toHaveLength(2);
 });
 
-test("Acknowledge is disabled until an operator name is saved", async () => {
+test("shows who is signed in and logs out", async () => {
   const user = userEvent.setup();
-  const { connection, storage } = renderApp();
-  act(() => connection().welcome([record(1)]));
-
-  expect(ackButtons()[0]).toBeDisabled();
-  expect(
-    screen.getByText("Enter your name to acknowledge alarms."),
-  ).toBeInTheDocument();
-
-  await user.type(screen.getByLabelText("Operator name"), "  Ada ");
-  await user.click(screen.getByRole("button", { name: "Save" }));
-
-  expect(ackButtons()[0]).toBeEnabled();
-  expect(screen.getByText("Acknowledging as Ada.")).toBeInTheDocument();
-  expect(storage.getItem("threshold-control:operator:v1")).toBe("Ada");
-});
-
-test("an empty operator name is refused", async () => {
-  const user = userEvent.setup();
-  renderApp();
-  await user.click(screen.getByRole("button", { name: "Save" }));
-  expect(screen.getByLabelText("Operator name")).toHaveAttribute(
-    "aria-invalid",
-    "true",
-  );
-  expect(screen.getByText("Enter 1 to 40 characters.")).toBeInTheDocument();
+  const { onLogout } = renderApp();
+  expect(screen.getByText("Ada")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Log out" }));
+  expect(onLogout).toHaveBeenCalledOnce();
 });
 
 test("clicking Acknowledge sends ack; the relay's answer shows who and when", async () => {
   const user = userEvent.setup();
-  const { connection } = renderApp({ operator: "Ada" });
+  const { connection } = renderApp();
   act(() => connection().welcome([record(1)]));
 
   await user.click(ackButtons()[0]!);
-  expect(connection().sent).toEqual([
-    { type: "ack", alertId: uuid(1), operator: "Ada" },
-  ]);
+  expect(connection().sent).toEqual([{ type: "ack", alertId: uuid(1) }]);
   expect(
     screen.getByRole("button", { name: /^Acknowledge/ }),
   ).toHaveTextContent("Acknowledging…");
@@ -95,7 +71,7 @@ test("clicking Acknowledge sends ack; the relay's answer shows who and when", as
 
 test("a refused ack is reported and can be tried again", async () => {
   const user = userEvent.setup();
-  const { connection } = renderApp({ operator: "Ada" });
+  const { connection } = renderApp();
   act(() => connection().welcome([record(1)]));
   await user.click(ackButtons()[0]!);
 
@@ -112,7 +88,7 @@ test("a refused ack is reported and can be tried again", async () => {
 });
 
 test("Acknowledge is disabled while disconnected", () => {
-  const { connection } = renderApp({ operator: "Ada" });
+  const { connection } = renderApp();
   act(() => connection().welcome([record(1)]));
   act(() =>
     connection().status({ kind: "reconnecting", attempt: 1, retryAt: 0 }),
@@ -122,7 +98,7 @@ test("Acknowledge is disabled while disconnected", () => {
 
 test("the filter hides acknowledged alarms and Clear removes them", async () => {
   const user = userEvent.setup();
-  const { connection } = renderApp({ operator: "Ada" });
+  const { connection } = renderApp();
   const acked = record(1, {
     acknowledgement: { operator: "Grace", at: "2026-10-14T09:31:00.000Z" },
   });
@@ -141,7 +117,7 @@ test("the filter hides acknowledged alarms and Clear removes them", async () => 
 });
 
 test("has no detectable accessibility violations", async () => {
-  const { container, connection } = renderApp({ operator: "Ada" });
+  const { container, connection } = renderApp();
   act(() =>
     connection().welcome([
       record(2),

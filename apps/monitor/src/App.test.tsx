@@ -2,7 +2,7 @@ import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { Provider } from "react-redux";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { App } from "./App";
 import { createReadingsStore } from "./data/readingsStore";
 import { createAppStore } from "./store";
@@ -12,6 +12,7 @@ function renderApp() {
   const source = new FakeSource();
   const transports = fakeTransportFactory();
   const store = createAppStore();
+  const onLogout = vi.fn();
   const view = render(
     <Provider store={store}>
       <App
@@ -20,12 +21,20 @@ function renderApp() {
         createTransport={transports.create}
         identity={{ sourceId: "source-1", sourceLabel: "Monitor TST" }}
         initialRateHz={2}
+        account={{ displayName: "Demo Monitor", onLogout }}
       />
     </Provider>,
     { reactStrictMode: true },
   );
-  return { ...view, source, transports };
+  return { ...view, source, transports, onLogout };
 }
+
+test("shows who is signed in and logs out", async () => {
+  const { onLogout } = renderApp();
+  expect(screen.getByText("Demo Monitor")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Log out" }));
+  expect(onLogout).toHaveBeenCalledOnce();
+});
 
 test("shows live readings and logs a crossing with its delivery status", () => {
   const { source, transports } = renderApp();

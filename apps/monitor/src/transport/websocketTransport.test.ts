@@ -4,6 +4,7 @@ import { FakeRelay, settle, uuid } from "../test/fakeRelay";
 import type { ConnectionStatus, DeliveryUpdate } from "./AlertTransport";
 import { runTransportContract, SOURCE_ID } from "./transport.contract";
 import {
+  CLOSE_UNAUTHORIZED,
   CLOSE_UNSUPPORTED_VERSION,
   createWebSocketTransport,
   relayUrl,
@@ -59,7 +60,7 @@ describe("websocket transport", () => {
     await settle();
     expect(relay.urls).toEqual(["ws://test.local/ws"]);
     expect(relay.hellos).toEqual([
-      { type: "hello", v: 1, role: "monitor", clientName: "Monitor TST" },
+      { type: "hello", v: 2, role: "monitor", clientName: "Monitor TST" },
     ]);
   });
 
@@ -143,6 +144,17 @@ describe("websocket transport", () => {
     expect(statuses.at(-1)).toEqual({ kind: "closed" });
     expect(relay.urls).toHaveLength(1);
     expect(log).toHaveBeenCalled();
+  });
+
+  test("unauthorized (4003) stops for good with status signedOut", async () => {
+    const { relay, statuses } = setup();
+    await settle();
+    relay.stop(CLOSE_UNAUTHORIZED);
+    relay.start();
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(statuses.at(-1)).toEqual({ kind: "signedOut" });
+    expect(relay.urls).toHaveLength(1);
   });
 
   test("invalid server messages are logged and ignored", async () => {

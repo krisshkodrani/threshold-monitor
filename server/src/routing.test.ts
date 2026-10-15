@@ -28,9 +28,10 @@ beforeEach(() => {
   ctx = { store, now: () => `2026-10-14T09:30:0${++tick}.000Z` };
 });
 
-const sendAlert = () => route("monitor", { type: "alert", alert }, ctx);
+const monitor = { role: "monitor", operator: "Monitor", userId: 2 } as const;
+const sendAlert = () => route(monitor, { type: "alert", alert }, ctx);
 const ack = (operator = "Ana", role: "control" | "monitor" = "control") =>
-  route(role, { type: "ack", alertId: ALERT_ID, operator }, ctx);
+  route({ role, operator, userId: 1 }, { type: "ack", alertId: ALERT_ID }, ctx);
 
 describe("alerts from a monitor", () => {
   test("a new alert is stored, confirmed to the sender and forwarded to control rooms", () => {
@@ -72,7 +73,11 @@ describe("alerts from a monitor", () => {
   });
 
   test("a control room may not send alerts", () => {
-    const out = route("control", { type: "alert", alert }, ctx);
+    const out = route(
+      { role: "control", operator: "Ana", userId: 1 },
+      { type: "alert", alert },
+      ctx,
+    );
     expect(out).toMatchObject([
       {
         to: "sender",
@@ -141,8 +146,8 @@ describe("acknowledgements from a control room", () => {
 
 test("a second hello is refused", () => {
   const out = route(
-    "monitor",
-    { type: "hello", v: 1, role: "control", clientName: "x" },
+    monitor,
+    { type: "hello", v: 2, role: "control", clientName: "x" },
     ctx,
   );
   expect(out[0]?.message).toMatchObject({ type: "error", code: "NOT_ALLOWED" });

@@ -4,7 +4,7 @@ import { openDatabase } from "./db";
 import { createHttpServer } from "./http";
 import { createLogger } from "./logger";
 import { attachRelay } from "./relay";
-import { createSessionStore } from "./sessions";
+import { authenticate, createSessionStore } from "./sessions";
 import { addDemoUsers, createUserStore } from "./users";
 
 const SHUTDOWN_DEADLINE_MS = 5_000;
@@ -32,9 +32,19 @@ if (config.demoUsers) {
 const server = createHttpServer({
   staticDir: config.staticDir,
   logger,
-  auth: { users, sessions, config },
+  auth: {
+    users,
+    sessions,
+    config,
+    onLogout: (sessionId) => relay.closeSession(sessionId),
+  },
 });
-const relay = attachRelay(server, { config, store, logger });
+const relay = attachRelay(server, {
+  config,
+  store,
+  logger,
+  authenticate: (req) => authenticate(req, sessions),
+});
 
 server.on("error", (err) => {
   logger.error("server error", { error: err.message });

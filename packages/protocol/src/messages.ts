@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const PROTOCOL_VERSION = 1;
+/** 2: the ack has no operator; the server takes it from the session (ADR 0006). */
+export const PROTOCOL_VERSION = 2;
 /** Enforced by the server as the WebSocket maxPayload. */
 export const MAX_MESSAGE_BYTES = 16 * 1024;
 /** How many recent alerts a welcome message carries at most. */
@@ -48,10 +49,10 @@ export const sendAlertSchema = z.object({
   alert: alertSchema,
 });
 
+// No operator: the relay writes the signed-in user's name, so it cannot be forged.
 export const ackAlertSchema = z.object({
   type: z.literal("ack"),
   alertId: id,
-  operator,
 });
 
 export const clientMessageSchema = z.discriminatedUnion("type", [

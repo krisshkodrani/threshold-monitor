@@ -8,6 +8,7 @@ const labels: Record<
   open: "Connected",
   connecting: "Connecting…",
   closed: "Disconnected",
+  signedOut: "Signed out",
 };
 
 export function ConnectionBadge({ status }: { status: ConnectionStatus }) {
