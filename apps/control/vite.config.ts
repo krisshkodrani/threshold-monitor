@@ -8,8 +8,13 @@ export default defineConfig({
   server: {
     port: 5174,
     strictPort: true,
-    // The app always connects to the relative /ws, in dev and in production.
-    proxy: { "/ws": { target: "ws://localhost:8080", ws: true } },
+    // The app always uses relative /ws, /api and /login, in dev and in
+    // production. The session cookie is for localhost, so both ports share it.
+    proxy: {
+      "/ws": { target: "ws://localhost:8080", ws: true },
+      "/api": "http://localhost:8080",
+      "/login": "http://localhost:8080",
+    },
   },
   test: {
     environment: "jsdom",

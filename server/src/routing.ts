@@ -9,6 +9,9 @@ import type { AlertStore } from "./alertStore";
 
 export type Role = "monitor" | "control";
 
+/** Who sent a message: the role from hello, the name and id from the session. */
+export type Sender = { role: Role; operator: string; userId: number };
+
 /** Who should receive a message. The relay maps this onto actual sockets. */
 export type Outgoing = {
   to: "sender" | "controls" | "everyone";
@@ -23,10 +26,11 @@ export type RouteContext = { store: AlertStore; now: () => string };
  * crossing, it only validates who may say what, stores, and forwards.
  */
 export function route(
-  role: Role,
+  sender: Sender,
   message: ClientMessage,
   ctx: RouteContext,
 ): Outgoing[] {
+  const { role } = sender;
   switch (message.type) {
     case "hello":
       return [error("NOT_ALLOWED", "Already identified.")];
@@ -42,7 +46,7 @@ export function route(
           ];
     case "ack":
       return role === "control"
-        ? routeAck(message.alertId, message.operator, ctx)
+        ? routeAck(message.alertId, sender, ctx)
         : [
             error(
               "NOT_ALLOWED",
@@ -74,9 +78,10 @@ function routeAlert(alert: Alert, ctx: RouteContext): Outgoing[] {
   ];
 }
 
+/** The operator name comes from the sender's session, never from the message. */
 function routeAck(
   alertId: string,
-  operator: string,
+  { operator, userId }: Sender,
   ctx: RouteContext,
 ): Outgoing[] {
   const record = ctx.store.get(alertId);
@@ -92,7 +97,7 @@ function routeAck(
     ];
   }
 
-  const updated = ctx.store.acknowledge(alertId, operator, ctx.now())!;
+  const updated = ctx.store.acknowledge(alertId, operator, ctx.now(), userId)!;
   // Everyone: other control rooms update their list, the monitor shows who acknowledged.
   return [
     {

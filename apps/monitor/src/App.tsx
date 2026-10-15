@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AccountBar } from "./components/AccountBar";
 import { AlertLog } from "./components/AlertLog";
 import { ConnectionBadge } from "./components/ConnectionBadge";
 import { HysteresisControl } from "./components/HysteresisControl";
@@ -31,6 +32,7 @@ export type AppProps = {
   createTransport: () => AlertTransport;
   identity: SourceIdentity;
   initialRateHz: number;
+  account: { displayName: string; onLogout: () => void };
 };
 
 export function App({
@@ -39,6 +41,7 @@ export function App({
   createTransport,
   identity,
   initialRateHz,
+  account,
 }: AppProps) {
   const dispatch = useAppDispatch();
   const transportRef = useTransport(createTransport);
@@ -77,7 +80,13 @@ export function App({
           <h1>Threshold Monitor</h1>
           <p className="muted">{identity.sourceLabel}</p>
         </div>
-        <ConnectionBadge status={status} />
+        <div className="app__status">
+          <AccountBar
+            displayName={account.displayName}
+            onLogout={account.onLogout}
+          />
+          <ConnectionBadge status={status} />
+        </div>
       </header>
 
       <ReadoutBar

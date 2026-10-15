@@ -1,10 +1,9 @@
 import type { ServerMessage } from "@app/protocol";
 import { useId, useReducer, useState } from "react";
+import { AccountBar } from "./components/AccountBar";
 import { AlarmList } from "./components/AlarmList";
 import { ConnectionBadge } from "./components/ConnectionBadge";
-import { OperatorForm } from "./components/OperatorForm";
 import { useRelay, type ConnectRelay } from "./connection/useRelay";
-import { loadOperator, saveOperator } from "./operator";
 import {
   alarmsReducer,
   initialAlarmsState,
@@ -17,12 +16,12 @@ import {
  */
 export type AppProps = {
   connect: ConnectRelay;
-  storage: () => Storage;
+  /** The signed-in operator. The relay records this name with each acknowledgement. */
+  account: { displayName: string; onLogout: () => void };
 };
 
-export function App({ connect, storage }: AppProps) {
+export function App({ connect, account }: AppProps) {
   const [state, dispatch] = useReducer(alarmsReducer, initialAlarmsState);
-  const [operator, setOperator] = useState(() => loadOperator(storage));
   const [unacknowledgedOnly, setUnacknowledgedOnly] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const headingId = useId();
@@ -63,18 +62,12 @@ export function App({ connect, storage }: AppProps) {
   });
 
   function acknowledge(alertId: string) {
-    if (!operator) return;
     setNotice(null);
-    if (send({ type: "ack", alertId, operator })) {
+    if (send({ type: "ack", alertId })) {
       dispatch({ type: "ackSent", alertId });
     } else {
       setNotice("Not connected. Try again when the badge shows Connected.");
     }
-  }
-
-  function changeOperator(name: string) {
-    setOperator(name);
-    saveOperator(storage, name);
   }
 
   const open = unacknowledgedCount(state);
@@ -91,12 +84,14 @@ export function App({ connect, storage }: AppProps) {
             <span className="num">{open}</span> unacknowledged
           </p>
         </div>
-        <ConnectionBadge status={status} />
+        <div className="app__status">
+          <AccountBar
+            displayName={account.displayName}
+            onLogout={account.onLogout}
+          />
+          <ConnectionBadge status={status} />
+        </div>
       </header>
-
-      <section className="panel" aria-label="Operator">
-        <OperatorForm operator={operator} onSave={changeOperator} />
-      </section>
 
       <section className="panel" aria-labelledby={headingId}>
         <div className="panel__header">
@@ -131,7 +126,7 @@ export function App({ connect, storage }: AppProps) {
         <AlarmList
           alarms={shown}
           pendingAcks={state.pendingAcks}
-          canAcknowledge={operator !== null && status.kind === "open"}
+          canAcknowledge={status.kind === "open"}
           onAcknowledge={acknowledge}
         />
       </section>

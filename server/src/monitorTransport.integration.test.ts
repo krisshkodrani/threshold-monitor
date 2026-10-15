@@ -45,6 +45,14 @@ async function startRelay(port = 0) {
     config: { mode: "test", allowedOrigins: [] },
     store,
     logger: silentLogger,
+    // Node's built-in WebSocket sends no cookies; every socket is Ada.
+    authenticate: () => ({
+      id: "session-ada",
+      userId: 1,
+      username: "ada",
+      displayName: "Ada",
+      roles: ["operator", "monitor"],
+    }),
   });
   server.listen(port, "127.0.0.1");
   await once(server, "listening");
@@ -104,12 +112,10 @@ test("delivers alerts, survives a relay restart and surfaces acknowledgements", 
   );
   await once(control, "open");
   control.send(
-    JSON.stringify({ type: "hello", v: 1, role: "control", clientName: "CR" }),
+    JSON.stringify({ type: "hello", v: 2, role: "control", clientName: "CR" }),
   );
   await waitFor(() => inbox.some((m) => m.type === "welcome"));
-  control.send(
-    JSON.stringify({ type: "ack", alertId: alert(2).id, operator: "Ada" }),
-  );
+  control.send(JSON.stringify({ type: "ack", alertId: alert(2).id }));
   await waitFor(() => has(alert(2).id, "acknowledged"));
   expect(updates.at(-1)).toMatchObject({
     alertId: alert(2).id,

@@ -210,7 +210,8 @@ button:hover {
 .badge--reconnecting .badge__dot {
   background: var(--warn);
 }
-.badge--closed .badge__dot {
+.badge--closed .badge__dot,
+.badge--signedOut .badge__dot {
   background: var(--alarm);
 }
 
@@ -308,4 +309,18 @@ button:disabled {
   * {
     transition: none !important;
   }
+}
+
+.account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
 }

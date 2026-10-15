@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { uuid } from "../test/fakes";
 import {
   backoffDelay,
+  CLOSE_UNAUTHORIZED,
   CLOSE_UNSUPPORTED_VERSION,
   createRelayConnection,
   relayUrl,
@@ -57,7 +58,7 @@ test("says hello as a control room, then reports open on welcome", () => {
   last().events.open();
   expect(JSON.parse(last().sent[0]!)).toEqual({
     type: "hello",
-    v: 1,
+    v: 2,
     role: "control",
     clientName: "Control room",
   });
@@ -98,6 +99,14 @@ test("an unsupported protocol version closes for good", () => {
   last().events.close(CLOSE_UNSUPPORTED_VERSION);
   vi.advanceTimersByTime(60_000);
   expect(statuses.at(-1)).toEqual({ kind: "closed" });
+  expect(sockets).toHaveLength(1);
+});
+
+test("unauthorized (4003) stops for good with status signedOut", () => {
+  const { sockets, statuses, last } = setup();
+  last().events.close(CLOSE_UNAUTHORIZED);
+  vi.advanceTimersByTime(60_000);
+  expect(statuses.at(-1)).toEqual({ kind: "signedOut" });
   expect(sockets).toHaveLength(1);
 });
 

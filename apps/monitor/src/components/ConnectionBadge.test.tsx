@@ -14,6 +14,7 @@ test.each<[ConnectionStatus, string]>([
   [{ kind: "open" }, "Connected"],
   [{ kind: "connecting" }, "Connecting…"],
   [{ kind: "closed" }, "Disconnected"],
+  [{ kind: "signedOut" }, "Signed out"],
   [
     { kind: "reconnecting", attempt: 2, retryAt: 3000 },
     "Reconnecting (attempt 2)",

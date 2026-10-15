@@ -16,7 +16,8 @@ export type ConnectionStatus =
   | { kind: "connecting" }
   | { kind: "open" }
   | { kind: "reconnecting"; attempt: number; retryAt: number }
-  | { kind: "closed" };
+  | { kind: "closed" }
+  | { kind: "signedOut" }; // the relay needs a login (close code 4003); no more retries
 
 export type RelaySocket = {
   send(data: string): void;
@@ -54,6 +55,8 @@ export type RelayOptions = {
 
 /** The server closes with this code for an unknown protocol version. Retrying cannot help. */
 export const CLOSE_UNSUPPORTED_VERSION = 4002;
+/** No session, a session without the operator role, or a logout. Retrying cannot help. */
+export const CLOSE_UNAUTHORIZED = 4003;
 const BASE_DELAY_MS = 500;
 const MAX_DELAY_MS = 30_000;
 
@@ -152,6 +155,11 @@ export function createRelayConnection(
     if (code === CLOSE_UNSUPPORTED_VERSION) {
       log("relay speaks another protocol version; not reconnecting");
       onStatus({ kind: "closed" });
+      return;
+    }
+    if (code === CLOSE_UNAUTHORIZED) {
+      log("relay needs a login; not reconnecting");
+      onStatus({ kind: "signedOut" });
       return;
     }
     scheduleRetry();
