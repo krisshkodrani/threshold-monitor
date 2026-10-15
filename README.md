@@ -158,6 +158,7 @@ For a quick local demo, set `DEMO_USERS: "true"` in `docker-compose.yml`.
 | Part                | What it does                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `packages/protocol` | The message schemas (zod), their types, and parse functions that do not throw                                |
+| `packages/ui`       | `DataTable<T>`: a generic table with column definitions, a scroll box and a sticky header (both apps)        |
 | `apps/monitor`      | Random-walk data, live chart, crossing detector with hysteresis, outbox, WebSocket transport                 |
 | `server`            | Native `ws` relay: login, sessions, SQLite, validation, dedupe, routing, rate limit, heartbeat, static files |
 | `apps/control`      | Alarm list, acknowledgements                                                                                 |
@@ -220,10 +221,11 @@ apps/
 server/          Node 24, ws, sirv, node:sqlite, bundled with tsup
 packages/
   protocol/      zod schemas, shared by all three
+  ui/            DataTable, shared by the two apps
 e2e/             Playwright test against the production build
 docs/
   architecture.md  parts, state, message flow, scaling limits
-  adr/             architecture decision records 0001 to 0007
+  adr/             architecture decision records 0001 to 0008
   roadmap.md       milestones, decisions, next steps
 Dockerfile, docker-compose.yml
 ```
@@ -249,6 +251,7 @@ builds the Docker image and waits until the container reports healthy.
 | `apps/monitor`      | 207   | Detector (with fast-check properties), outbox, backoff, transport contract on a fake relay, components, accessibility (axe)                                                             |
 | `server`            | 120   | Routing rules, relay on real sockets, sessions and roles, login routes, passwords, both alert stores, configuration, HTTP, and one test of the monitor transport against the real relay |
 | `packages/protocol` | 40    | Each message schema, valid and invalid                                                                                                                                                  |
+| `packages/ui`       | 5     | DataTable: rows and cells from the columns, widths, classes, tooltips, the named scroll region, the empty state, accessibility (axe)                                                    |
 | `apps/control`      | 27    | Alarm list rules, connection, account bar, Acknowledge flow, accessibility (axe)                                                                                                        |
 | `e2e`               | 3     | The full flow on the production build: login, alert, Acknowledge, "Acknowledged by", no duplicate rows, logout; a wrong role; a wrong password                                          |
 
@@ -263,14 +266,16 @@ The ADRs record the main decisions:
 - [0005](docs/adr/0005-relay-security-defaults.md): relay security defaults
 - [0006](docs/adr/0006-login-with-sessions.md): login with server sessions
 - [0007](docs/adr/0007-sqlite-storage.md): SQLite for users, sessions and alerts
+- [0008](docs/adr/0008-shared-ui-package.md): a shared UI package for the data table
 
 The main changes from the specification are:
 
 - Node 24 (the current LTS) in place of Node 22.
 - A rate limit of 60 messages (refill 10 each second) in place of 20. A monitor
   can send its full outbox of 50 alerts at once after a reconnect.
-- The apps share the protocol package, but not their connection code. Each app
-  has its own small copy of the backoff function.
+- The apps share the protocol package and the generic `DataTable` (`@app/ui`,
+  ADR 0008), but not their connection code. Each app has its own small copy of
+  the backoff function.
 
 ## Limits and next steps
 

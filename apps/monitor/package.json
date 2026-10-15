@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@app/protocol": "workspace:*",
+    "@app/ui": "workspace:*",
     "@reduxjs/toolkit": "2.13.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

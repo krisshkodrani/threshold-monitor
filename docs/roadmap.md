@@ -166,6 +166,17 @@ The ADRs and the README use these decisions.
 - Demo user `demo` with both roles: one browser has one cookie for
   `localhost`, so one login must open both apps.
 
+### Tables (after M8) — ADR 0008
+
+- The alarm table did not keep its layout after an acknowledgement: the chip
+  was lower than the button. Fixed layout and a fixed cell height fix this; the
+  e2e test checks that widths and heights stay the same.
+- Both long tables scroll in a box with a sticky header row, and the headings
+  show the count.
+- New package `@app/ui` with a generic `DataTable<T>`: each app gives column
+  definitions with a `cell` render function. The rule "share the contract, not
+  the logic" now also allows generic UI parts.
+
 ## Out of scope
 
 User management page, single sign-on (OIDC), horizontal scaling,

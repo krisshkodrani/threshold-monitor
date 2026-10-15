@@ -22,6 +22,7 @@ lives, the message flow, and the limits of the current design. The ADRs in
 | Part                | Main files                                                                         |
 | ------------------- | ---------------------------------------------------------------------------------- |
 | `packages/protocol` | `messages.ts` (schemas), `parse.ts` (parse functions that do not throw)            |
+| `packages/ui`       | `DataTable.tsx` (generic table with column definitions; scroll box, sticky header) |
 | `apps/monitor`      | `domain/crossing.ts`, `transport/outbox.ts`, `transport/websocketTransport.ts`     |
 | `server`            | `relay.ts` (sockets), `routing.ts` (rules, no sockets), `alertStore.ts`, `http.ts` |
 | `server` (auth)     | `db.ts` (SQLite, migrations), `users.ts`, `sessions.ts`, `loginPage.ts`, `cli.ts`  |

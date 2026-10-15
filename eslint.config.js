@@ -37,7 +37,7 @@ export default defineConfig(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ["apps/**/*.{ts,tsx}"],
+    files: ["apps/**/*.{ts,tsx}", "packages/ui/**/*.{ts,tsx}"],
     extends: [reactHooks.configs.flat.recommended],
     languageOptions: { globals: globals.browser },
   },
