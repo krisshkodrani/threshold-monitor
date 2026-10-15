@@ -7,16 +7,16 @@ instead of the full control room: M2 and M3 quality matters more than M6.
 
 ## Status
 
-| Milestone | Scope                                                                                                                        | Status  | Commit               |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------- | ------- | -------------------- |
-| M0        | Workspace skeleton: pnpm workspace, strict TS, ESLint, Prettier, Vitest, CI                                                  | Done    | `b387c20`            |
-| M1        | `@app/protocol`: zod schemas, types, non-throwing parse helpers                                                              | Done    | `c9ef0dc`            |
-| M2        | Monitor domain: crossing detector (+ property tests), random walk, ring buffer, chart data, threshold input, backoff, outbox | Done    | `1345bcf`            |
-| M3        | Monitor UI with an in-memory transport, Redux, persistence, hooks, components                                                | Done    | `a912d2c`, `914358b` |
-| M4        | Relay server: validation, dedupe, routing, rate limit, heartbeat, static files, shutdown                                     | Done    | `3d2c023`            |
-| M5        | Monitor WebSocket transport + contract tests                                                                                 | Done    |                      |
-| M6        | Control room app                                                                                                             | Next    |                      |
-| M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Planned |                      |
+| Milestone | Scope                                                                                                                        | Status | Commit               |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------- | ------ | -------------------- |
+| M0        | Workspace skeleton: pnpm workspace, strict TS, ESLint, Prettier, Vitest, CI                                                  | Done   | `b387c20`            |
+| M1        | `@app/protocol`: zod schemas, types, non-throwing parse helpers                                                              | Done   | `c9ef0dc`            |
+| M2        | Monitor domain: crossing detector (+ property tests), random walk, ring buffer, chart data, threshold input, backoff, outbox | Done   | `1345bcf`            |
+| M3        | Monitor UI with an in-memory transport, Redux, persistence, hooks, components                                                | Done   | `a912d2c`, `914358b` |
+| M4        | Relay server: validation, dedupe, routing, rate limit, heartbeat, static files, shutdown                                     | Done   | `3d2c023`            |
+| M5        | Monitor WebSocket transport + contract tests                                                                                 | Done   | `0ca55f9`            |
+| M6        | Control room app                                                                                                             | Done   |                      |
+| M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Next   |                      |
 
 ## Decisions so far
 
@@ -107,21 +107,25 @@ These feed the ADRs and the README in M7.
   source, which the monitor's DOM-only tsconfig does not have.
 - `inMemoryTransport.ts` is no longer used by the app; M7 decides if it stays.
 
-## Next: M6 — Control room
+### Control room (M6)
 
-- `useReducer` with a pure, tested reducer: `welcomed`, `alertReceived`,
-  `acknowledged`, `cleared`; dedupe by id; newest first; cap 500.
-- Connection hook with the same reconnect behaviour (small duplicated backoff,
-  documented: share the contract, not the logic).
-- Operator name (persisted, required before acknowledging), alarm list with
-  Acknowledge or "Acknowledged by X at HH:MM:SS", unacknowledged count in the header,
-  connection badge. "Unacknowledged only" filter if time allows.
-- Tests: reducer; Acknowledge disabled without an operator name; clicking sends `ack`;
-  axe check.
-- Done when acknowledging in the control room shows `acknowledged by <name>` in the
-  monitor.
+- One pure `alarmsReducer` (`state/alarms.ts`) behind `useReducer`. Beyond the
+  planned `welcomed`, `alertReceived`, `acknowledged` and `cleared`, it has
+  `ackSent`, `ackFailed` and `disconnected`, so the Acknowledge button cannot be
+  pressed twice and is free again if the ack is lost or refused.
+- `cleared` removes acknowledged alarms from the list (the "Clear acknowledged"
+  button). The list is newest first by `receivedAt`, unique by id, capped at 500.
+- Every action is idempotent: a reconnect replays `recent`, and an acknowledged
+  copy always wins over an older unacknowledged one; the first acknowledgement wins.
+- `connection/relayConnection.ts` repeats the monitor's backoff and socket
+  factory (share the contract, not the logic); `useRelay` owns its lifetime the
+  way `useTransport` does. The connection badge and the style tokens are copies too.
+- Acknowledge needs a saved operator name (1–40 characters, trimmed, kept in
+  localStorage and validated on load) and an open connection.
+- Relay errors with a `ref` end the pending ack; the message is shown in a
+  `role="alert"` notice.
 
-## M7 — Packaging and docs
+## Next: M7 — Packaging and docs
 
 - Multi-stage Dockerfile (node:24-alpine, non-root, `pnpm deploy --prod`,
   HEALTHCHECK on `/healthz`), `docker-compose.yml`, `.dockerignore`.
