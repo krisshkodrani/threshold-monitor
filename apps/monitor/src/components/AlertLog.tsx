@@ -1,31 +1,20 @@
 import { DataTable, type Column } from "@app/ui";
 import { useId } from "react";
 import { formatClock, formatReading, formatThreshold } from "../format";
-import type { AlertEntity } from "../store/alertsSlice";
+import { statusOf, type AlertEntity } from "../store/alertsSlice";
 
 export function statusText(alert: AlertEntity): string {
-  switch (alert.status) {
-    case "queued":
-      return "Queued";
-    case "sent":
-      return "Sent";
-    case "accepted":
-      return "Accepted";
-    case "acknowledged":
-      return `Acknowledged by ${alert.acknowledgement?.operator ?? "operator"}`;
-    case "dropped":
-      return "Dropped";
-  }
+  return alert.acknowledgement
+    ? `Acknowledged by ${alert.acknowledgement.operator}`
+    : "Received";
 }
 
 /**
- * From the reading to this tab learning the server stored it. Both times come
- * from the browser clock: mixing in the server's `acceptedAt` would add any
- * clock difference between the two machines, even making latency negative.
+ * From the reading at the sensor to the relay storing the alert. Both clocks
+ * are on the backend, so the browser clock does not matter here.
  */
 function latency(alert: AlertEntity): string {
-  if (!alert.acceptedLocalAt) return "—";
-  return `${Date.parse(alert.acceptedLocalAt) - Date.parse(alert.eventTime)} ms`;
+  return `${Date.parse(alert.receivedAt) - Date.parse(alert.eventTime)} ms`;
 }
 
 /** What each column shows. The shared DataTable does the layout and scrolling. */
@@ -66,12 +55,9 @@ const columns: Column<AlertEntity>[] = [
     title: statusText,
     cell: (alert) => (
       <>
-        <span className={`chip chip--${alert.status}`}>
+        <span className={`chip chip--${statusOf(alert)}`}>
           {statusText(alert)}
         </span>
-        {alert.attempts > 1 && (
-          <span className="muted"> · {alert.attempts} attempts</span>
-        )}
       </>
     ),
   },

@@ -4,18 +4,31 @@ import { parseThresholdInput } from "../domain/thresholdInput";
 import { formatThreshold, withUnit } from "../format";
 
 type Props = {
-  /** The active threshold. Only this form changes it, so the draft is reset on commit. */
+  /** The shared threshold. Another monitor tab can change it too. */
   threshold: number;
   onCommit: (value: number) => void;
+  disabled?: boolean;
 };
 
 /**
  * Commits on Enter, Apply or blur, never per keystroke: typing "25" must not
  * briefly set the threshold to 2 (which would also re-classify the detector).
  */
-export function ThresholdForm({ threshold, onCommit }: Props) {
+export function ThresholdForm({
+  threshold,
+  onCommit,
+  disabled = false,
+}: Props) {
   const [draft, setDraft] = useState(() => formatThreshold(threshold));
   const [error, setError] = useState<string | null>(null);
+  // A change from elsewhere replaces the draft, unless the user is editing
+  // it (React's "adjust state when a prop changes" pattern, no effect).
+  const [shown, setShown] = useState(threshold);
+  if (shown !== threshold) {
+    setShown(threshold);
+    if (draft.trim() === formatThreshold(shown))
+      setDraft(formatThreshold(threshold));
+  }
   const inputId = useId();
   const errorId = useId();
   const activeId = useId();
@@ -53,10 +66,13 @@ export function ThresholdForm({ threshold, onCommit }: Props) {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={commit}
+          disabled={disabled}
           aria-invalid={error !== null}
           aria-describedby={describedBy || undefined}
         />
-        <button type="submit">Apply</button>
+        <button type="submit" disabled={disabled}>
+          Apply
+        </button>
       </div>
       {error && (
         <p id={errorId} className="field__error">

@@ -1,25 +1,26 @@
+import type { ServerMessage, SettingsValue } from "@app/protocol";
 import { useState } from "react";
 import { AccountBar } from "./components/AccountBar";
 import { AlertLog } from "./components/AlertLog";
 import { ConnectionBadge } from "./components/ConnectionBadge";
 import { HysteresisControl } from "./components/HysteresisControl";
 import { LiveChart } from "./components/LiveChart";
-import { PlaybackControls } from "./components/PlaybackControls";
 import { ReadoutBar } from "./components/ReadoutBar";
+import { SensorPanel } from "./components/SensorPanel";
 import { ThresholdForm } from "./components/ThresholdForm";
-import type { DataSource } from "./data/DataSource";
+import { useRelay, type ConnectRelay } from "./connection/useRelay";
 import type { ReadingsStore } from "./data/readingsStore";
-import { useThresholdMonitor } from "./hooks/useThresholdMonitor";
-import { useTransport } from "./hooks/useTransport";
-import type { SourceIdentity } from "./identity";
 import { useAppDispatch, useAppSelector } from "./store";
 import {
+  acknowledged,
+  alertReceived,
   selectAlertCounts,
   selectChartMarkers,
   selectLoggedAlerts,
+  welcomed,
 } from "./store/alertsSlice";
-import { hysteresisChanged, thresholdCommitted } from "./store/thresholdSlice";
-import type { AlertTransport } from "./transport/AlertTransport";
+import { sensorChanged } from "./store/sensorSlice";
+import { selectDetectorConfig, settingsReceived } from "./store/settingsSlice";
 
 /**
  * Long-lived collaborators, created once in main.tsx (the composition root)
@@ -27,50 +28,73 @@ import type { AlertTransport } from "./transport/AlertTransport";
  * tests can substitute fakes.
  */
 export type AppProps = {
-  source: DataSource;
+  connect: ConnectRelay;
   readings: ReadingsStore;
-  createTransport: () => AlertTransport;
-  identity: SourceIdentity;
-  initialRateHz: number;
   account: { displayName: string; onLogout: () => void };
 };
 
-export function App({
-  source,
-  readings,
-  createTransport,
-  identity,
-  initialRateHz,
-  account,
-}: AppProps) {
+/**
+ * A live view of the sensor (ADR 0009): the readings, the alerts and the
+ * shared settings come from the relay. Changing a setting asks the relay,
+ * which stores it and tells the sensor and every monitor tab.
+ */
+export function App({ connect, readings, account }: AppProps) {
   const dispatch = useAppDispatch();
-  const transportRef = useTransport(createTransport);
-  const { side } = useThresholdMonitor({
-    source,
-    readings,
-    transportRef,
-    identity,
-  });
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function onMessage(message: ServerMessage) {
+    switch (message.type) {
+      case "welcome":
+        dispatch(welcomed(message.recent));
+        dispatch(settingsReceived(message.settings));
+        dispatch(sensorChanged(message.sensor));
+        readings.reset(message.readings);
+        return;
+      case "reading":
+        readings.push(message.reading);
+        return;
+      case "alert":
+        dispatch(alertReceived(message.record));
+        return;
+      case "acknowledged":
+        dispatch(
+          acknowledged({
+            alertId: message.alertId,
+            operator: message.operator,
+            at: message.at,
+          }),
+        );
+        return;
+      case "settings":
+        dispatch(settingsReceived(message.settings));
+        return;
+      case "sensorStatus":
+        dispatch(sensorChanged(message.sensor));
+        return;
+      case "error":
+        setNotice(message.message);
+        return;
+      case "accepted":
+        return; // only the sensor sends alerts
+    }
+  }
+
+  const { status, send } = useRelay(connect, { onMessage });
 
   // Only low-frequency state here; live readings are read by the chart and readout.
-  const cfg = useAppSelector((state) => state.threshold);
-  const status = useAppSelector((state) => state.connection.status);
+  const cfg = useAppSelector(selectDetectorConfig);
+  const settings = useAppSelector((state) => state.settings.current);
+  const sensor = useAppSelector((state) => state.sensor.sensor);
   const counts = useAppSelector(selectAlertCounts);
   const markers = useAppSelector(selectChartMarkers);
   const alerts = useAppSelector(selectLoggedAlerts);
 
-  const [paused, setPaused] = useState(false);
-  const [rateHz, setRateHz] = useState(initialRateHz);
+  const canChange = status.kind === "open" && settings !== null;
 
-  function togglePause() {
-    if (paused) source.resume();
-    else source.pause();
-    setPaused(!paused);
-  }
-
-  function changeRate(hz: number) {
-    source.setRate(hz);
-    setRateHz(hz);
+  function changeSettings(next: SettingsValue) {
+    setNotice(null);
+    if (!send({ type: "setSettings", settings: next }))
+      setNotice("Not connected. Try again when the badge shows Connected.");
   }
 
   return (
@@ -78,7 +102,9 @@ export function App({
       <header className="app__header">
         <div>
           <h1>Threshold Monitor</h1>
-          <p className="muted">{identity.sourceLabel}</p>
+          <p className="muted">
+            {sensor ? `${sensor.label} · online` : "Sensor offline"}
+          </p>
         </div>
         <div className="app__status">
           <AccountBar
@@ -92,7 +118,6 @@ export function App({
       <ReadoutBar
         readings={readings}
         threshold={cfg.threshold}
-        side={side}
         counts={counts}
       />
 
@@ -103,18 +128,24 @@ export function App({
         <section className="panel app__controls" aria-label="Settings">
           <ThresholdForm
             threshold={cfg.threshold}
-            onCommit={(value) => dispatch(thresholdCommitted(value))}
+            disabled={!canChange}
+            onCommit={(threshold) =>
+              changeSettings({ threshold, hysteresis: cfg.hysteresis })
+            }
           />
           <HysteresisControl
             value={cfg.hysteresis}
-            onChange={(value) => dispatch(hysteresisChanged(value))}
+            disabled={!canChange}
+            onChange={(hysteresis) =>
+              changeSettings({ threshold: cfg.threshold, hysteresis })
+            }
           />
-          <PlaybackControls
-            paused={paused}
-            rateHz={rateHz}
-            onTogglePause={togglePause}
-            onRateChange={changeRate}
-          />
+          <SensorPanel sensor={sensor} settings={settings} />
+          {notice && (
+            <p className="notice" role="alert">
+              {notice}
+            </p>
+          )}
         </section>
         <AlertLog alerts={alerts} />
       </main>

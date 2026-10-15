@@ -52,6 +52,9 @@ export class FakeConnection implements RelayConnection {
       type: "welcome",
       connectionId: uuid(999),
       recent,
+      settings: null,
+      sensor: null,
+      readings: [],
     });
   }
 

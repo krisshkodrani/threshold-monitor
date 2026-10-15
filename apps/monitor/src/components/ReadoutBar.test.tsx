@@ -4,14 +4,7 @@ import { createReadingsStore } from "../data/readingsStore";
 import type { AlertCounts } from "../store/alertsSlice";
 import { ReadoutBar } from "./ReadoutBar";
 
-const counts: AlertCounts = {
-  total: 7,
-  queued: 1,
-  sent: 2,
-  accepted: 3,
-  acknowledged: 1,
-  dropped: 0,
-};
+const counts: AlertCounts = { total: 7, received: 4, acknowledged: 3 };
 
 /** The <dd> value next to a <dt> label. */
 function valueOf(label: string) {
@@ -23,7 +16,6 @@ test("shows placeholders before the first reading", () => {
     <ReadoutBar
       readings={createReadingsStore(10)}
       threshold={25}
-      side={null}
       counts={counts}
     />,
   );
@@ -31,35 +23,28 @@ test("shows placeholders before the first reading", () => {
   expect(valueOf("State")).toBe("—");
 });
 
-test("updates the current value on each new reading", () => {
+test("updates the current value and its side on each new reading", () => {
   const readings = createReadingsStore(10);
-  render(
-    <ReadoutBar
-      readings={readings}
-      threshold={25}
-      side="above"
-      counts={counts}
-    />,
-  );
+  render(<ReadoutBar readings={readings} threshold={25} counts={counts} />);
 
   act(() => readings.push({ t: 1, value: 26.2 }));
   expect(valueOf("Current")).toBe("26.20 °C");
+  expect(valueOf("State")).toBe("▲ Above");
   act(() => readings.push({ t: 2, value: 24.05 }));
   expect(valueOf("Current")).toBe("24.05 °C");
+  expect(valueOf("State")).toBe("▼ Below");
 });
 
-test("shows threshold, side as text and delivery counts", () => {
+test("shows the threshold and the alert counts", () => {
   render(
     <ReadoutBar
       readings={createReadingsStore(10)}
       threshold={25}
-      side="above"
       counts={counts}
     />,
   );
   expect(valueOf("Threshold")).toBe("25.0 °C");
-  expect(valueOf("State")).toBe("▲ Above");
   expect(valueOf("Alerts")).toBe("7");
-  expect(valueOf("In flight")).toBe("3"); // queued + sent
-  expect(valueOf("Acknowledged")).toBe("1");
+  expect(valueOf("Open")).toBe("4");
+  expect(valueOf("Acknowledged")).toBe("3");
 });

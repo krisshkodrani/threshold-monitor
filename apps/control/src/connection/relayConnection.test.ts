@@ -48,7 +48,14 @@ function setup() {
   const last = () => sockets.at(-1)!;
   const welcome = () =>
     last().events.message(
-      encode({ type: "welcome", connectionId: uuid(1), recent: [] }),
+      encode({
+        type: "welcome",
+        connectionId: uuid(1),
+        recent: [],
+        settings: null,
+        sensor: null,
+        readings: [],
+      }),
     );
   return { connection, sockets, statuses, messages, log, last, welcome };
 }
@@ -58,7 +65,7 @@ test("says hello as a control room, then reports open on welcome", () => {
   last().events.open();
   expect(JSON.parse(last().sent[0]!)).toEqual({
     type: "hello",
-    v: 2,
+    v: 3,
     role: "control",
     clientName: "Control room",
   });

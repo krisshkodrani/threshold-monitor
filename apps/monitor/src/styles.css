@@ -211,8 +211,18 @@ output {
   display: grid;
   gap: var(--space-2);
 }
-.field label {
+.field label,
+.field__label {
   font-weight: 600;
+  margin: 0;
+}
+
+.notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--alarm);
+  border-radius: var(--radius);
+  color: var(--alarm);
 }
 .field__row {
   display: flex;
@@ -309,19 +319,13 @@ button:hover {
   font-size: 0.8rem;
   transition: color 150ms ease;
 }
-.chip--queued,
-.chip--sent {
+/* Received: stored by the relay, waiting for an operator. */
+.chip--received {
   color: var(--info);
-}
-.chip--accepted {
-  color: var(--ok);
 }
 .chip--acknowledged {
   color: var(--ok);
   background: color-mix(in srgb, var(--ok) 12%, transparent);
-}
-.chip--dropped {
-  color: var(--alarm);
 }
 
 /* Chart markers */

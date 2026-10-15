@@ -1,17 +1,18 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { useDispatch, useSelector } from "react-redux";
 import { alertsReducer } from "./alertsSlice";
-import { connectionReducer } from "./connectionSlice";
-import { thresholdReducer } from "./thresholdSlice";
+import { sensorReducer } from "./sensorSlice";
+import { settingsReducer } from "./settingsSlice";
 
 /**
- * Redux holds only low-frequency, user-meaningful state: settings, alerts and
- * the connection status. Live readings deliberately bypass it (readingsStore).
+ * Redux holds only low-frequency, user-meaningful state: the shared settings,
+ * the alerts and the sensor. Live readings bypass it
+ * (readingsStore).
  */
 const rootReducer = combineReducers({
-  threshold: thresholdReducer,
+  settings: settingsReducer,
   alerts: alertsReducer,
-  connection: connectionReducer,
+  sensor: sensorReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

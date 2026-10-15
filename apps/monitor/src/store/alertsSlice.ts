@@ -1,4 +1,4 @@
-import type { Alert } from "@app/protocol";
+import type { AlertRecord } from "@app/protocol";
 import {
   createEntityAdapter,
   createSelector,
@@ -7,93 +7,61 @@ import {
 } from "@reduxjs/toolkit";
 import { limits } from "../config";
 import type { ChartMarker } from "../domain/chartData";
-import type {
-  DeliveryStatus,
-  DeliveryUpdate,
-} from "../transport/AlertTransport";
-
-export type AlertEntity = Alert & {
-  status: DeliveryStatus;
-  attempts: number;
-  sentAt?: string;
-  /** Server clock: when the relay stored the alert. */
-  acceptedAt?: string;
-  /** Browser clock: when this tab learned it was accepted. Used for latency. */
-  acceptedLocalAt?: string;
-  acknowledgement?: { operator: string; at: string };
-};
 
 /**
- * Which status changes are allowed. Updates can arrive late or twice (a resend
- * is answered with a duplicate `accepted`, possibly after the operator already
- * acknowledged), so a status must never move backwards.
- * - queued <-> sent: an alert goes back to queued when its accept times out.
- * - accepted: can only become acknowledged.
- * - acknowledged, dropped: final.
+ * The sensor's alerts as the relay stored them (ADR 0009). The monitor only
+ * shows them: "Received" until an operator acknowledges.
  */
-export function canTransition(
-  from: DeliveryStatus,
-  to: DeliveryStatus,
-): boolean {
-  switch (from) {
-    case "queued":
-    case "sent":
-      return true;
-    case "accepted":
-      return to === "acknowledged";
-    case "acknowledged":
-    case "dropped":
-      return false;
-  }
-}
+export type AlertEntity = AlertRecord;
+
+export type AlertStatus = "received" | "acknowledged";
+
+export const statusOf = (alert: AlertEntity): AlertStatus =>
+  alert.acknowledgement ? "acknowledged" : "received";
 
 const adapter = createEntityAdapter<AlertEntity>({
   // ISO 8601 UTC strings sort correctly as plain strings. Newest first.
   sortComparer: (a, b) => b.eventTime.localeCompare(a.eventTime),
 });
 
+/** Bounded memory: ids are sorted newest first, so the tail is the oldest. */
+function trim(state: ReturnType<typeof adapter.getInitialState>) {
+  const excess = state.ids.slice(limits.storedAlerts);
+  if (excess.length > 0) adapter.removeMany(state, excess);
+}
+
 const alertsSlice = createSlice({
   name: "alerts",
   initialState: adapter.getInitialState(),
   reducers: {
-    alertCreated(state, action: PayloadAction<Alert>) {
-      adapter.addOne(state, {
-        ...action.payload,
-        status: "queued",
-        attempts: 0,
-      });
-      // Bounded memory: ids are sorted newest first, so the tail is the oldest.
-      const excess = state.ids.slice(limits.storedAlerts);
-      if (excess.length > 0) adapter.removeMany(state, excess);
+    /** The relay's recent alerts on each (re)connect replace the list. */
+    welcomed(state, action: PayloadAction<AlertRecord[]>) {
+      adapter.setAll(state, action.payload);
+      trim(state);
     },
-    deliveryUpdated: {
-      reducer(state, action: PayloadAction<DeliveryUpdate & { now: string }>) {
-        const update = action.payload;
-        const alert = state.entities[update.alertId];
-        // Unknown ids happen legitimately (an alert evicted from the log); ignore them.
-        if (!alert || !canTransition(alert.status, update.status)) return;
-
-        alert.status = update.status;
-        if (update.status === "sent") {
-          alert.attempts += 1;
-          alert.sentAt = update.now;
-        } else if (update.status === "accepted") {
-          alert.acceptedAt = update.receivedAt;
-          alert.acceptedLocalAt = update.now;
-        } else if (update.status === "acknowledged") {
-          alert.acknowledgement = { operator: update.operator, at: update.at };
-        }
-      },
-      // The time is taken when the action is created, keeping the reducer pure.
-      // RTK types prepare args loosely, so annotate `now` explicitly.
-      prepare(update: DeliveryUpdate, now: string = new Date().toISOString()) {
-        return { payload: { ...update, now } };
-      },
+    alertReceived(state, action: PayloadAction<AlertRecord>) {
+      // An acknowledged copy always wins over an older unacknowledged one.
+      const existing = state.entities[action.payload.id];
+      if (existing?.acknowledgement) return;
+      adapter.upsertOne(state, action.payload);
+      trim(state);
+    },
+    acknowledged(
+      state,
+      action: PayloadAction<{ alertId: string; operator: string; at: string }>,
+    ) {
+      const alert = state.entities[action.payload.alertId];
+      // Unknown ids happen legitimately (an alert evicted from the log).
+      if (!alert || alert.acknowledgement) return; // the first one wins
+      alert.acknowledgement = {
+        operator: action.payload.operator,
+        at: action.payload.at,
+      };
     },
   },
 });
 
-export const { alertCreated, deliveryUpdated } = alertsSlice.actions;
+export const { welcomed, alertReceived, acknowledged } = alertsSlice.actions;
 export const alertsReducer = alertsSlice.reducer;
 
 type AlertsRoot = { alerts: ReturnType<typeof alertsReducer> };
@@ -106,18 +74,15 @@ export const selectLoggedAlerts = createSelector([selectAllAlerts], (alerts) =>
   alerts.slice(0, limits.loggedAlerts),
 );
 
-export type AlertCounts = Record<DeliveryStatus, number> & { total: number };
+export type AlertCounts = Record<AlertStatus, number> & { total: number };
 
 export const selectAlertCounts = createSelector([selectAllAlerts], (alerts) => {
   const counts: AlertCounts = {
     total: alerts.length,
-    queued: 0,
-    sent: 0,
-    accepted: 0,
+    received: 0,
     acknowledged: 0,
-    dropped: 0,
   };
-  for (const alert of alerts) counts[alert.status] += 1;
+  for (const alert of alerts) counts[statusOf(alert)] += 1;
   return counts;
 });
 

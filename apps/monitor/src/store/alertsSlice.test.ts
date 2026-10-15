@@ -1,131 +1,84 @@
 import { describe, expect, test } from "vitest";
-import { testAlert } from "../test/fakes";
-import type {
-  DeliveryStatus,
-  DeliveryUpdate,
-} from "../transport/AlertTransport";
+import { limits } from "../config";
+import { record } from "../test/fakes";
+import { createAppStore } from "./index";
 import {
-  alertCreated,
-  alertsReducer,
-  canTransition,
-  deliveryUpdated,
+  acknowledged,
+  alertReceived,
   selectAlertCounts,
   selectAllAlerts,
   selectChartMarkers,
+  selectLoggedAlerts,
+  welcomed,
 } from "./alertsSlice";
 
-const NOW = "2026-10-14T09:30:01.000Z";
+const ack = { operator: "Ana", at: "2026-10-14T09:31:00.000Z" };
 
-function stateWith(...ids: string[]) {
-  let state = alertsReducer(undefined, { type: "init" });
-  ids.forEach((id, i) => {
-    const eventTime = new Date(Date.UTC(2026, 9, 14, 9, 0, i)).toISOString();
-    state = alertsReducer(state, alertCreated(testAlert(id, { eventTime })));
-  });
-  return state;
-}
-
-function apply(
-  state: ReturnType<typeof stateWith>,
-  ...updates: DeliveryUpdate[]
-) {
-  return updates.reduce(
-    (s, u) => alertsReducer(s, deliveryUpdated(u, NOW)),
-    state,
-  );
-}
-
-const sent = { alertId: "a", status: "sent" } as const;
-const accepted = { alertId: "a", status: "accepted", receivedAt: NOW } as const;
-const acknowledged = {
-  alertId: "a",
-  status: "acknowledged",
-  operator: "Ana",
-  at: NOW,
-} as const;
-const queued = { alertId: "a", status: "queued" } as const;
-
-describe("alertsSlice", () => {
-  test("a created alert starts queued with no attempts", () => {
-    expect(stateWith("a").entities.a).toMatchObject({
-      status: "queued",
-      attempts: 0,
-    });
-  });
-
-  test("moves through the normal lifecycle and records the details", () => {
-    const alert = apply(stateWith("a"), sent, accepted, acknowledged).entities
-      .a;
-    expect(alert).toMatchObject({
-      status: "acknowledged",
-      attempts: 1,
-      sentAt: NOW,
-      acceptedAt: NOW,
-      acceptedLocalAt: NOW,
-      acknowledgement: { operator: "Ana", at: NOW },
-    });
-  });
-
-  test("a timed-out alert can go back to queued and counts each send", () => {
-    const alert = apply(stateWith("a"), sent, queued, sent).entities.a;
-    expect(alert).toMatchObject({ status: "sent", attempts: 2 });
-  });
-
-  test("a duplicate accepted after acknowledgement does not move the status back", () => {
-    const alert = apply(
-      stateWith("a"),
-      sent,
-      accepted,
-      acknowledged,
-      accepted,
-      queued,
-    ).entities.a;
-    expect(alert?.status).toBe("acknowledged");
-  });
-
-  test("an acknowledgement can arrive before the accept was seen", () => {
-    expect(apply(stateWith("a"), sent, acknowledged).entities.a?.status).toBe(
-      "acknowledged",
+describe("alerts slice", () => {
+  test("welcome replaces the list, newest first", () => {
+    const store = createAppStore();
+    store.dispatch(alertReceived(record(9)));
+    store.dispatch(welcomed([record(1), record(3), record(2)]));
+    expect(selectAllAlerts(store.getState()).map((a) => a.id)).toEqual(
+      [3, 2, 1].map((n) => record(n).id),
     );
   });
 
-  test("updates for unknown alerts are ignored", () => {
-    const state = stateWith("a");
-    expect(apply(state, { alertId: "zzz", status: "sent" })).toEqual(state);
+  test("a received alert is added once", () => {
+    const store = createAppStore();
+    store.dispatch(alertReceived(record(1)));
+    store.dispatch(alertReceived(record(1)));
+    expect(selectAllAlerts(store.getState())).toHaveLength(1);
   });
 
-  test.each<[DeliveryStatus, DeliveryStatus, boolean]>([
-    ["queued", "dropped", true],
-    ["sent", "queued", true],
-    ["accepted", "sent", false],
-    ["accepted", "acknowledged", true],
-    ["acknowledged", "accepted", false],
-    ["dropped", "sent", false],
-  ])("transition %s -> %s allowed: %s", (from, to, allowed) => {
-    expect(canTransition(from, to)).toBe(allowed);
+  test("the first acknowledgement wins, and an older copy does not undo it", () => {
+    const store = createAppStore();
+    store.dispatch(alertReceived(record(1)));
+    store.dispatch(acknowledged({ alertId: record(1).id, ...ack }));
+    store.dispatch(
+      acknowledged({ alertId: record(1).id, operator: "Ben", at: ack.at }),
+    );
+    store.dispatch(alertReceived(record(1))); // an old, unacknowledged copy
+    expect(selectAllAlerts(store.getState())[0]?.acknowledgement).toEqual(ack);
   });
 
-  test("keeps at most 200 alerts, removing the oldest", () => {
-    const ids = Array.from({ length: 205 }, (_, i) => `id-${i}`);
-    const state = stateWith(...ids);
-    expect(state.ids).toHaveLength(200);
-    expect(state.ids[0]).toBe("id-204"); // newest first
-    expect(state.entities["id-4"]).toBeUndefined();
-    expect(state.entities["id-5"]).toBeDefined();
+  test("an acknowledgement for an unknown alert is ignored", () => {
+    const store = createAppStore();
+    store.dispatch(acknowledged({ alertId: record(5).id, ...ack }));
+    expect(selectAllAlerts(store.getState())).toEqual([]);
   });
 
-  test("selectors: newest first, counts by status, chart markers", () => {
-    const alerts = apply(stateWith("a", "b"), sent);
-    const root = { alerts };
-    expect(selectAllAlerts(root).map((a) => a.id)).toEqual(["b", "a"]);
-    expect(selectAlertCounts(root)).toMatchObject({
+  test("memory is bounded; the log shows the newest only", () => {
+    const store = createAppStore();
+    for (let n = 1; n <= limits.storedAlerts + 10; n++)
+      store.dispatch(
+        alertReceived(
+          record(n, { eventTime: new Date(n * 1000).toISOString() }),
+        ),
+      );
+    expect(selectAllAlerts(store.getState())).toHaveLength(limits.storedAlerts);
+    expect(selectLoggedAlerts(store.getState())).toHaveLength(
+      limits.loggedAlerts,
+    );
+  });
+
+  test("counts and chart markers", () => {
+    const store = createAppStore();
+    store.dispatch(
+      welcomed([
+        record(1),
+        record(2, { acknowledgement: ack, direction: "down" }),
+      ]),
+    );
+    expect(selectAlertCounts(store.getState())).toEqual({
       total: 2,
-      queued: 1,
-      sent: 1,
+      received: 1,
+      acknowledged: 1,
     });
-    expect(selectChartMarkers(root)[0]).toEqual({
-      t: Date.UTC(2026, 9, 14, 9, 0, 1),
-      direction: "up",
-    });
+    expect(
+      selectChartMarkers(store.getState())
+        .map((m) => m.direction)
+        .sort(),
+    ).toEqual(["down", "up"]);
   });
 });

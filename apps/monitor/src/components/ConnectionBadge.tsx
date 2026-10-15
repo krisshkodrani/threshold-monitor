@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ConnectionStatus } from "../transport/AlertTransport";
+import type { ConnectionStatus } from "../connection/relayConnection";
 
 const labels: Record<
   Exclude<ConnectionStatus["kind"], "reconnecting">,

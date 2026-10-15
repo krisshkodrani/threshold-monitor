@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { Reading } from "../data/DataSource";
+import type { Reading } from "../domain/types";
 import type { ReadingsStore } from "../data/readingsStore";
 
 /**

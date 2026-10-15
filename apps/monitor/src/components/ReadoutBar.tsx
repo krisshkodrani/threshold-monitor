@@ -7,15 +7,21 @@ import type { AlertCounts } from "../store/alertsSlice";
 type Props = {
   readings: ReadingsStore;
   threshold: number;
-  side: Side | null;
   counts: AlertCounts;
 };
 
 const sideLabels = { above: "▲ Above", below: "▼ Below" } as const;
 
-export function ReadoutBar({ readings, threshold, side, counts }: Props) {
+export function ReadoutBar({ readings, threshold, counts }: Props) {
   // Subscribes itself, so a new reading re-renders only this bar and the chart.
   const latest = useLatestReading(readings);
+  // The side of the latest value. The sensor's detector also uses the
+  // hysteresis band; this view only says where the value is now.
+  const side: Side | null = latest
+    ? latest.value > threshold
+      ? "above"
+      : "below"
+    : null;
 
   return (
     <dl className="readout">
@@ -40,20 +46,12 @@ export function ReadoutBar({ readings, threshold, side, counts }: Props) {
         <dd>{counts.total}</dd>
       </div>
       <div className="readout__item">
-        <dt>Accepted</dt>
-        <dd>{counts.accepted}</dd>
+        <dt>Open</dt>
+        <dd>{counts.received}</dd>
       </div>
       <div className="readout__item">
         <dt>Acknowledged</dt>
         <dd>{counts.acknowledged}</dd>
-      </div>
-      <div className="readout__item">
-        <dt>In flight</dt>
-        <dd>{counts.queued + counts.sent}</dd>
-      </div>
-      <div className="readout__item">
-        <dt>Dropped</dt>
-        <dd>{counts.dropped}</dd>
       </div>
     </dl>
   );

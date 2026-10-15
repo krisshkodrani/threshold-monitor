@@ -1,9 +1,17 @@
 import { useId } from "react";
 import { hysteresisRange, metric } from "../config";
 
-type Props = { value: number; onChange: (value: number) => void };
+type Props = {
+  value: number;
+  onChange: (value: number) => void;
+  disabled?: boolean;
+};
 
-export function HysteresisControl({ value, onChange }: Props) {
+export function HysteresisControl({
+  value,
+  onChange,
+  disabled = false,
+}: Props) {
   const id = useId();
   return (
     <div className="field">
@@ -16,6 +24,7 @@ export function HysteresisControl({ value, onChange }: Props) {
           max={hysteresisRange.max}
           step={hysteresisRange.step}
           value={value}
+          disabled={disabled}
           // Round away float noise such as 0.30000000000000004 from the slider.
           onChange={(event) =>
             onChange(Math.round(Number(event.target.value) * 10) / 10)
