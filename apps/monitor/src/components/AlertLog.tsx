@@ -31,14 +31,27 @@ export function AlertLog({ alerts }: { alerts: readonly AlertEntity[] }) {
   const headingId = useId();
   return (
     <section className="panel" aria-labelledby={headingId}>
-      <h2 id={headingId}>Alert log</h2>
+      <h2 id={headingId}>
+        Alert log{" "}
+        {alerts.length > 0 && (
+          <span className="heading__count">
+            · {alerts.length} {alerts.length === 1 ? "alert" : "alerts"}
+          </span>
+        )}
+      </h2>
       {alerts.length === 0 ? (
         <p className="muted">
           No crossings yet. Move the threshold close to the current value.
         </p>
       ) : (
-        // Scrolls horizontally on narrow screens instead of squashing columns.
-        <div className="table-scroll">
+        // A box with a fixed height: the rows scroll inside it, and the header
+        // row stays visible. Focusable, so keyboard users can scroll it too.
+        <div
+          className="table-scroll table-scroll--rows"
+          role="region"
+          aria-label="Scrollable alert log"
+          tabIndex={0}
+        >
           <table>
             <thead>
               <tr>

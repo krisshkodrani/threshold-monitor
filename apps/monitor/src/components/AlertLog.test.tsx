@@ -57,3 +57,13 @@ test("direction is shown as text, not only as an arrow", () => {
   render(<AlertLog alerts={[{ ...base, direction: "down" }]} />);
   expect(screen.getByRole("cell", { name: /down/ })).toBeInTheDocument();
 });
+
+test("the table scrolls in a focusable box, and the heading counts the alerts", () => {
+  render(<AlertLog alerts={[base, { ...base, id: "b" }]} />);
+  const box = screen.getByRole("region", { name: "Scrollable alert log" });
+  expect(box).toHaveAttribute("tabindex", "0");
+  expect(box).toContainElement(screen.getByRole("table"));
+  expect(
+    screen.getByRole("heading", { name: "Alert log · 2 alerts" }),
+  ).toBeInTheDocument();
+});
