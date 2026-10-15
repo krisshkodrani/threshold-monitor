@@ -1,32 +1,104 @@
 import { existsSync } from "node:fs";
-import { createServer, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import path from "node:path";
 import sirv from "sirv";
+import { isOriginAllowed, type Config } from "./config";
 import type { Logger } from "./logger";
+import { loginPage } from "./loginPage";
+import {
+  createBucket,
+  take,
+  type Bucket,
+  type BucketConfig,
+} from "./rateLimiter";
+import {
+  authenticate,
+  clearedSessionCookie,
+  readSessionToken,
+  sessionCookie,
+  type SessionStore,
+} from "./sessions";
+import type { UserStore } from "./users";
+
+export type AuthDeps = {
+  users: UserStore;
+  sessions: SessionStore;
+  config: Pick<Config, "mode" | "allowedOrigins" | "cookieSecure">;
+  /** Called with the session id after a logout, so the relay can close its sockets. */
+  onLogout?: (sessionId: string) => void;
+  clock?: () => number;
+  /** Login tries for each IP address: a short burst, then a slow refill. */
+  loginBucket?: BucketConfig;
+};
+
+const LOGIN_BUCKET: BucketConfig = { capacity: 5, refillPerSecond: 0.1 };
+const MAX_BODY_BYTES = 4 * 1024;
+const MAX_TRACKED_ADDRESSES = 10_000;
+const LOGIN_FAILED = "Wrong username or password.";
+
+// The login page has no script, loads nothing and must not be framed.
+const LOGIN_PAGE_HEADERS = {
+  "content-type": "text/html; charset=utf-8",
+  "cache-control": "no-store",
+  "content-security-policy":
+    "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "same-origin",
+};
 
 /**
- * Plain HTTP: a health check plus the two built apps, so production is one
- * process on one port with no CORS (the pages and /ws share an origin).
- * sirv handles the file serving details: content types, ETags, path
- * traversal protection and falling back to index.html for client routes.
+ * Plain HTTP: a health check, the login routes and the two built apps, so
+ * production is one process on one port with no CORS (the pages, /api and
+ * /ws share an origin). sirv handles the file serving details: content
+ * types, ETags, path traversal protection and falling back to index.html
+ * for client routes. The apps are public files; their data comes only
+ * through /ws, which needs a session.
  */
 export function createHttpServer({
   staticDir,
   logger,
+  auth,
 }: {
   staticDir: string;
   logger: Logger;
+  auth: AuthDeps;
 }) {
   const monitor = serveApp(path.join(staticDir, "monitor", "dist"), logger);
   const control = serveApp(path.join(staticDir, "control", "dist"), logger);
+  const routes = authRoutes(auth, logger);
 
   return createServer((req, res) => {
-    const { pathname } = new URL(req.url ?? "/", "http://localhost");
+    const { pathname, searchParams } = new URL(
+      req.url ?? "/",
+      "http://localhost",
+    );
 
     if (pathname === "/healthz") {
       res.writeHead(200, { "content-type": "application/json" });
       return res.end(JSON.stringify({ status: "ok" }));
     }
+    if (pathname === "/login" && req.method === "GET") {
+      res.writeHead(200, LOGIN_PAGE_HEADERS);
+      return res.end(loginPage({ next: safeNext(searchParams.get("next")) }));
+    }
+    if (pathname === "/api/login" && req.method === "POST") {
+      // An aborted request rejects; it must not become an unhandled rejection.
+      return void routes.login(req, res).catch((err: unknown) => {
+        logger.warn("login request failed", { error: String(err) });
+        if (!res.headersSent) json(res, 500, { error: "Login failed" });
+        else res.destroy();
+      });
+    }
+    if (pathname === "/api/logout" && req.method === "POST")
+      return routes.logout(req, res);
+    if (pathname === "/api/session" && req.method === "GET")
+      return routes.session(req, res);
+    if (pathname.startsWith("/api/"))
+      return json(res, 404, { error: "Not found" });
     if (pathname === "/control") {
       res.writeHead(301, { location: "/control/" });
       return res.end();
@@ -39,6 +111,141 @@ export function createHttpServer({
     }
     return monitor ? monitor(req, res, () => notFound(res)) : notFound(res);
   });
+}
+
+function authRoutes(auth: AuthDeps, logger: Logger) {
+  const {
+    users,
+    sessions,
+    config,
+    onLogout,
+    clock = Date.now,
+    loginBucket = LOGIN_BUCKET,
+  } = auth;
+  const buckets = new Map<string, Bucket>();
+
+  /** One token per try. The map is cleared when it grows too large, which only forgives. */
+  function allowTry(address: string): boolean {
+    if (buckets.size > MAX_TRACKED_ADDRESSES) buckets.clear();
+    const now = clock();
+    const result = take(
+      buckets.get(address) ?? createBucket(now, loginBucket),
+      now,
+      loginBucket,
+    );
+    buckets.set(address, result.bucket);
+    return result.allowed;
+  }
+
+  /** The same Origin rule as the WebSocket upgrade: no posts from other sites. */
+  const sameSite = (req: IncomingMessage) =>
+    isOriginAllowed(req.headers.origin, req.headers.host, config);
+
+  return {
+    async login(req: IncomingMessage, res: ServerResponse) {
+      if (!sameSite(req)) return json(res, 403, { error: "Forbidden origin" });
+      const address = req.socket.remoteAddress ?? "unknown";
+
+      const body = await readForm(req);
+      if (!body) return json(res, 413, { error: "Body too large" });
+      const next = safeNext(body.get("next"));
+
+      if (!allowTry(address)) {
+        logger.warn("login rate limited", { address });
+        res.writeHead(429, { ...LOGIN_PAGE_HEADERS, "retry-after": "10" });
+        return res.end(
+          loginPage({ next, error: "Too many tries. Wait, then try again." }),
+        );
+      }
+
+      const username = body.get("username") ?? "";
+      const user = await users.verify(username, body.get("password") ?? "");
+      if (!user) {
+        logger.warn("login failed", { address });
+        res.writeHead(401, LOGIN_PAGE_HEADERS);
+        return res.end(loginPage({ next, error: LOGIN_FAILED }));
+      }
+
+      const token = sessions.create(user.id);
+      logger.info("login", { userId: user.id, username: user.username });
+      res.writeHead(303, {
+        location: next,
+        "set-cookie": sessionCookie(token, {
+          maxAgeMs: sessions.ttlMs,
+          secure: config.cookieSecure,
+        }),
+        "cache-control": "no-store",
+      });
+      res.end();
+    },
+
+    logout(req: IncomingMessage, res: ServerResponse) {
+      if (!sameSite(req)) return json(res, 403, { error: "Forbidden origin" });
+      const token = readSessionToken(req);
+      if (token) {
+        const sessionId = sessions.remove(token);
+        onLogout?.(sessionId);
+      }
+      res.writeHead(204, {
+        "set-cookie": clearedSessionCookie(config.cookieSecure),
+        "cache-control": "no-store",
+      });
+      res.end();
+    },
+
+    session(req: IncomingMessage, res: ServerResponse) {
+      const session = authenticate(req, sessions);
+      if (!session) return json(res, 401, { error: "Not signed in" });
+      const { username, displayName, roles } = session;
+      json(res, 200, { username, displayName, roles });
+    },
+  };
+}
+
+/**
+ * Where to go after login. Only a path on this server: "//evil.example" or
+ * "https://evil.example" would make the login page an open redirect.
+ */
+export function safeNext(next: string | null | undefined): string {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/";
+  if (next.includes("\\")) return "/"; // some browsers read "/\" as "//"
+  return next;
+}
+
+/** Reads a form or JSON body of at most 4 KiB. Null if it is larger. */
+async function readForm(
+  req: IncomingMessage,
+): Promise<Map<string, string> | null> {
+  let size = 0;
+  const chunks: Buffer[] = [];
+  for await (const chunk of req as AsyncIterable<Buffer>) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) return null;
+    chunks.push(chunk);
+  }
+  const text = Buffer.concat(chunks).toString("utf8");
+  const fields = new Map<string, string>();
+  if (req.headers["content-type"]?.startsWith("application/json")) {
+    try {
+      const value: unknown = JSON.parse(text);
+      if (value && typeof value === "object")
+        for (const [key, field] of Object.entries(value))
+          if (typeof field === "string") fields.set(key, field);
+    } catch {
+      // An invalid body has no fields; the login then fails as usual.
+    }
+    return fields;
+  }
+  for (const [key, field] of new URLSearchParams(text)) fields.set(key, field);
+  return fields;
+}
+
+function json(res: ServerResponse, status: number, body: unknown) {
+  res.writeHead(status, {
+    "content-type": "application/json",
+    "cache-control": "no-store",
+  });
+  res.end(JSON.stringify(body));
 }
 
 function serveApp(dir: string, logger: Logger) {

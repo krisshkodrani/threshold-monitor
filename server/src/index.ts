@@ -4,6 +4,8 @@ import { openDatabase } from "./db";
 import { createHttpServer } from "./http";
 import { createLogger } from "./logger";
 import { attachRelay } from "./relay";
+import { createSessionStore } from "./sessions";
+import { addDemoUsers, createUserStore } from "./users";
 
 const SHUTDOWN_DEADLINE_MS = 5_000;
 
@@ -19,7 +21,19 @@ try {
 const logger = createLogger(config.logLevel);
 const db = openDatabase(config.databasePath);
 const store = createSqliteAlertStore(db);
-const server = createHttpServer({ staticDir: config.staticDir, logger });
+const users = createUserStore(db);
+const sessions = createSessionStore(db, { ttlMs: config.sessionTtlMs });
+if (config.demoUsers) {
+  const added = await addDemoUsers(users);
+  logger.warn("demo users are enabled; do not use this in production", {
+    added,
+  });
+}
+const server = createHttpServer({
+  staticDir: config.staticDir,
+  logger,
+  auth: { users, sessions, config },
+});
 const relay = attachRelay(server, { config, store, logger });
 
 server.on("error", (err) => {
