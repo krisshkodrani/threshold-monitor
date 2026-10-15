@@ -1,5 +1,7 @@
 # Threshold Monitor
 
+[![CI](https://github.com/krisshkodrani/threshold-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/krisshkodrani/threshold-monitor/actions/workflows/ci.yml)
+
 A monitor app reads a value, finds the crossings of a threshold and sends an
 alert for each crossing. A relay server stores each alert and sends it to the
 control rooms. In a control room, an operator acknowledges the alarm, and the
