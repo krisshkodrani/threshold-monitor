@@ -5,7 +5,8 @@
 A monitor app reads a value, finds the crossings of a threshold and sends an
 alert for each crossing. A relay server stores each alert and sends it to the
 control rooms. In a control room, an operator acknowledges the alarm, and the
-monitor shows who acknowledged it.
+monitor shows who acknowledged it. Users log in, and the relay keeps users,
+sessions and alerts in SQLite.
 
 | Monitor                                                               | Control room                                                            |
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
@@ -13,7 +14,7 @@ monitor shows who acknowledged it.
 
 ## Status
 
-All milestones (M0 to M7) are done. Refer to [docs/roadmap.md](docs/roadmap.md)
+All milestones (M0 to M8) are done. M8 added login and SQLite storage. Refer to [docs/roadmap.md](docs/roadmap.md)
 for the plan, [docs/architecture.md](docs/architecture.md) for the design and
 its limits, and [docs/adr](docs/adr) for the main decisions.
 
@@ -36,18 +37,36 @@ pnpm dev
 | Control room | http://localhost:5174/control/ | Vite dev server; it sends `/ws` to the relay      |
 | Relay        | http://localhost:8080/         | Development mode: it accepts the two Vite origins |
 
+In development, the relay adds two demo users (`DEMO_USERS=true` in
+`server/.env.development`). The password of both is `demo`.
+
+| Username   | Role       | Can open         |
+| ---------- | ---------- | ---------------- |
+| `operator` | `operator` | The control room |
+| `monitor`  | `monitor`  | The monitor      |
+
+The database is in `data/threshold-monitor.db`. To start again with no data,
+stop `pnpm dev` and delete the `data` folder.
+
 ## Two-minute demo
 
-1. Open the control room. Type your name in "Operator name" and click **Save**.
-2. Open the monitor at http://localhost:5173/?rate=10&seed=7. The badge shows
-   "Connected".
+1. Open the control room. The login page opens. Log in as `operator` with the
+   password `demo`.
+2. In a second browser profile (or a private window), open the monitor at
+   http://localhost:5173/?rate=10&seed=7. Log in as `monitor` with the
+   password `demo`. The badge shows "Connected".
 3. Wait for a crossing. The alert log shows "Accepted", and the alarm appears
    in the control room.
 4. In the control room, click **Acknowledge**. The monitor shows
-   "Acknowledged by" and your name.
+   "Acknowledged by Demo Operator". The name comes from the session.
 5. Restart the relay: in a second terminal, run `touch server/src/index.ts`.
    The relay restarts, and both badges show "Reconnecting", then "Connected".
-   Alerts from the monitor wait in its outbox and then go to the relay.
+   Alerts from the monitor wait in its outbox and then go to the relay. The
+   alarms and acknowledgements are still there, because they are in SQLite.
+6. Click **Log out**. The page goes back to the login page.
+
+The two apps share one cookie on `localhost`. To use both roles in one browser
+window, add a user with both roles (refer to "Users").
 
 The monitor reads two optional URL parameters: `rate` (1, 2, 5 or 10 readings
 each second) and `seed` (an integer for the random data).
@@ -61,24 +80,45 @@ pnpm start
 
 One process serves everything on one port, with no CORS:
 
-| Path        | Content                         |
-| ----------- | ------------------------------- |
-| `/`         | The monitor                     |
-| `/control/` | The control room                |
-| `/ws`       | The WebSocket relay             |
-| `/healthz`  | Health check: `{"status":"ok"}` |
+| Path           | Content                                    |
+| -------------- | ------------------------------------------ |
+| `/`            | The monitor                                |
+| `/control/`    | The control room                           |
+| `/login`       | The login page (one for both apps)         |
+| `/api/login`   | `POST`: check the password, set the cookie |
+| `/api/logout`  | `POST`: end the session, close its sockets |
+| `/api/session` | `GET`: the signed-in user, or `401`        |
+| `/ws`          | The WebSocket relay (needs a session)      |
+| `/healthz`     | Health check: `{"status":"ok"}`            |
+
+## Users
+
+Production has no users at first. Add each user with the CLI. The password
+comes from stdin, so it is not in the shell history:
+
+```sh
+pnpm build
+echo 'a-long-password' | pnpm --filter @app/server user:add kris --name "Kris" --roles operator,monitor
+```
+
+Usernames use `a-z`, `0-9`, `.`, `_` and `-`. The display name (1 to 40
+characters) is the name in "Acknowledged by". Passwords need at least 8
+characters. The roles are `operator` (control room) and `monitor`.
 
 All settings are optional environment variables. Refer to
 [.env.example](.env.example).
 
-| Variable          | Default      | Purpose                                                                |
-| ----------------- | ------------ | ---------------------------------------------------------------------- |
-| `PORT`            | `8080`       | HTTP and WebSocket port                                                |
-| `NODE_ENV`        | `production` | `production` accepts WebSockets from the same origin only              |
-| `ALLOWED_ORIGINS` | (empty)      | A comma-separated list of origins; it replaces the default origin rule |
-| `STATIC_DIR`      | `apps/`      | The folder that contains `monitor/dist` and `control/dist`             |
-| `RECENT_LIMIT`    | `500`        | The number of alerts that the relay keeps in memory                    |
-| `LOG_LEVEL`       | `info`       | `debug`, `info`, `warn` or `error`; the relay writes JSON lines        |
+| Variable            | Default                     | Purpose                                                                 |
+| ------------------- | --------------------------- | ----------------------------------------------------------------------- |
+| `PORT`              | `8080`                      | HTTP and WebSocket port                                                 |
+| `NODE_ENV`          | `production`                | `production` accepts WebSockets from the same origin only               |
+| `ALLOWED_ORIGINS`   | (empty)                     | A comma-separated list of origins; it replaces the default origin rule  |
+| `STATIC_DIR`        | `apps/`                     | The folder that contains `monitor/dist` and `control/dist`              |
+| `LOG_LEVEL`         | `info`                      | `debug`, `info`, `warn` or `error`; the relay writes JSON lines         |
+| `DATABASE_PATH`     | `data/threshold-monitor.db` | The SQLite file for users, sessions and alerts                          |
+| `SESSION_TTL_HOURS` | `12`                        | How long a login lasts                                                  |
+| `COOKIE_SECURE`     | `false`                     | Set `true` when the app runs behind HTTPS                               |
+| `DEMO_USERS`        | `false`                     | `true` adds the demo users `operator` and `monitor`; not for production |
 
 ## Docker
 
@@ -92,6 +132,16 @@ its three production dependencies and both built apps. The server runs as the
 compose stop`, the relay closes each client connection with code 1001, and
 the clients reconnect when it starts again.
 
+The database is in the volume `data` (`/app/data`). The rest of the container
+filesystem is read-only. Add a user:
+
+```sh
+echo 'a-long-password' | docker compose exec -T relay \
+  node dist/cli.js user:add kris --name "Kris" --roles operator,monitor
+```
+
+For a quick local demo, set `DEMO_USERS: "true"` in `docker-compose.yml`.
+
 ## Architecture
 
 ```
@@ -102,20 +152,24 @@ the clients reconnect when it starts again.
               (shared zod schemas for every message)
 ```
 
-| Part                | What it does                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------- |
-| `packages/protocol` | The message schemas (zod), their types, and parse functions that do not throw                     |
-| `apps/monitor`      | Random-walk data, live chart, crossing detector with hysteresis, outbox, WebSocket transport      |
-| `server`            | Native `ws` relay: validation, dedupe, routing, rate limit, heartbeat, static files, health check |
-| `apps/control`      | Alarm list, operator name, acknowledgements                                                       |
+| Part                | What it does                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `packages/protocol` | The message schemas (zod), their types, and parse functions that do not throw                                |
+| `apps/monitor`      | Random-walk data, live chart, crossing detector with hysteresis, outbox, WebSocket transport                 |
+| `server`            | Native `ws` relay: login, sessions, SQLite, validation, dedupe, routing, rate limit, heartbeat, static files |
+| `apps/control`      | Alarm list, acknowledgements                                                                                 |
 
-The relay does no domain logic. It checks each message against the schema and
-the sender's role, stores alerts, and sends each message to the correct clients.
+The relay does no domain logic. It checks the session, checks each message
+against the schema and the sender's role, stores alerts, and sends each
+message to the correct clients.
 
 ### Messages
 
-Each client sends `hello` first, with its role (`monitor` or `control`). The
-relay answers with `welcome`, which contains up to 100 recent alerts.
+The browser sends the session cookie with the WebSocket upgrade. Each client
+sends `hello` first, with its role (`monitor` or `control`). The role must be
+one of the user's roles. The relay answers with `welcome`, which contains up
+to 100 recent alerts. The protocol version is 2: `ack` contains only the alert
+id, and the relay adds the operator name from the session.
 
 | From         | Message        | To                        |
 | ------------ | -------------- | ------------------------- |
@@ -127,7 +181,8 @@ relay answers with `welcome`, which contains up to 100 recent alerts.
 | Relay        | `error`        | The client that caused it |
 
 Close codes: 4001 (no valid `hello`), 4002 (unsupported protocol version; the
-clients do not reconnect), 4008 (rate limit), 1001 (relay shutdown).
+clients do not reconnect), 4003 (no session, wrong role or logout; the clients
+go to the login page), 4008 (rate limit), 1001 (relay shutdown).
 
 ### Detection
 
@@ -159,13 +214,13 @@ Reconnect delay: `min(30 s, 500 ms × 2^n) × (0.5 + random × 0.5)`.
 apps/
   monitor/       React 19, Redux Toolkit, Recharts, Vite
   control/       React 19, useReducer, Vite (served under /control/)
-server/          Node 24, ws, sirv, bundled with tsup
+server/          Node 24, ws, sirv, node:sqlite, bundled with tsup
 packages/
   protocol/      zod schemas, shared by all three
 e2e/             Playwright test against the production build
 docs/
   architecture.md  parts, state, message flow, scaling limits
-  adr/             architecture decision records 0001 to 0005
+  adr/             architecture decision records 0001 to 0007
   roadmap.md       milestones, decisions, next steps
 Dockerfile, docker-compose.yml
 ```
@@ -186,13 +241,13 @@ Before the first `pnpm test:e2e`, install the browser once:
 CI runs all of these commands and `pnpm build` on each push. A second CI job
 builds the Docker image and waits until the container reports healthy.
 
-| Package             | Tests | What they cover                                                                                                             |
-| ------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------- |
-| `apps/monitor`      | 203   | Detector (with fast-check properties), outbox, backoff, transport contract on a fake relay, components, accessibility (axe) |
-| `server`            | 63    | Routing rules, relay on real sockets, configuration, HTTP, and one test of the monitor transport against the real relay     |
-| `packages/protocol` | 41    | Each message schema, valid and invalid                                                                                      |
-| `apps/control`      | 30    | Alarm list rules, connection, operator name, Acknowledge flow, accessibility (axe)                                          |
-| `e2e`               | 1     | The full flow on the production build: operator, alert, Acknowledge, "Acknowledged by", no duplicate rows                   |
+| Package             | Tests | What they cover                                                                                                                                                                         |
+| ------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/monitor`      | 206   | Detector (with fast-check properties), outbox, backoff, transport contract on a fake relay, components, accessibility (axe)                                                             |
+| `server`            | 109   | Routing rules, relay on real sockets, sessions and roles, login routes, passwords, both alert stores, configuration, HTTP, and one test of the monitor transport against the real relay |
+| `packages/protocol` | 40    | Each message schema, valid and invalid                                                                                                                                                  |
+| `apps/control`      | 26    | Alarm list rules, connection, account bar, Acknowledge flow, accessibility (axe)                                                                                                        |
+| `e2e`               | 3     | The full flow on the production build: login, alert, Acknowledge, "Acknowledged by", no duplicate rows, logout; a wrong role; a wrong password                                          |
 
 ## Decisions and changes from the specification
 
@@ -203,6 +258,8 @@ The ADRs record the main decisions:
 - [0003](docs/adr/0003-crossing-detection-with-hysteresis.md): edge-triggered crossing detection with hysteresis
 - [0004](docs/adr/0004-at-least-once-delivery.md): at-least-once delivery with server-side dedupe
 - [0005](docs/adr/0005-relay-security-defaults.md): relay security defaults
+- [0006](docs/adr/0006-login-with-sessions.md): login with server sessions
+- [0007](docs/adr/0007-sqlite-storage.md): SQLite for users, sessions and alerts
 
 The main changes from the specification are:
 
@@ -214,10 +271,13 @@ The main changes from the specification are:
 
 ## Limits and next steps
 
-- The relay keeps alerts in memory only. A restart deletes them. The
-  `AlertStore` interface is the place for a database, for example SQLite.
-- There is no authentication. Anyone who can open the page can acknowledge.
-- One relay process only; there is no horizontal scaling.
+- One relay process with a local SQLite file; there is no horizontal scaling.
+- Users are added with the CLI only. There is no admin page and no password
+  change. Single sign-on (OIDC) can use the same session cookie later.
+- The relay checks the session when a socket connects. An expired session
+  stays connected until the next reconnect; logout closes it at once.
+- The `alerts` table grows without a limit; a retention job is a next step.
+- The app has no TLS. Use a reverse proxy for HTTPS and set `COOKIE_SECURE`.
 - The monitor bundle is approximately 200 KB gzipped, mostly Recharts. A
   dynamic `import()` of the chart would make the first load smaller.
 

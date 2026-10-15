@@ -7,9 +7,21 @@ services:
     environment:
       LOG_LEVEL: info
       # ALLOWED_ORIGINS: "https://monitor.example.com"
+      # Set to "true" when a TLS proxy serves the app over https.
+      # COOKIE_SECURE: "true"
+      # Only for a local demo: users "operator" and "monitor", password "demo".
+      # DEMO_USERS: "true"
     restart: unless-stopped
-    # The server only reads its files and keeps all state in memory.
+    # The server writes only to the database volume; the rest is read-only.
     read_only: true
+    volumes:
+      - data:/app/data
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     stop_grace_period: 10s
+
+# Users, sessions and alerts. Add a user:
+#   echo 'a-long-password' | docker compose exec -T relay \
+#     node dist/cli.js user:add kris --name "Kris" --roles operator,monitor
+volumes:
+  data:

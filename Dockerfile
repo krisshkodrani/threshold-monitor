@@ -31,6 +31,10 @@ COPY --from=build /repo/server/dist ./dist
 # The server finds the apps at ../../apps from dist/index.js (STATIC_DIR default).
 COPY --from=build /repo/apps/monitor/dist /app/apps/monitor/dist
 COPY --from=build /repo/apps/control/dist /app/apps/control/dist
+# The SQLite database (DATABASE_PATH default: /app/data/threshold-monitor.db).
+# The only folder the server writes to; mount a volume here to keep the data.
+RUN mkdir /app/data && chown node:node /app/data
+VOLUME /app/data
 
 USER node
 EXPOSE 8080
