@@ -1,10 +1,11 @@
 import { createSqliteAlertStore } from "./alertStore";
-import { loadConfig, type Config } from "./config";
+import { loadConfig, sensorTokenCheck, type Config } from "./config";
 import { openDatabase } from "./db";
 import { createHttpServer } from "./http";
 import { createLogger } from "./logger";
 import { attachRelay } from "./relay";
 import { authenticate, createSessionStore } from "./sessions";
+import { createSqliteSettingsStore } from "./settingsStore";
 import { addDemoUsers, createUserStore } from "./users";
 
 const SHUTDOWN_DEADLINE_MS = 5_000;
@@ -39,9 +40,13 @@ const server = createHttpServer({
     onLogout: (sessionId) => relay.closeSession(sessionId),
   },
 });
+if (!config.sensorToken)
+  logger.warn("SENSOR_TOKEN is not set; no sensor can connect");
 const relay = attachRelay(server, {
   config,
   store,
+  settings: createSqliteSettingsStore(db),
+  isSensorToken: sensorTokenCheck(config.sensorToken),
   logger,
   authenticate: (req) => authenticate(req, sessions),
   isSessionActive: (sessionId) => sessions.isActive(sessionId),

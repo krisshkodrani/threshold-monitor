@@ -4,6 +4,8 @@ import {
   parseClientMessage,
   PROTOCOL_VERSION,
   WELCOME_RECENT_LIMIT,
+  type Hello,
+  type SensorInfo,
   type ServerMessage,
 } from "@app/protocol";
 import type { IncomingMessage, Server } from "node:http";
@@ -20,13 +22,18 @@ import {
   type Bucket,
   type BucketConfig,
 } from "./rateLimiter";
-import { error, route, type Outgoing, type Role } from "./routing";
+import { createReadingsBuffer } from "./readingsBuffer";
+import { error, route, type Outgoing, type Role, type Sender } from "./routing";
 import type { Session } from "./sessions";
+import type { SettingsStore } from "./settingsStore";
 import type { UserRole } from "./users";
 
 export type RelayDeps = {
   config: Pick<Config, "mode" | "allowedOrigins">;
   store: AlertStore;
+  settings: SettingsStore;
+  /** True if `token` is the sensor token (SENSOR_TOKEN). False when none is set. */
+  isSensorToken: (token: string) => boolean;
   /** The session of an upgrade request, from its cookie. Null if there is none. */
   authenticate: (req: IncomingMessage) => Session | null;
   /** Checked on each heartbeat, so an expired or deleted session loses its sockets. */
@@ -37,13 +44,25 @@ export type RelayDeps = {
   helloTimeoutMs?: number;
   heartbeatMs?: number;
   bucket?: BucketConfig;
+  /** The sensor sends 10 readings each second, so it has a larger bucket. */
+  sensorBucket?: BucketConfig;
+};
+
+/** Capacity for a catch-up burst; the refill is well above 10 readings each second. */
+export const SENSOR_BUCKET: BucketConfig = {
+  capacity: 600,
+  refillPerSecond: 50,
 };
 
 type Client = {
   id: string;
   ws: WebSocket;
-  session: Session;
+  /** The browser's session. Null for the sensor, which proves itself with a token. */
+  session: Session | null;
+  /** Set for the sensor after its hello. */
+  sensor: SensorInfo | null;
   role: Role | null; // null until a valid hello
+  bucketConfig: BucketConfig;
   name: string;
   connectedAt: number;
   bucket: Bucket;
@@ -57,22 +76,25 @@ const CLOSE = {
   helloRequired: 4001,
   unsupportedVersion: 4002,
   unauthorized: 4003,
+  sensorTaken: 4005,
   rateLimited: 4008,
   goingAway: 1001,
 };
 const MAX_LIMITED_IN_A_ROW = 100;
 
-/** The user role that a hello role needs. */
-const NEEDED_ROLE: Record<Role, UserRole> = {
+/** The user role that a browser's hello role needs. */
+const NEEDED_ROLE: Record<"monitor" | "control", UserRole> = {
   monitor: "monitor",
   control: "operator",
 };
 
-/** Accepts WebSocket upgrades on /ws and relays messages between monitors and control rooms. */
+/** Accepts WebSocket upgrades on /ws and relays messages between the sensor, monitors and control rooms. */
 export function attachRelay(server: Server, deps: RelayDeps) {
   const {
     config,
     store,
+    settings,
+    isSensorToken,
     authenticate,
     isSessionActive,
     logger,
@@ -81,13 +103,23 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     helloTimeoutMs = 5_000,
     heartbeatMs = 15_000,
     bucket: bucketConfig = DEFAULT_BUCKET,
+    sensorBucket = SENSOR_BUCKET,
   } = deps;
   const wss = new WebSocketServer({
     noServer: true,
     maxPayload: MAX_MESSAGE_BYTES,
   });
   const clients = new Set<Client>();
-  const ctx = { store, now: () => new Date(clock()).toISOString() };
+  const readings = createReadingsBuffer();
+  const sensorClient = () =>
+    [...clients].find((c) => c.role === "sensor") ?? null;
+  const ctx = {
+    store,
+    settings,
+    readings,
+    sensor: () => sensorClient()?.sensor ?? null,
+    now: () => new Date(clock()).toISOString(),
+  };
 
   function onUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer) {
     // Node hands "upgrade" sockets over without an error listener. Without
@@ -107,18 +139,16 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     wss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, session));
   }
 
+  // A socket without a session may connect: the sensor proves itself in its
+  // hello. A browser without a session is closed at its hello with 4003.
   function onConnection(ws: WebSocket, session: Session | null) {
-    if (!session) {
-      // A browser cannot read the status of a refused upgrade, but it can
-      // read a close code: 4003 tells the app to show the login page.
-      logger.info("unauthorized connection closed");
-      return ws.close(CLOSE.unauthorized, "Unauthorized");
-    }
     const client: Client = {
       id: newId(),
       ws,
       session,
+      sensor: null,
       role: null,
+      bucketConfig,
       name: "",
       connectedAt: clock(),
       bucket: createBucket(clock(), bucketConfig),
@@ -142,6 +172,7 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     ws.on("close", (code) => {
       clearTimeout(client.helloTimer);
       clients.delete(client);
+      if (client.role === "sensor") broadcastSensorStatus();
       logger.info("disconnected", {
         connectionId: client.id,
         role: client.role,
@@ -153,7 +184,7 @@ export function attachRelay(server: Server, deps: RelayDeps) {
   }
 
   function onMessage(client: Client, data: RawData, isBinary: boolean) {
-    const limited = take(client.bucket, clock(), bucketConfig);
+    const limited = take(client.bucket, clock(), client.bucketConfig);
     client.bucket = limited.bucket;
     if (!limited.allowed) {
       client.limitedInARow += 1;
@@ -190,36 +221,7 @@ export function attachRelay(server: Server, deps: RelayDeps) {
         return client.ws.close(CLOSE.unsupportedVersion, "Unsupported version");
       }
       clearTimeout(client.helloTimer);
-      if (!client.session.roles.includes(NEEDED_ROLE[parsed.value.role])) {
-        send(
-          client,
-          error(
-            "NOT_ALLOWED",
-            `This account cannot connect as ${parsed.value.role}.`,
-          ).message,
-        );
-        logger.warn("role refused", {
-          connectionId: client.id,
-          username: client.session.username,
-          role: parsed.value.role,
-        });
-        return client.ws.close(CLOSE.unauthorized, "Role not allowed");
-      }
-      // Role and name come only from the handshake, never from later messages.
-      client.role = parsed.value.role;
-      client.name = parsed.value.clientName;
-      send(client, {
-        type: "welcome",
-        connectionId: client.id,
-        recent: store.recent(WELCOME_RECENT_LIMIT),
-      });
-      logger.info("connected", {
-        connectionId: client.id,
-        role: client.role,
-        name: client.name,
-        username: client.session.username,
-      });
-      return;
+      return onHello(client, parsed.value);
     }
 
     if (!parsed?.ok) {
@@ -230,21 +232,119 @@ export function attachRelay(server: Server, deps: RelayDeps) {
       return send(client, error("BAD_MESSAGE", reason).message);
     }
 
-    const sender = {
-      role: client.role,
-      operator: client.session.displayName,
-      userId: client.session.userId,
+    for (const out of route(senderOf(client), parsed.value, ctx))
+      deliver(client, out);
+  }
+
+  function senderOf(client: Client): Sender {
+    if (client.role === "sensor")
+      return { role: "sensor", sensor: client.sensor! };
+    return {
+      role: client.role!,
+      operator: client.session!.displayName,
+      userId: client.session!.userId,
     };
-    for (const out of route(sender, parsed.value, ctx)) deliver(client, out);
+  }
+
+  function refuse(
+    client: Client,
+    message: string,
+    code: number,
+    reason: string,
+  ) {
+    send(client, error("NOT_ALLOWED", message).message);
+    logger.warn("hello refused", {
+      connectionId: client.id,
+      username: client.session?.username,
+      reason,
+    });
+    client.ws.close(code, reason);
+  }
+
+  function onHello(client: Client, hello: Hello) {
+    if (hello.role === "sensor") {
+      if (!hello.token || !hello.sensor || !isSensorToken(hello.token))
+        return refuse(
+          client,
+          "Invalid sensor token.",
+          CLOSE.unauthorized,
+          "Unauthorized",
+        );
+      if (sensorClient())
+        return refuse(
+          client,
+          "A sensor is already connected.",
+          CLOSE.sensorTaken,
+          "Sensor already connected",
+        );
+      client.sensor = hello.sensor;
+      client.bucketConfig = sensorBucket;
+      client.bucket = createBucket(clock(), sensorBucket);
+    } else {
+      if (!client.session)
+        // A browser cannot read the status of a refused upgrade, but it can
+        // read a close code: 4003 tells the app to show the login page.
+        return refuse(
+          client,
+          "Sign in first.",
+          CLOSE.unauthorized,
+          "Unauthorized",
+        );
+      if (!client.session.roles.includes(NEEDED_ROLE[hello.role]))
+        return refuse(
+          client,
+          `This account cannot connect as ${hello.role}.`,
+          CLOSE.unauthorized,
+          "Role not allowed",
+        );
+    }
+
+    // Role and name come only from the handshake, never from later messages.
+    client.role = hello.role;
+    client.name = hello.clientName;
+    const sensor = ctx.sensor();
+    send(client, {
+      type: "welcome",
+      connectionId: client.id,
+      recent:
+        client.role === "sensor" ? [] : store.recent(WELCOME_RECENT_LIMIT),
+      settings:
+        client.role === "sensor"
+          ? (settings.get(client.sensor!.sensorId) ?? null)
+          : (settings.latest()?.settings ?? null),
+      sensor,
+      readings: client.role === "monitor" ? readings.all() : [],
+    });
+    logger.info("connected", {
+      connectionId: client.id,
+      role: client.role,
+      name: client.name,
+      username: client.session?.username,
+    });
+    if (client.role === "sensor") {
+      readings.clear(); // old readings would leave a gap in the chart
+      broadcastSensorStatus();
+    }
+  }
+
+  function broadcastSensorStatus() {
+    const message: ServerMessage = {
+      type: "sensorStatus",
+      sensor: ctx.sensor(),
+    };
+    for (const client of clients)
+      if (client.role !== null && client.role !== "sensor")
+        send(client, message);
+    logger.info(message.sensor ? "sensor online" : "sensor offline", {
+      sensorId: message.sensor?.sensorId,
+    });
   }
 
   function deliver(sender: Client, out: Outgoing) {
     const recipients =
       out.to === "sender"
         ? [sender]
-        : [...clients].filter((c) =>
-            out.to === "controls" ? c.role === "control" : c.role !== null,
-          );
+        : [...clients].filter((c) => receives(c, out.to));
     for (const client of recipients) send(client, out.message);
     log(sender, out);
   }
@@ -253,7 +353,7 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     const base = {
       connectionId: sender.id,
       name: sender.name,
-      username: sender.session.username,
+      username: sender.session?.username,
     };
     if (message.type === "accepted") {
       logger.info("alert accepted", {
@@ -266,6 +366,12 @@ export function attachRelay(server: Server, deps: RelayDeps) {
         ...base,
         alertId: message.alertId,
         operator: message.operator,
+      });
+    } else if (message.type === "settings" && to === "monitors") {
+      logger.info("settings changed", {
+        ...base,
+        threshold: message.settings.threshold,
+        hysteresis: message.settings.hysteresis,
       });
     } else if (message.type === "error") {
       logger.warn("client error", {
@@ -281,7 +387,8 @@ export function attachRelay(server: Server, deps: RelayDeps) {
   // A client whose session expired or was deleted is closed with 4003.
   const heartbeat = setInterval(() => {
     for (const client of clients) {
-      if (!isSessionActive(client.session.id)) {
+      // The sensor has no session; its token is checked once, at hello.
+      if (client.session && !isSessionActive(client.session.id)) {
         logger.info("session ended, socket closed", {
           connectionId: client.id,
           username: client.session.username,
@@ -308,7 +415,7 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     /** Closes the sockets of a session after its logout, with 4003. */
     closeSession(sessionId: string) {
       for (const client of clients)
-        if (client.session.id === sessionId)
+        if (client.session?.id === sessionId)
           client.ws.close(CLOSE.unauthorized, "Signed out");
     },
 
@@ -324,6 +431,22 @@ export function attachRelay(server: Server, deps: RelayDeps) {
       wss.close();
     },
   };
+}
+
+/** Which clients a target names. Clients before their hello receive nothing. */
+function receives(client: Client, to: Outgoing["to"]): boolean {
+  switch (to) {
+    case "sender":
+      return false; // handled by the caller
+    case "monitors":
+      return client.role === "monitor";
+    case "views":
+      return client.role === "monitor" || client.role === "control";
+    case "sensor":
+      return client.role === "sensor";
+    case "everyone":
+      return client.role !== null;
+  }
 }
 
 function send(client: Client, message: ServerMessage) {

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { isOriginAllowed, loadConfig } from "./config";
+import { isOriginAllowed, loadConfig, sensorTokenCheck } from "./config";
 
 describe("loadConfig", () => {
   test("uses safe defaults when nothing is set", () => {
@@ -22,6 +22,7 @@ describe("loadConfig", () => {
       sessionTtlMs: 12 * 60 * 60 * 1000,
       cookieSecure: false,
       demoUsers: false,
+      sensorToken: undefined,
     });
   });
 
@@ -62,6 +63,7 @@ describe("loadConfig", () => {
     [{ LOG_LEVEL: "loud" }, "LOG_LEVEL"],
     [{ SESSION_TTL_HOURS: "0" }, "SESSION_TTL_HOURS"],
     [{ COOKIE_SECURE: "maybe" }, "COOKIE_SECURE"],
+    [{ SENSOR_TOKEN: "too-short" }, "SENSOR_TOKEN"],
   ])("rejects %j, naming the variable", (env, name) => {
     expect(() => loadConfig(env)).toThrow(
       new RegExp(`Invalid configuration: .*${name}`),
@@ -118,5 +120,19 @@ describe("isOriginAllowed", () => {
 
   test("a missing Origin (non-browser client) is allowed", () => {
     expect(isOriginAllowed(undefined, "localhost:8080", production)).toBe(true);
+  });
+});
+
+describe("sensorTokenCheck", () => {
+  test("accepts the exact token only", () => {
+    const check = sensorTokenCheck("the-right-sensor-token");
+    expect(check("the-right-sensor-token")).toBe(true);
+    expect(check("the-right-sensor-tokeN")).toBe(false);
+    expect(check("short")).toBe(false);
+    expect(check("")).toBe(false);
+  });
+
+  test("without SENSOR_TOKEN, no token is accepted", () => {
+    expect(sensorTokenCheck(undefined)("anything-at-all-here")).toBe(false);
   });
 });

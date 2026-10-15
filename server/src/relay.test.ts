@@ -7,6 +7,7 @@ import { WebSocket } from "ws";
 import { createMemoryAlertStore } from "./alertStore";
 import { silentLogger } from "./logger";
 import { attachRelay, type RelayDeps } from "./relay";
+import { createMemorySettingsStore } from "./settingsStore";
 import type { Session } from "./sessions";
 
 const ORIGIN = "http://test.local";
@@ -52,6 +53,12 @@ const SESSIONS: Record<string, Session> = {
   },
 };
 const ANA = "tm_session=ana";
+const SENSOR_TOKEN = "test-sensor-token-0123456789";
+const SENSOR = {
+  sensorId: "5d0a2f6e-1c3b-4e7a-9b8d-2f4e6a8c0b13",
+  label: "Sensor 1",
+  rateHz: 10,
+};
 
 let cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
@@ -65,6 +72,8 @@ async function startRelay(overrides: Partial<RelayDeps> = {}) {
     config: { mode: "test", allowedOrigins: [ORIGIN] },
     store: createMemoryAlertStore(100),
     logger: silentLogger,
+    settings: createMemorySettingsStore(),
+    isSensorToken: (token) => token === SENSOR_TOKEN,
     authenticate: (req) => SESSIONS[req.headers.cookie ?? ""] ?? null,
     isSessionActive: () => true,
     ...overrides,
@@ -88,8 +97,15 @@ type TestClient = Awaited<ReturnType<typeof connect>>;
 /** A ws client that queues incoming messages so tests can await them in order. */
 async function connect(
   url: string,
-  options: { origin?: string; autoPong?: boolean; cookie?: string } = {},
+  options: {
+    origin?: string;
+    autoPong?: boolean;
+    cookie?: string;
+    /** Message types that next() skips; by default the sensor's status. */
+    skip?: ServerMessage["type"][];
+  } = {},
 ) {
+  const skip = new Set(options.skip ?? ["sensorStatus"]);
   const cookie = options.cookie ?? ANA;
   const ws = new WebSocket(url, {
     origin: options.origin ?? ORIGIN,
@@ -102,6 +118,7 @@ async function connect(
     const message = JSON.parse(
       (data as Buffer).toString("utf8"),
     ) as ServerMessage;
+    if (skip.has(message.type)) return;
     const resolve = waiting.shift();
     if (resolve) resolve(message);
     else inbox.push(message);
@@ -150,7 +167,25 @@ async function hello(
   cookie: string = ANA,
 ): Promise<TestClient> {
   const client = await connect(url, { cookie });
-  client.send({ type: "hello", v: 2, role, clientName: name });
+  client.send({ type: "hello", v: 3, role, clientName: name });
+  expect(await client.next()).toMatchObject({ type: "welcome" });
+  return client;
+}
+
+/** The sensor: no cookie, a token in its hello. */
+async function sensorHello(
+  url: string,
+  token = SENSOR_TOKEN,
+): Promise<TestClient> {
+  const client = await connect(url, { cookie: "" });
+  client.send({
+    type: "hello",
+    v: 3,
+    role: "sensor",
+    clientName: SENSOR.label,
+    token,
+    sensor: SENSOR,
+  });
   expect(await client.next()).toMatchObject({ type: "welcome" });
   return client;
 }
@@ -178,7 +213,7 @@ describe("handshake", () => {
     const client = await connect(url);
     client.send({
       type: "hello",
-      v: 2,
+      v: 3,
       role: "monitor",
       clientName: "Monitor A",
     });
@@ -186,6 +221,9 @@ describe("handshake", () => {
       type: "welcome",
       connectionId: "c4a7e9b2-5f18-4d3c-8a6e-0b9d2f1c7e03",
       recent: [],
+      settings: null,
+      sensor: null,
+      readings: [],
     });
   });
 
@@ -212,7 +250,7 @@ describe("handshake", () => {
   test("an unsupported protocol version is refused with 4002", async () => {
     const { url } = await startRelay();
     const client = await connect(url);
-    client.send({ type: "hello", v: 3, role: "monitor", clientName: "Future" });
+    client.send({ type: "hello", v: 4, role: "monitor", clientName: "Future" });
     expect(await client.next()).toMatchObject({
       type: "error",
       code: "UNSUPPORTED_VERSION",
@@ -234,22 +272,27 @@ describe("handshake", () => {
 });
 
 describe("sessions", () => {
-  test("a connection without a session is closed with 4003", async () => {
+  // The sensor has no cookie, so a socket without a session may open; a
+  // browser hello without a session is refused.
+  test("a browser hello without a session is closed with 4003", async () => {
     const { url } = await startRelay();
     const client = await connect(url, { cookie: "" });
+    client.send({ type: "hello", v: 3, role: "control", clientName: "x" });
+    expect(await client.next()).toMatchObject({ code: "NOT_ALLOWED" });
     expect(await client.closed).toEqual({ code: 4003, reason: "Unauthorized" });
   });
 
   test("a forged or expired cookie is closed with 4003", async () => {
     const { url } = await startRelay();
     const client = await connect(url, { cookie: "tm_session=forged" });
+    client.send({ type: "hello", v: 3, role: "monitor", clientName: "x" });
     expect((await client.closed).code).toBe(4003);
   });
 
   test("hello needs the matching user role", async () => {
     const { url } = await startRelay();
     const device = await connect(url, { cookie: "tm_session=device" });
-    device.send({ type: "hello", v: 2, role: "control", clientName: "x" });
+    device.send({ type: "hello", v: 3, role: "control", clientName: "x" });
     expect(await device.next()).toMatchObject({
       type: "error",
       code: "NOT_ALLOWED",
@@ -257,7 +300,7 @@ describe("sessions", () => {
     expect((await device.closed).code).toBe(4003);
 
     const ben = await connect(url, { cookie: "tm_session=ben" });
-    ben.send({ type: "hello", v: 2, role: "monitor", clientName: "x" });
+    ben.send({ type: "hello", v: 3, role: "monitor", clientName: "x" });
     expect(await ben.next()).toMatchObject({ code: "NOT_ALLOWED" });
     expect((await ben.closed).code).toBe(4003);
   });
@@ -265,9 +308,9 @@ describe("sessions", () => {
   test("the operator name comes from the session, not from the message", async () => {
     const { url } = await startRelay();
     const control = await hello(url, "control", "C", "tm_session=ben");
-    const monitor = await hello(url, "monitor", "M", "tm_session=device");
-    monitor.send({ type: "alert", alert });
-    await monitor.next();
+    const sensor = await sensorHello(url);
+    sensor.send({ type: "alert", alert });
+    await sensor.next();
     await control.next();
 
     control.send({ type: "ack", alertId: ALERT_ID, operator: "Mallory" });
@@ -300,15 +343,147 @@ describe("sessions", () => {
   });
 });
 
+describe("sensor", () => {
+  test("a sensor with a wrong token is closed with 4003", async () => {
+    const { url } = await startRelay();
+    const client = await connect(url, { cookie: "" });
+    client.send({
+      type: "hello",
+      v: 3,
+      role: "sensor",
+      clientName: "Fake",
+      token: "wrong-token-wrong-token",
+      sensor: SENSOR,
+    });
+    expect(await client.next()).toMatchObject({ code: "NOT_ALLOWED" });
+    expect((await client.closed).code).toBe(4003);
+  });
+
+  test("a second sensor is refused with 4005 while one is connected", async () => {
+    const { url } = await startRelay();
+    await sensorHello(url);
+    const second = await connect(url, { cookie: "" });
+    second.send({
+      type: "hello",
+      v: 3,
+      role: "sensor",
+      clientName: "Second",
+      token: SENSOR_TOKEN,
+      sensor: SENSOR,
+    });
+    expect(await second.next()).toMatchObject({ code: "NOT_ALLOWED" });
+    expect((await second.closed).code).toBe(4005);
+  });
+
+  test("monitors and control rooms learn when the sensor comes and goes", async () => {
+    const { url } = await startRelay();
+    const monitor = await connect(url, { skip: [] });
+    monitor.send({ type: "hello", v: 3, role: "monitor", clientName: "M" });
+    expect(await monitor.next()).toMatchObject({
+      type: "welcome",
+      sensor: null,
+    });
+
+    const sensor = await sensorHello(url);
+    expect(await monitor.next()).toEqual({
+      type: "sensorStatus",
+      sensor: SENSOR,
+    });
+    sensor.ws.close();
+    expect(await monitor.next()).toEqual({
+      type: "sensorStatus",
+      sensor: null,
+    });
+  });
+
+  test("readings go to monitors only, and a new monitor gets the last ones", async () => {
+    const { url } = await startRelay();
+    const sensor = await sensorHello(url);
+    const monitor = await hello(url, "monitor");
+    const control = await hello(url, "control");
+
+    const reading = { t: 1_791_000_000_000, value: 24.5 };
+    sensor.send({ type: "reading", reading });
+    expect(await monitor.next()).toEqual({ type: "reading", reading });
+    expect(await control.silentFor(100)).toBe(true);
+
+    const late = await connect(url);
+    late.send({ type: "hello", v: 3, role: "monitor", clientName: "Late" });
+    expect(await late.next()).toMatchObject({
+      type: "welcome",
+      sensor: SENSOR,
+      readings: [reading],
+    });
+  });
+
+  test("alerts reach monitors as well as control rooms", async () => {
+    const { url } = await startRelay();
+    const sensor = await sensorHello(url);
+    const monitor = await hello(url, "monitor");
+    sensor.send({ type: "alert", alert });
+    expect(await monitor.next()).toMatchObject({
+      type: "alert",
+      record: { id: ALERT_ID },
+    });
+  });
+
+  test("a settings change goes to the sensor and all monitors; a new sensor gets it in welcome", async () => {
+    const { url } = await startRelay();
+    const sensor = await sensorHello(url);
+    sensor.send({
+      type: "settingsApplied",
+      settings: { threshold: 25, hysteresis: 0.6 },
+    });
+    const monitor = await hello(url, "monitor");
+
+    monitor.send({
+      type: "setSettings",
+      settings: { threshold: 22, hysteresis: 0.2 },
+    });
+    const expected = {
+      type: "settings",
+      settings: { threshold: 22, hysteresis: 0.2, updatedBy: "Ana" },
+    };
+    expect(await sensor.next()).toMatchObject(expected);
+    expect(await monitor.next()).toMatchObject(expected);
+
+    sensor.ws.close();
+    await sensor.closed;
+    const restarted = await connect(url, { cookie: "" });
+    restarted.send({
+      type: "hello",
+      v: 3,
+      role: "sensor",
+      clientName: SENSOR.label,
+      token: SENSOR_TOKEN,
+      sensor: SENSOR,
+    });
+    expect(await restarted.next()).toMatchObject({
+      type: "welcome",
+      settings: { threshold: 22, hysteresis: 0.2, updatedBy: "Ana" },
+    });
+  });
+
+  test("the heartbeat session check does not close the sensor", async () => {
+    const { url } = await startRelay({
+      heartbeatMs: 40,
+      isSessionActive: () => false,
+    });
+    const sensor = await sensorHello(url);
+    await new Promise((r) => setTimeout(r, 150));
+    expect(sensor.ws.readyState).toBe(WebSocket.OPEN);
+  });
+});
+
 describe("routing", () => {
   test("an alert is accepted for the monitor and forwarded to every control room", async () => {
     const { url } = await startRelay();
     const controlA = await hello(url, "control", "A");
     const controlB = await hello(url, "control", "B");
-    const monitor = await hello(url, "monitor");
+    const sensor = await sensorHello(url);
 
-    monitor.send({ type: "alert", alert });
-    expect(await monitor.next()).toMatchObject({
+    sensor.send({ type: "alert", alert });
+    expect(await sensor.next()).toMatchObject({
       type: "accepted",
       alertId: ALERT_ID,
       duplicate: false,
@@ -324,14 +499,14 @@ describe("routing", () => {
   test("a resent alert is accepted as duplicate and not forwarded again", async () => {
     const { url } = await startRelay();
     const control = await hello(url, "control");
-    const monitor = await hello(url, "monitor");
+    const sensor = await sensorHello(url);
 
-    monitor.send({ type: "alert", alert });
-    await monitor.next();
+    sensor.send({ type: "alert", alert });
+    await sensor.next();
     await control.next();
 
-    monitor.send({ type: "alert", alert });
-    expect(await monitor.next()).toMatchObject({
+    sensor.send({ type: "alert", alert });
+    expect(await sensor.next()).toMatchObject({
       type: "accepted",
       duplicate: true,
     });
@@ -342,14 +517,14 @@ describe("routing", () => {
     const { url } = await startRelay();
     const controlA = await hello(url, "control", "A");
     const controlB = await hello(url, "control", "B");
-    const monitor = await hello(url, "monitor");
-    monitor.send({ type: "alert", alert });
-    await monitor.next();
+    const sensor = await sensorHello(url);
+    sensor.send({ type: "alert", alert });
+    await sensor.next();
     await controlA.next();
     await controlB.next();
 
     controlA.send({ type: "ack", alertId: ALERT_ID });
-    for (const client of [monitor, controlA, controlB]) {
+    for (const client of [sensor, controlA, controlB]) {
       expect(await client.next()).toMatchObject({
         type: "acknowledged",
         alertId: ALERT_ID,
@@ -381,12 +556,12 @@ describe("routing", () => {
 
   test("a client that connects later gets recent alerts in its welcome", async () => {
     const { url } = await startRelay();
-    const monitor = await hello(url, "monitor");
-    monitor.send({ type: "alert", alert });
-    await monitor.next();
+    const sensor = await sensorHello(url);
+    sensor.send({ type: "alert", alert });
+    await sensor.next();
 
     const late = await connect(url);
-    late.send({ type: "hello", v: 2, role: "control", clientName: "Late" });
+    late.send({ type: "hello", v: 3, role: "control", clientName: "Late" });
     expect(await late.next()).toMatchObject({
       type: "welcome",
       recent: [{ id: ALERT_ID }],
@@ -427,15 +602,15 @@ describe("robustness", () => {
     "%s gets BAD_MESSAGE and the connection stays open",
     async (_label, raw) => {
       const { url } = await startRelay();
-      const monitor = await hello(url, "monitor");
-      monitor.send(raw);
-      expect(await monitor.next()).toMatchObject({
+      const sensor = await sensorHello(url);
+      sensor.send(raw);
+      expect(await sensor.next()).toMatchObject({
         type: "error",
         code: "BAD_MESSAGE",
       });
 
-      monitor.send({ type: "alert", alert }); // still usable
-      expect(await monitor.next()).toMatchObject({ type: "accepted" });
+      sensor.send({ type: "alert", alert }); // still usable
+      expect(await sensor.next()).toMatchObject({ type: "accepted" });
     },
   );
 
@@ -451,37 +626,37 @@ describe("robustness", () => {
 
   test("a frame above the size limit closes the connection (1009)", async () => {
     const { url } = await startRelay();
-    const monitor = await hello(url, "monitor");
-    monitor.send("x".repeat(17 * 1024));
-    expect((await monitor.closed).code).toBe(1009);
+    const sensor = await sensorHello(url);
+    sensor.send("x".repeat(17 * 1024));
+    expect((await sensor.closed).code).toBe(1009);
   });
 
   test("a flood is rate limited, then disconnected with 4008", async () => {
     // Frozen clock: the bucket never refills, so the outcome is deterministic.
     const { url } = await startRelay({
       clock: () => 0,
-      bucket: { capacity: 3, refillPerSecond: 1 },
+      sensorBucket: { capacity: 2, refillPerSecond: 1 },
     });
-    const monitor = await hello(url, "monitor"); // uses 1 token
-    for (let i = 0; i < 110; i++) monitor.send({ type: "alert", alert });
+    const sensor = await sensorHello(url); // then the sensor bucket starts
+    for (let i = 0; i < 110; i++) sensor.send({ type: "alert", alert });
 
-    expect(await monitor.next()).toMatchObject({ type: "accepted" }); // token 2
-    expect(await monitor.next()).toMatchObject({
+    expect(await sensor.next()).toMatchObject({ type: "accepted" }); // token 1
+    expect(await sensor.next()).toMatchObject({
       type: "accepted",
       duplicate: true,
-    }); // token 3
-    expect(await monitor.next()).toMatchObject({
+    }); // token 2
+    expect(await sensor.next()).toMatchObject({
       type: "error",
       code: "RATE_LIMITED",
     });
-    expect((await monitor.closed).code).toBe(4008);
+    expect((await sensor.closed).code).toBe(4008);
   });
 
   test("a client that stops answering pings is terminated; a healthy one is not", async () => {
     const { url } = await startRelay({ heartbeatMs: 40 });
     const healthy = await hello(url, "control");
     const dead = await connect(url, { autoPong: false });
-    dead.send({ type: "hello", v: 2, role: "control", clientName: "dead" });
+    dead.send({ type: "hello", v: 3, role: "control", clientName: "dead" });
 
     expect((await dead.closed).code).toBe(1006); // terminated, no close frame
     expect(healthy.ws.readyState).toBe(WebSocket.OPEN);

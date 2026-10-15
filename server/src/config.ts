@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import path from "node:path";
 import { z } from "zod";
 
@@ -39,6 +40,8 @@ const envSchema = z.object({
   COOKIE_SECURE: optional(z.stringbool().default(false)),
   // Adds the demo users "operator", "monitor" and "demo" (password "demo") at start.
   DEMO_USERS: optional(z.stringbool().default(false)),
+  // The shared secret of the sensor agent. Without it, no sensor can connect.
+  SENSOR_TOKEN: optional(z.string().min(16).optional()),
 });
 
 export type Config = {
@@ -51,6 +54,7 @@ export type Config = {
   sessionTtlMs: number;
   cookieSecure: boolean;
   demoUsers: boolean;
+  sensorToken: string | undefined;
 };
 
 /** Parses the environment once at startup. Throws a readable error so the process can fail fast. */
@@ -78,6 +82,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     sessionTtlMs: e.SESSION_TTL_HOURS * 60 * 60 * 1000,
     cookieSecure: e.COOKIE_SECURE,
     demoUsers: e.DEMO_USERS,
+    sensorToken: e.SENSOR_TOKEN,
   };
 }
 
@@ -103,4 +108,17 @@ export function isOriginAllowed(
     (origin === `http://${host}` || origin === `https://${host}`);
   if (sameOrigin) return true;
   return config.mode === "development" && DEV_ORIGINS.includes(origin);
+}
+
+/**
+ * Compares a sensor's token with SENSOR_TOKEN in constant time. Both sides are
+ * hashed first, so the comparison does not depend on the token length.
+ */
+export function sensorTokenCheck(
+  expected: string | undefined,
+): (token: string) => boolean {
+  if (!expected) return () => false;
+  const want = createHash("sha256").update(expected).digest();
+  return (token) =>
+    timingSafeEqual(createHash("sha256").update(token).digest(), want);
 }

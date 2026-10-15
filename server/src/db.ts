@@ -34,6 +34,16 @@ const MIGRATIONS = [
   );
   CREATE INDEX alerts_received ON alerts (received_at);
   `,
+  // 2: the shared detection settings of each sensor (ADR 0009).
+  `
+  CREATE TABLE settings (
+    sensor_id  TEXT PRIMARY KEY,
+    threshold  REAL NOT NULL,
+    hysteresis REAL NOT NULL,
+    updated_by TEXT, -- display name; NULL: the sensor's own defaults
+    updated_at TEXT NOT NULL
+  );
+  `,
 ];
 
 /**
