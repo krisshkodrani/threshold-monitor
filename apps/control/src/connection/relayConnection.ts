@@ -55,7 +55,7 @@ export type RelayOptions = {
 
 /** The server closes with this code for an unknown protocol version. Retrying cannot help. */
 export const CLOSE_UNSUPPORTED_VERSION = 4002;
-/** No session, a session without the operator role, or a logout. Retrying cannot help. */
+/** No session, a session without the operator role, or a logout. A retry cannot help. */
 export const CLOSE_UNAUTHORIZED = 4003;
 const BASE_DELAY_MS = 500;
 const MAX_DELAY_MS = 30_000;

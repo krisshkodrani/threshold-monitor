@@ -71,16 +71,16 @@ The current design is one relay process with a local SQLite file. This is
 sufficient for one site with a few monitors and control rooms. These are the
 limits, and the changes that each limit needs. None of these changes is built.
 
-| Limit                                       | Effect                                                                                | Next step                                                                                           |
-| ------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| One relay process, local SQLite file        | All sockets are on one machine; no failover                                           | Several relays with a shared store and a publish/subscribe channel between them (for example Redis) |
-| `welcome` sends at most 100 alerts          | A long disconnect can miss older alerts                                               | Let a client ask for alerts after a given time                                                      |
-| Session checked when a socket connects      | An expired session stays connected until the next reconnect; logout closes it at once | Check the expiry on each heartbeat                                                                  |
-| Users are added with a CLI only             | No page to manage users or change a password                                          | An admin page, password change, and single sign-on (OIDC) with the same session cookie              |
-| The alerts table grows without a limit      | The database file grows over time                                                     | A retention job that deletes old acknowledged alerts                                                |
-| One threshold, one metric, one source       | The monitor watches one value only                                                    | High and low thresholds, more data sources                                                          |
-| SVG chart (Recharts)                        | Not tested above 10 readings each second                                              | A canvas chart for high rates                                                                       |
-| Monitor bundle approximately 200 KB gzipped | Most of it is Recharts                                                                | Load the chart with a dynamic `import()`                                                            |
+| Limit                                       | Effect                                                                                    | Next step                                                                                           |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| One relay process, local SQLite file        | All sockets are on one machine; no failover                                               | Several relays with a shared store and a publish/subscribe channel between them (for example Redis) |
+| `welcome` sends at most 100 alerts          | A long disconnect can miss older alerts                                                   | Let a client ask for alerts after a given time                                                      |
+| Outbox in memory only                       | If the session ends while the monitor is offline, the queued alerts are lost at the login | Keep the outbox in `sessionStorage`                                                                 |
+| Users are added with a CLI only             | No page to manage users or change a password                                              | An admin page, password change, and single sign-on (OIDC) with the same session cookie              |
+| The alerts table grows without a limit      | The database file grows over time                                                         | A retention job that deletes old acknowledged alerts                                                |
+| One threshold, one metric, one source       | The monitor watches one value only                                                        | High and low thresholds, more data sources                                                          |
+| SVG chart (Recharts)                        | Not tested above 10 readings each second                                                  | A canvas chart for high rates                                                                       |
+| Monitor bundle approximately 200 KB gzipped | Most of it is Recharts                                                                    | Load the chart with a dynamic `import()`                                                            |
 
 With several relays, a client can connect to any relay, because each message
 carries all its data and dedupe uses the alert id. The shared store must make

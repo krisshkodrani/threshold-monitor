@@ -66,6 +66,7 @@ async function startRelay(overrides: Partial<RelayDeps> = {}) {
     store: createMemoryAlertStore(100),
     logger: silentLogger,
     authenticate: (req) => SESSIONS[req.headers.cookie ?? ""] ?? null,
+    isSessionActive: () => true,
     ...overrides,
   });
   server.listen(0);
@@ -274,6 +275,19 @@ describe("sessions", () => {
       type: "acknowledged",
       operator: "Ben",
     });
+  });
+
+  test("a session that ends while connected is closed on the next heartbeat", async () => {
+    const ended = new Set<string>();
+    const { url } = await startRelay({
+      heartbeatMs: 40,
+      isSessionActive: (id) => !ended.has(id),
+    });
+    const ana = await hello(url, "control", "A");
+    const ben = await hello(url, "control", "B", "tm_session=ben");
+    ended.add("session-ana");
+    expect(await ana.closed).toEqual({ code: 4003, reason: "Session expired" });
+    expect(ben.ws.readyState).toBe(WebSocket.OPEN);
   });
 
   test("closeSession closes only the sockets of that session, with 4003", async () => {

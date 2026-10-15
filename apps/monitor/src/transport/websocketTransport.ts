@@ -52,7 +52,7 @@ export type WebSocketTransportOptions = {
 
 /** The server closes with this code for an unknown protocol version. Retrying cannot help. */
 export const CLOSE_UNSUPPORTED_VERSION = 4002;
-/** No session, a session without the monitor role, or a logout. Retrying cannot help. */
+/** No session, a session without the monitor role, or a logout. A retry cannot help. */
 export const CLOSE_UNAUTHORIZED = 4003;
 
 /** The relay is always at /ws on the page's own host (Vite proxies it in dev). */

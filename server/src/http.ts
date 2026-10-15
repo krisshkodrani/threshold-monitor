@@ -53,9 +53,9 @@ const LOGIN_PAGE_HEADERS = {
 /**
  * Plain HTTP: a health check, the login routes and the two built apps, so
  * production is one process on one port with no CORS (the pages, /api and
- * /ws share an origin). sirv handles the file serving details: content
- * types, ETags, path traversal protection and falling back to index.html
- * for client routes. The apps are public files; their data comes only
+ * /ws share an origin). sirv does the details of the file server: content
+ * types, ETags, protection against path traversal, and index.html as the
+ * fallback for client routes. The apps are public files; their data comes only
  * through /ws, which needs a session.
  */
 export function createHttpServer({
@@ -202,14 +202,23 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
   };
 }
 
+// A base that no real request has, to see if a value leaves this server.
+const LOCAL_BASE = "http://relay.invalid";
+
 /**
  * Where to go after login. Only a path on this server: "//evil.example" or
  * "https://evil.example" would make the login page an open redirect.
+ * Browsers remove tab and newline characters from a URL and read "\" as "/",
+ * so "/<TAB>/evil.example" and "/\evil.example" are refused too. The URL
+ * parser then makes the final check, the same way that a browser does.
  */
 export function safeNext(next: string | null | undefined): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/";
-  if (next.includes("\\")) return "/"; // some browsers read "/\" as "//"
-  return next;
+  if (!next || !next.startsWith("/")) return "/";
+  // eslint-disable-next-line no-control-regex -- control characters are the point
+  if (/[\u0000-\u001f\u007f\\]/.test(next)) return "/";
+  const url = new URL(next, LOCAL_BASE);
+  if (url.origin !== LOCAL_BASE) return "/";
+  return url.pathname + url.search + url.hash;
 }
 
 /** Reads a form or JSON body of at most 4 KiB. Null if it is larger. */

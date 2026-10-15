@@ -274,8 +274,8 @@ The main changes from the specification are:
 - One relay process with a local SQLite file; there is no horizontal scaling.
 - Users are added with the CLI only. There is no admin page and no password
   change. Single sign-on (OIDC) can use the same session cookie later.
-- The relay checks the session when a socket connects. An expired session
-  stays connected until the next reconnect; logout closes it at once.
+- If the session ends while the monitor is offline, the alerts in its outbox
+  are lost when the page goes to the login page. The outbox is in memory only.
 - The `alerts` table grows without a limit; a retention job is a next step.
 - The app has no TLS. Use a reverse proxy for HTTPS and set `COOKIE_SECURE`.
 - The monitor bundle is approximately 200 KB gzipped, mostly Recharts. A

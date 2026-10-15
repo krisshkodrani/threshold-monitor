@@ -30,7 +30,7 @@ function record(
   };
 }
 
-/** Distinct, increasing receipt times, so "newest first" is well defined. */
+/** Different receipt times that go up, so "newest first" is clear. */
 const at = (i: number) => `2026-10-14T09:30:${String(i).padStart(2, "0")}.000Z`;
 
 // Both stores must behave the same for everything the routing code uses.

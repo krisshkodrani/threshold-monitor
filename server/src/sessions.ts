@@ -45,6 +45,9 @@ export function createSessionStore(
      FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ?`,
   );
   const remove = db.prepare("DELETE FROM sessions WHERE token_hash = ?");
+  const active = db.prepare(
+    "SELECT 1 FROM sessions WHERE token_hash = ? AND expires_at > ?",
+  );
   const removeExpired = db.prepare(
     "DELETE FROM sessions WHERE expires_at <= ?",
   );
@@ -77,6 +80,10 @@ export function createSessionStore(
         roles: row.roles.split(",") as UserRole[],
       };
     },
+
+    /** True while the session (by id) exists and is not expired. */
+    isActive: (sessionId: string) =>
+      active.get(sessionId, iso(clock())) !== undefined,
 
     /** Returns the session id of the removed session, if there was one. */
     remove(token: string): string {
