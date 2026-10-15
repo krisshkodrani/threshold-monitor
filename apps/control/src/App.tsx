@@ -93,7 +93,7 @@ export function App({ connect, account }: AppProps) {
         </div>
       </header>
 
-      <section className="panel" aria-labelledby={headingId}>
+      <section className="panel alarms" aria-labelledby={headingId}>
         <div className="panel__header">
           <h2 id={headingId}>
             Alarms{" "}

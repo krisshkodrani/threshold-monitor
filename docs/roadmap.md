@@ -187,6 +187,8 @@ The ADRs and the README use these decisions.
 - One screen: on a window at least 721 px wide and 800 px high, the monitor
   page is `100dvh`. The chart row keeps the height of the settings, and the
   alert log fills the rest and scrolls. Smaller windows scroll the page.
+- The control room table fills the window under the header (from 560 px
+  window height), so it shows as many alarms as fit.
 
 ## Out of scope
 

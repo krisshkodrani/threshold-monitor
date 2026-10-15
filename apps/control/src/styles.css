@@ -322,3 +322,25 @@ button:disabled {
   font-size: 0.875rem;
   font-weight: 500;
 }
+
+/*
+ * One screen: on a window that is high enough, the page is exactly the
+ * window height, and the alarm table fills all the space under the header.
+ * Lower windows scroll the page, and the table box keeps its maximum height.
+ */
+@media (min-height: 560px) {
+  .app {
+    height: 100dvh;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .alarms {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .alarms .data-table {
+    max-height: none;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
