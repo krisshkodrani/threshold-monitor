@@ -87,6 +87,17 @@ test("a refused ack is reported and can be tried again", async () => {
   expect(ackButtons()[0]).toBeEnabled();
 });
 
+test("the alarm table scrolls in a focusable box, and the heading counts all alarms", () => {
+  const { connection } = renderApp();
+  act(() => connection().welcome([record(1), record(2), record(3)]));
+  const box = screen.getByRole("region", { name: "Scrollable alarm list" });
+  expect(box).toHaveAttribute("tabindex", "0");
+  expect(box).toContainElement(screen.getByRole("table"));
+  expect(
+    screen.getByRole("heading", { name: "Alarms · 3 in total" }),
+  ).toBeInTheDocument();
+});
+
 test("Acknowledge is disabled while disconnected", () => {
   const { connection } = renderApp();
   act(() => connection().welcome([record(1)]));

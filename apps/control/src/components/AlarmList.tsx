@@ -17,8 +17,14 @@ export function AlarmList({
   }
 
   return (
-    // Scrolls horizontally on narrow screens instead of squashing columns.
-    <div className="table-scroll">
+    // A box with a fixed height: the rows scroll inside it, and the header row
+    // stays visible. Focusable, so keyboard users can scroll it too.
+    <div
+      className="table-scroll table-scroll--rows"
+      role="region"
+      aria-label="Scrollable alarm list"
+      tabIndex={0}
+    >
       <table className="alarm-table">
         {/* Fixed widths: an acknowledgement does not move the columns. */}
         <colgroup>

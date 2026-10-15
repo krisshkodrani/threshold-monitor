@@ -246,10 +246,10 @@ builds the Docker image and waits until the container reports healthy.
 
 | Package             | Tests | What they cover                                                                                                                                                                         |
 | ------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/monitor`      | 206   | Detector (with fast-check properties), outbox, backoff, transport contract on a fake relay, components, accessibility (axe)                                                             |
-| `server`            | 109   | Routing rules, relay on real sockets, sessions and roles, login routes, passwords, both alert stores, configuration, HTTP, and one test of the monitor transport against the real relay |
+| `apps/monitor`      | 207   | Detector (with fast-check properties), outbox, backoff, transport contract on a fake relay, components, accessibility (axe)                                                             |
+| `server`            | 120   | Routing rules, relay on real sockets, sessions and roles, login routes, passwords, both alert stores, configuration, HTTP, and one test of the monitor transport against the real relay |
 | `packages/protocol` | 40    | Each message schema, valid and invalid                                                                                                                                                  |
-| `apps/control`      | 26    | Alarm list rules, connection, account bar, Acknowledge flow, accessibility (axe)                                                                                                        |
+| `apps/control`      | 27    | Alarm list rules, connection, account bar, Acknowledge flow, accessibility (axe)                                                                                                        |
 | `e2e`               | 3     | The full flow on the production build: login, alert, Acknowledge, "Acknowledged by", no duplicate rows, logout; a wrong role; a wrong password                                          |
 
 ## Decisions and changes from the specification

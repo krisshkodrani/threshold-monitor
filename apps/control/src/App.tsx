@@ -95,7 +95,14 @@ export function App({ connect, account }: AppProps) {
 
       <section className="panel" aria-labelledby={headingId}>
         <div className="panel__header">
-          <h2 id={headingId}>Alarms</h2>
+          <h2 id={headingId}>
+            Alarms{" "}
+            {state.alarms.length > 0 && (
+              <span className="heading__count">
+                · <span className="num">{state.alarms.length}</span> in total
+              </span>
+            )}
+          </h2>
           <div className="panel__tools">
             <label htmlFor={filterId} className="check">
               <input

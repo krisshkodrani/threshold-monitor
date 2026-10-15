@@ -52,7 +52,7 @@ test("shows live readings and logs a crossing with its delivery status", () => {
       at: "2026-10-14T09:30:05.000Z",
     });
   });
-  const log = screen.getByRole("region", { name: "Alert log" });
+  const log = screen.getByRole("region", { name: /^Alert log/ });
   expect(within(log).getByText("Acknowledged by Ana")).toBeInTheDocument();
 });
 
