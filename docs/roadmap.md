@@ -184,6 +184,9 @@ The ADRs and the README use these decisions.
   the due readings from the clock, each with its scheduled time, and makes up
   at most the last minute (`MAX_CATCH_UP_MS`). A pause or a rate change starts
   a new schedule and is never made up.
+- One screen: on a window at least 721 px wide and 800 px high, the monitor
+  page is `100dvh`. The chart row keeps the height of the settings, and the
+  alert log fills the rest and scrolls. Smaller windows scroll the page.
 
 ## Out of scope
 

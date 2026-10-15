@@ -87,7 +87,7 @@ const columns: Column<AlertEntity>[] = [
 export function AlertLog({ alerts }: { alerts: readonly AlertEntity[] }) {
   const headingId = useId();
   return (
-    <section className="panel" aria-labelledby={headingId}>
+    <section className="panel alert-log" aria-labelledby={headingId}>
       <h2 id={headingId}>
         Alert log{" "}
         {alerts.length > 0 && (
