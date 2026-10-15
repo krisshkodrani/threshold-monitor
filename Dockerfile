@@ -11,6 +11,7 @@ COPY apps/monitor/package.json apps/monitor/
 COPY apps/control/package.json apps/control/
 COPY server/package.json server/
 COPY packages/protocol/package.json packages/protocol/
+COPY packages/ui/package.json packages/ui/
 RUN pnpm install --frozen-lockfile
 
 COPY . .

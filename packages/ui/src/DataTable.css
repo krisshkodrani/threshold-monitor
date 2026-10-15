@@ -1,0 +1,44 @@
+/*
+ * Shared by both apps. It uses only the token names that both apps define
+ * (--border, --surface, --text-muted, --accent, --radius, --space-*).
+ */
+.data-table {
+  max-height: min(32rem, 65vh);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.data-table:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.data-table__table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.data-table__table th,
+.data-table__table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.data-table__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: var(--text-muted);
+  font-weight: 600;
+  background: var(--surface);
+  /* A collapsed border does not stay with a sticky cell; a shadow does. */
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+.data-table__table tbody tr:last-child td {
+  border-bottom: 0;
+}

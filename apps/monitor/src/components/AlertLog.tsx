@@ -1,3 +1,4 @@
+import { DataTable, type Column } from "@app/ui";
 import { useId } from "react";
 import { formatClock, formatReading, formatThreshold } from "../format";
 import type { AlertEntity } from "../store/alertsSlice";
@@ -27,6 +28,62 @@ function latency(alert: AlertEntity): string {
   return `${Date.parse(alert.acceptedLocalAt) - Date.parse(alert.eventTime)} ms`;
 }
 
+/** What each column shows. The shared DataTable does the layout and scrolling. */
+const columns: Column<AlertEntity>[] = [
+  {
+    id: "time",
+    header: "Time",
+    width: "7.5rem",
+    className: "num",
+    cell: (alert) => formatClock(alert.eventTime),
+  },
+  {
+    id: "direction",
+    header: "Direction",
+    width: "8rem",
+    cell: (alert) => (
+      <>
+        <span aria-hidden="true">{alert.direction === "up" ? "▲" : "▼"}</span>{" "}
+        {alert.direction}
+      </>
+    ),
+  },
+  {
+    id: "value",
+    header: "Value / threshold",
+    width: "11rem",
+    className: "num",
+    cell: (alert) => (
+      <>
+        {formatReading(alert.value)} / {formatThreshold(alert.threshold)}{" "}
+        {alert.unit}
+      </>
+    ),
+  },
+  {
+    id: "status",
+    header: "Status",
+    title: statusText,
+    cell: (alert) => (
+      <>
+        <span className={`chip chip--${alert.status}`}>
+          {statusText(alert)}
+        </span>
+        {alert.attempts > 1 && (
+          <span className="muted"> · {alert.attempts} attempts</span>
+        )}
+      </>
+    ),
+  },
+  {
+    id: "latency",
+    header: "Latency",
+    width: "6.5rem",
+    className: "num",
+    cell: latency,
+  },
+];
+
 export function AlertLog({ alerts }: { alerts: readonly AlertEntity[] }) {
   const headingId = useId();
   return (
@@ -39,61 +96,18 @@ export function AlertLog({ alerts }: { alerts: readonly AlertEntity[] }) {
           </span>
         )}
       </h2>
-      {alerts.length === 0 ? (
-        <p className="muted">
-          No crossings yet. Move the threshold close to the current value.
-        </p>
-      ) : (
-        // A box with a fixed height: the rows scroll inside it, and the header
-        // row stays visible. Focusable, so keyboard users can scroll it too.
-        <div
-          className="table-scroll table-scroll--rows"
-          role="region"
-          aria-label="Scrollable alert log"
-          tabIndex={0}
-        >
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Time</th>
-                <th scope="col">Direction</th>
-                <th scope="col">Value / threshold</th>
-                <th scope="col">Status</th>
-                <th scope="col">Latency</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alerts.map((alert) => (
-                <tr key={alert.id}>
-                  <td className="num">{formatClock(alert.eventTime)}</td>
-                  <td>
-                    <span aria-hidden="true">
-                      {alert.direction === "up" ? "▲" : "▼"}
-                    </span>{" "}
-                    {alert.direction}
-                  </td>
-                  <td className="num">
-                    {formatReading(alert.value)} /{" "}
-                    {formatThreshold(alert.threshold)} {alert.unit}
-                  </td>
-                  <td>
-                    <span className={`chip chip--${alert.status}`}>
-                      {statusText(alert)}
-                    </span>
-                    {alert.attempts > 1 && (
-                      <span className="muted">
-                        {" "}
-                        · {alert.attempts} attempts
-                      </span>
-                    )}
-                  </td>
-                  <td className="num">{latency(alert)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        rows={alerts}
+        columns={columns}
+        rowKey={(alert) => alert.id}
+        label="Scrollable alert log"
+        minWidth="40rem"
+        empty={
+          <p className="muted">
+            No crossings yet. Move the threshold close to the current value.
+          </p>
+        }
+      />
     </section>
   );
 }

@@ -1,5 +1,47 @@
 import type { AlertRecord } from "@app/protocol";
+import { DataTable, type Column } from "@app/ui";
 import { formatClock, formatThreshold, formatValue } from "../format";
+
+/** The columns that depend only on the alarm. */
+const alarmColumns: Column<AlertRecord>[] = [
+  {
+    id: "time",
+    header: "Time",
+    width: "7.5rem",
+    className: "num",
+    cell: (alarm) => formatClock(alarm.eventTime),
+  },
+  {
+    id: "source",
+    header: "Source",
+    width: "10rem",
+    title: (alarm) => alarm.sourceLabel,
+    cell: (alarm) => alarm.sourceLabel,
+  },
+  {
+    id: "direction",
+    header: "Direction",
+    width: "8.5rem",
+    cell: (alarm) => (
+      <>
+        <span aria-hidden="true">{alarm.direction === "up" ? "▲" : "▼"}</span>{" "}
+        {alarm.direction}
+      </>
+    ),
+  },
+  {
+    id: "value",
+    header: "Value / threshold",
+    width: "13.5rem",
+    className: "num",
+    cell: (alarm) => (
+      <>
+        {formatValue(alarm.value)} / {formatThreshold(alarm.threshold)}{" "}
+        {alarm.unit}
+      </>
+    ),
+  },
+];
 
 export function AlarmList({
   alarms,
@@ -12,85 +54,46 @@ export function AlarmList({
   canAcknowledge: boolean;
   onAcknowledge: (alertId: string) => void;
 }) {
-  if (alarms.length === 0) {
-    return <p className="muted">No alarms. New crossings appear here.</p>;
-  }
+  // This column needs the props, so it is made on each render; that is cheap.
+  const ackColumn: Column<AlertRecord> = {
+    id: "acknowledgement",
+    header: "Acknowledgement",
+    cell: (alarm) => (
+      // As high as the button, so the row keeps its height after the ack.
+      <div className="ack-cell">
+        {alarm.acknowledgement ? (
+          <span
+            className="chip chip--acknowledged"
+            title={`Acknowledged by ${alarm.acknowledgement.operator}`}
+          >
+            Acknowledged by {alarm.acknowledgement.operator} at{" "}
+            {formatClock(alarm.acknowledgement.at)}
+          </span>
+        ) : (
+          <button
+            type="button"
+            disabled={!canAcknowledge || pendingAcks.includes(alarm.id)}
+            aria-label={`Acknowledge ${alarm.direction} crossing at ${formatClock(alarm.eventTime)} from ${alarm.sourceLabel}`}
+            onClick={() => onAcknowledge(alarm.id)}
+          >
+            {pendingAcks.includes(alarm.id) ? "Acknowledging…" : "Acknowledge"}
+          </button>
+        )}
+      </div>
+    ),
+  };
 
   return (
-    // A box with a fixed height: the rows scroll inside it, and the header row
-    // stays visible. Focusable, so keyboard users can scroll it too.
-    <div
-      className="table-scroll table-scroll--rows"
-      role="region"
-      aria-label="Scrollable alarm list"
-      tabIndex={0}
-    >
-      <table className="alarm-table">
-        {/* Fixed widths: an acknowledgement does not move the columns. */}
-        <colgroup>
-          <col className="col--time" />
-          <col className="col--source" />
-          <col className="col--direction" />
-          <col className="col--value" />
-          <col />
-        </colgroup>
-        <thead>
-          <tr>
-            <th scope="col">Time</th>
-            <th scope="col">Source</th>
-            <th scope="col">Direction</th>
-            <th scope="col">Value / threshold</th>
-            <th scope="col">Acknowledgement</th>
-          </tr>
-        </thead>
-        <tbody>
-          {alarms.map((alarm) => {
-            const pending = pendingAcks.includes(alarm.id);
-            return (
-              <tr
-                key={alarm.id}
-                className={alarm.acknowledgement ? undefined : "alarm--open"}
-              >
-                <td className="num">{formatClock(alarm.eventTime)}</td>
-                <td title={alarm.sourceLabel}>{alarm.sourceLabel}</td>
-                <td>
-                  <span aria-hidden="true">
-                    {alarm.direction === "up" ? "▲" : "▼"}
-                  </span>{" "}
-                  {alarm.direction}
-                </td>
-                <td className="num">
-                  {formatValue(alarm.value)} /{" "}
-                  {formatThreshold(alarm.threshold)} {alarm.unit}
-                </td>
-                <td>
-                  {/* As high as the button, so the row keeps its height after the ack. */}
-                  <div className="ack-cell">
-                    {alarm.acknowledgement ? (
-                      <span
-                        className="chip chip--acknowledged"
-                        title={`Acknowledged by ${alarm.acknowledgement.operator}`}
-                      >
-                        Acknowledged by {alarm.acknowledgement.operator} at{" "}
-                        {formatClock(alarm.acknowledgement.at)}
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={!canAcknowledge || pending}
-                        aria-label={`Acknowledge ${alarm.direction} crossing at ${formatClock(alarm.eventTime)} from ${alarm.sourceLabel}`}
-                        onClick={() => onAcknowledge(alarm.id)}
-                      >
-                        {pending ? "Acknowledging…" : "Acknowledge"}
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      rows={alarms}
+      columns={[...alarmColumns, ackColumn]}
+      rowKey={(alarm) => alarm.id}
+      label="Scrollable alarm list"
+      rowClassName={(alarm) =>
+        alarm.acknowledgement ? undefined : "alarm--open"
+      }
+      minWidth="52rem"
+      empty={<p className="muted">No alarms. New crossings appear here.</p>}
+    />
   );
 }
