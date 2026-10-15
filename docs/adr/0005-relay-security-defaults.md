@@ -27,7 +27,11 @@ large messages, or messages for another role.
   row, the relay closes the connection with code 4008.
 - One bad message gets `BAD_MESSAGE`, and the connection stays open.
 
+- The first message must be a valid `hello`. ADR 0006 adds a session check
+  before it: a socket without a valid session closes with 4003.
+
 ## Consequences
 
-- There is no authentication. Each person who can open the page can
-  acknowledge alarms. Authentication is a next step.
+- Before M8 there was no authentication. ADR 0006 adds login with sessions.
+- A missing `Origin` is still accepted, but a client without a session
+  cookie cannot use the relay.

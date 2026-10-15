@@ -15,6 +15,7 @@ and with typecheck, lint, format and tests green.
 | M5        | Monitor WebSocket transport + contract tests                                                                                 | Done   | `0ca55f9`            |
 | M6        | Control room app                                                                                                             | Done   | `5955cb6`            |
 | M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Done   | `33c8823`            |
+| M8        | Login with sessions for both apps, SQLite for users, sessions and alerts                                                     | Done   | branch `feat/auth`   |
 
 ## Decisions
 
@@ -146,8 +147,22 @@ The ADRs and the README use these decisions.
   done. Buttons use a new `--on-accent` token: dark text on the light
   dark-mode blue, because white text on it had low contrast.
 
+### Login and storage (M8) — ADRs 0006, 0007
+
+- One login page at `/login`, made by the relay, for both apps. Users have the
+  roles `operator` and `monitor`.
+- Server sessions: a random token in an `HttpOnly`, `SameSite=Strict` cookie;
+  the database keeps only its SHA-256. The WebSocket upgrade uses the same
+  cookie. No session, a wrong role or a logout closes the socket with 4003.
+- Protocol version 2: `ack` has no `operator`; the relay takes the display
+  name from the session and records the user id.
+- SQLite through `node:sqlite` (no new dependency). `createSqliteAlertStore`
+  implements `AlertStore`; `RECENT_LIMIT` is removed.
+- The control room lost its operator name form. Both apps show the user and a
+  **Log out** button.
+
 ## Out of scope
 
-Authentication, a database (SQLite behind `AlertStore`), horizontal scaling,
+User management page, single sign-on (OIDC), horizontal scaling,
 high and low thresholds, multiple data sources, Turborepo, canvas charts for high
 rates.
