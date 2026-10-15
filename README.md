@@ -44,6 +44,7 @@ In development, the relay adds two demo users (`DEMO_USERS=true` in
 | ---------- | ---------- | ---------------- |
 | `operator` | `operator` | The control room |
 | `monitor`  | `monitor`  | The monitor      |
+| `demo`     | both       | Both apps        |
 
 The database is in `data/threshold-monitor.db`. To start again with no data,
 stop `pnpm dev` and delete the `data` folder.
@@ -65,8 +66,9 @@ stop `pnpm dev` and delete the `data` folder.
    alarms and acknowledgements are still there, because they are in SQLite.
 6. Click **Log out**. The page goes back to the login page.
 
-The two apps share one cookie on `localhost`. To use both roles in one browser
-window, add a user with both roles (refer to "Users").
+The two apps share one cookie on `localhost`, so a second login in the same
+browser replaces the first. To test both apps in one browser, log in to both
+as `demo`, which has both roles.
 
 The monitor reads two optional URL parameters: `rate` (1, 2, 5 or 10 readings
 each second) and `seed` (an integer for the random data).
@@ -108,17 +110,17 @@ characters. The roles are `operator` (control room) and `monitor`.
 All settings are optional environment variables. Refer to
 [.env.example](.env.example).
 
-| Variable            | Default                     | Purpose                                                                 |
-| ------------------- | --------------------------- | ----------------------------------------------------------------------- |
-| `PORT`              | `8080`                      | HTTP and WebSocket port                                                 |
-| `NODE_ENV`          | `production`                | `production` accepts WebSockets from the same origin only               |
-| `ALLOWED_ORIGINS`   | (empty)                     | A comma-separated list of origins; it replaces the default origin rule  |
-| `STATIC_DIR`        | `apps/`                     | The folder that contains `monitor/dist` and `control/dist`              |
-| `LOG_LEVEL`         | `info`                      | `debug`, `info`, `warn` or `error`; the relay writes JSON lines         |
-| `DATABASE_PATH`     | `data/threshold-monitor.db` | The SQLite file for users, sessions and alerts                          |
-| `SESSION_TTL_HOURS` | `12`                        | How long a login lasts                                                  |
-| `COOKIE_SECURE`     | `false`                     | Set `true` when the app runs behind HTTPS                               |
-| `DEMO_USERS`        | `false`                     | `true` adds the demo users `operator` and `monitor`; not for production |
+| Variable            | Default                     | Purpose                                                                         |
+| ------------------- | --------------------------- | ------------------------------------------------------------------------------- |
+| `PORT`              | `8080`                      | HTTP and WebSocket port                                                         |
+| `NODE_ENV`          | `production`                | `production` accepts WebSockets from the same origin only                       |
+| `ALLOWED_ORIGINS`   | (empty)                     | A comma-separated list of origins; it replaces the default origin rule          |
+| `STATIC_DIR`        | `apps/`                     | The folder that contains `monitor/dist` and `control/dist`                      |
+| `LOG_LEVEL`         | `info`                      | `debug`, `info`, `warn` or `error`; the relay writes JSON lines                 |
+| `DATABASE_PATH`     | `data/threshold-monitor.db` | The SQLite file for users, sessions and alerts                                  |
+| `SESSION_TTL_HOURS` | `12`                        | How long a login lasts                                                          |
+| `COOKIE_SECURE`     | `false`                     | Set `true` when the app runs behind HTTPS                                       |
+| `DEMO_USERS`        | `false`                     | `true` adds the demo users `operator`, `monitor` and `demo`; not for production |
 
 ## Docker
 

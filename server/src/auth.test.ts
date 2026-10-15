@@ -72,7 +72,7 @@ describe("user store", () => {
 
   test("demo users are added once", async () => {
     const { users } = createTestAuth();
-    expect(await addDemoUsers(users)).toEqual(["operator", "monitor"]);
+    expect(await addDemoUsers(users)).toEqual(["operator", "monitor", "demo"]);
     expect(await addDemoUsers(users)).toEqual([]);
     expect(await users.verify("monitor", "demo")).toMatchObject({
       roles: ["monitor"],
