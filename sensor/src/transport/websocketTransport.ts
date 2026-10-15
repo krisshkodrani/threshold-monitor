@@ -4,6 +4,8 @@ import {
   PROTOCOL_VERSION,
   type Alert,
   type AlertRecord,
+  type SensorInfo,
+  type SettingsRecord,
 } from "@app/protocol";
 import type {
   AlertTransport,
@@ -40,8 +42,10 @@ export type SocketFactory = (url: string, events: SocketEvents) => RelaySocket;
 
 export type WebSocketTransportOptions = {
   url: string;
-  /** `sourceId` reconciles `welcome.recent`; `sourceLabel` is the hello's client name. */
-  identity: { sourceId: string; sourceLabel: string };
+  /** Sent in hello. Its `sensorId` is the `sourceId` of each alert. */
+  sensor: SensorInfo;
+  /** SENSOR_TOKEN: the sensor has no session, so it proves itself in hello. */
+  token: string;
   createSocket?: SocketFactory;
   clock?: () => number;
   random?: () => number;
@@ -52,16 +56,10 @@ export type WebSocketTransportOptions = {
 
 /** The server closes with this code for an unknown protocol version. Retrying cannot help. */
 export const CLOSE_UNSUPPORTED_VERSION = 4002;
-/** No session, a session without the monitor role, or a logout. A retry cannot help. */
+/** The relay refused the token. A retry with the same token cannot help. */
 export const CLOSE_UNAUTHORIZED = 4003;
 
-/** The relay is always at /ws on the page's own host (Vite proxies it in dev). */
-export function relayUrl(location: { protocol: string; host: string }): string {
-  const scheme = location.protocol === "https:" ? "wss" : "ws";
-  return `${scheme}://${location.host}/ws`;
-}
-
-/** The default factory: a browser (or Node 22+) WebSocket. */
+/** The default factory: Node's built-in WebSocket (Node 22+). */
 export const browserSocket: SocketFactory = (url, events) => {
   const ws = new WebSocket(url);
   ws.onopen = () => events.open();
@@ -76,7 +74,8 @@ export const browserSocket: SocketFactory = (url, events) => {
 };
 
 /**
- * Sends alerts to the relay with at-least-once delivery (ADR 0004).
+ * Sends the sensor's alerts to the relay with at-least-once delivery
+ * (ADR 0004), and its readings with at-most-once delivery (ADR 0009).
  *
  * One connection at a time. After `welcome`, the outbox is flushed in order;
  * each alert stays pending until `accepted`. A timeout or a lost connection
@@ -86,7 +85,8 @@ export const browserSocket: SocketFactory = (url, events) => {
  */
 export function createWebSocketTransport({
   url,
-  identity,
+  sensor,
+  token,
   createSocket = browserSocket,
   clock = Date.now,
   random = Math.random,
@@ -96,6 +96,7 @@ export function createWebSocketTransport({
 }: WebSocketTransportOptions): AlertTransport {
   const statusListeners = new Set<(status: ConnectionStatus) => void>();
   const deliveryListeners = new Set<(update: DeliveryUpdate) => void>();
+  const settingsListeners = new Set<(s: SettingsRecord | null) => void>();
   let status: ConnectionStatus = { kind: "connecting" };
   let outbox: Outbox<Alert> = createOutbox(capacity);
   let socket: RelaySocket | null = null;
@@ -133,8 +134,10 @@ export function createWebSocketTransport({
             encode({
               type: "hello",
               v: PROTOCOL_VERSION,
-              role: "monitor",
-              clientName: identity.sourceLabel,
+              role: "sensor",
+              clientName: sensor.label,
+              token,
+              sensor,
             }),
           );
         },
@@ -167,6 +170,10 @@ export function createWebSocketTransport({
         setStatus({ kind: "open" });
         reconcile(message.recent);
         flush();
+        for (const listener of settingsListeners) listener(message.settings);
+        return;
+      case "settings":
+        for (const listener of settingsListeners) listener(message.settings);
         return;
       case "accepted":
         outbox = accept(outbox, message.alertId);
@@ -191,7 +198,9 @@ export function createWebSocketTransport({
         log("relay error", message);
         return;
       case "alert":
-        return; // only control rooms act on new alerts
+      case "reading":
+      case "sensorStatus":
+        return; // for the views only
     }
   }
 
@@ -201,7 +210,7 @@ export function createWebSocketTransport({
    */
   function reconcile(recent: AlertRecord[]) {
     for (const record of recent) {
-      if (record.sourceId !== identity.sourceId) continue;
+      if (record.sourceId !== sensor.sensorId) continue;
       outbox = accept(outbox, record.id);
       deliver({
         alertId: record.id,
@@ -267,8 +276,8 @@ export function createWebSocketTransport({
       return;
     }
     if (code === CLOSE_UNAUTHORIZED) {
-      log("relay needs a login; not reconnecting");
-      setStatus({ kind: "signedOut" });
+      log("relay refused the sensor token; not reconnecting");
+      setStatus({ kind: "unauthorized" });
       return;
     }
     scheduleRetry();
@@ -292,6 +301,17 @@ export function createWebSocketTransport({
       reportDropped(result.dropped);
       flush();
     },
+    sendReading(reading) {
+      if (socket && welcomed) socket.send(encode({ type: "reading", reading }));
+    },
+    reportSettings(settings) {
+      if (socket && welcomed)
+        socket.send(encode({ type: "settingsApplied", settings }));
+    },
+    onSettings(listener) {
+      settingsListeners.add(listener);
+      return () => settingsListeners.delete(listener);
+    },
     onStatus(listener) {
       statusListeners.add(listener);
       listener(status);
@@ -308,10 +328,11 @@ export function createWebSocketTransport({
       if (deadlineTimer !== null) clearTimeout(deadlineTimer);
       const closing = socket;
       socket = null; // its close event is now ignored
-      closing?.close(1000, "Monitor closed");
+      closing?.close(1000, "Sensor stopped");
       setStatus({ kind: "closed" });
       statusListeners.clear();
       deliveryListeners.clear();
+      settingsListeners.clear();
     },
   };
 }

@@ -7,28 +7,20 @@ import {
   CLOSE_UNAUTHORIZED,
   CLOSE_UNSUPPORTED_VERSION,
   createWebSocketTransport,
-  relayUrl,
 } from "./websocketTransport";
 
-const identity = { sourceId: SOURCE_ID, sourceLabel: "Monitor TST" };
+const sensor = { sensorId: SOURCE_ID, label: "Sensor TST", rateHz: 10 };
+const token = "test-sensor-token-0123456789";
 
 runTransportContract("websocket transport", (options) =>
   createWebSocketTransport({
     url: "ws://test.local/ws",
-    identity,
+    sensor,
+    token,
     log: () => {},
     ...options,
   }),
 );
-
-test("relayUrl follows the page protocol and host", () => {
-  expect(relayUrl({ protocol: "http:", host: "localhost:5173" })).toBe(
-    "ws://localhost:5173/ws",
-  );
-  expect(relayUrl({ protocol: "https:", host: "example.com" })).toBe(
-    "wss://example.com/ws",
-  );
-});
 
 describe("websocket transport", () => {
   beforeEach(() => {
@@ -43,7 +35,8 @@ describe("websocket transport", () => {
     const log = vi.fn();
     const transport = createWebSocketTransport({
       url: "ws://test.local/ws",
-      identity,
+      sensor,
+      token,
       createSocket: relay.createSocket,
       random: () => 0.5,
       log,
@@ -55,12 +48,19 @@ describe("websocket transport", () => {
     return { relay, transport, statuses, updates, log };
   }
 
-  test("says hello as a monitor with the source label", async () => {
+  test("says hello as the sensor, with its token and info", async () => {
     const { relay } = setup();
     await settle();
     expect(relay.urls).toEqual(["ws://test.local/ws"]);
     expect(relay.hellos).toEqual([
-      { type: "hello", v: 2, role: "monitor", clientName: "Monitor TST" },
+      {
+        type: "hello",
+        v: 3,
+        role: "sensor",
+        clientName: "Sensor TST",
+        token,
+        sensor,
+      },
     ]);
   });
 
@@ -93,11 +93,12 @@ describe("websocket transport", () => {
     ]);
   });
 
-  test("ignores records of other monitors in welcome.recent", async () => {
+  test("ignores records of other sensors in welcome.recent", async () => {
     const relay = new FakeRelay();
     const other = createWebSocketTransport({
       url: "ws://test.local/ws",
-      identity: { sourceId: uuid(2000), sourceLabel: "Monitor OTH" },
+      sensor: { ...sensor, sensorId: uuid(2000), label: "Sensor OTH" },
+      token,
       createSocket: relay.createSocket,
       log: () => {},
     });
@@ -108,7 +109,8 @@ describe("websocket transport", () => {
     const updates: DeliveryUpdate[] = [];
     const ours = createWebSocketTransport({
       url: "ws://test.local/ws",
-      identity,
+      sensor,
+      token,
       createSocket: relay.createSocket,
       log: () => {},
     });
@@ -146,14 +148,14 @@ describe("websocket transport", () => {
     expect(log).toHaveBeenCalled();
   });
 
-  test("unauthorized (4003) stops for good with status signedOut", async () => {
+  test("a refused token (4003) stops for good with status unauthorized", async () => {
     const { relay, statuses } = setup();
     await settle();
     relay.stop(CLOSE_UNAUTHORIZED);
     relay.start();
     await vi.advanceTimersByTimeAsync(60_000);
 
-    expect(statuses.at(-1)).toEqual({ kind: "signedOut" });
+    expect(statuses.at(-1)).toEqual({ kind: "unauthorized" });
     expect(relay.urls).toHaveLength(1);
   });
 
@@ -171,12 +173,56 @@ describe("websocket transport", () => {
     expect(updates.at(-1)?.status).toBe("accepted");
   });
 
+  test("readings are sent only while connected, never queued", async () => {
+    const { relay, transport } = setup();
+    transport.sendReading({ t: 1, value: 24 }); // before welcome: dropped
+    await settle();
+    transport.sendReading({ t: 2, value: 24.1 });
+    relay.stop();
+    await settle();
+    transport.sendReading({ t: 3, value: 24.2 }); // offline: dropped
+    relay.start();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(relay.readings.map((r) => r.t)).toEqual([2]);
+  });
+
+  test("settings: null on a welcome without stored ones, then each change", async () => {
+    const { relay, transport } = setup();
+    const seen: unknown[] = [];
+    transport.onSettings((s) => seen.push(s));
+    await settle();
+    expect(seen).toEqual([null]);
+
+    transport.reportSettings({ threshold: 25, hysteresis: 0.6 });
+    await settle();
+    expect(relay.reportedSettings).toEqual([
+      { threshold: 25, hysteresis: 0.6 },
+    ]);
+
+    const changed = {
+      threshold: 22,
+      hysteresis: 0.2,
+      updatedBy: "Ana",
+      at: "2026-10-14T09:31:00.000Z",
+    };
+    relay.pushSettings(changed);
+    await settle();
+    expect(seen.at(-1)).toEqual(changed);
+
+    // After a reconnect, the welcome carries the stored settings.
+    relay.stop();
+    relay.start();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(seen.at(-1)).toEqual(changed);
+  });
+
   test("a socket that cannot be created is retried", async () => {
     let calls = 0;
     const relay = new FakeRelay();
     const transport = createWebSocketTransport({
       url: "bad url",
-      identity,
+      sensor,
+      token,
       createSocket: (url, events) => {
         calls += 1;
         if (calls === 1) throw new SyntaxError("invalid URL");

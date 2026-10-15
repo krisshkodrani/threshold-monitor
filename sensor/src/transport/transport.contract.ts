@@ -21,7 +21,7 @@ export type TransportFactory = (options: {
 /**
  * What every network transport must do, checked against a fake relay with fake
  * timers (spec §8.4). Real sockets and fake timers do not mix, so the real
- * relay gets its own integration test in the server package.
+ * relay gets its own integration test (agent.integration.test.ts).
  */
 export function runTransportContract(
   name: string,
@@ -159,7 +159,7 @@ export function runTransportContract(
       }
     });
 
-    test("an acknowledgement reaches the monitor", async () => {
+    test("an acknowledgement reaches the sensor", async () => {
       const { relay, transport, updates } = setup();
       await settle();
       transport.send(alert(1));

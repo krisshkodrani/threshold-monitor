@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - server
+  - sensor
   - packages/*
   - e2e
 allowBuilds:

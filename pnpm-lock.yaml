@@ -191,6 +191,25 @@ importers:
         specifier: 8.3.4
         version: 8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15)
 
+  sensor:
+    dependencies:
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@app/protocol':
+        specifier: workspace:*
+        version: link:../packages/protocol
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
+      tsup:
+        specifier: 8.5.1
+        version: 8.5.1(postcss@8.5.30)(tsx@4.23.15)(typescript@6.0.3)
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+
   server:
     dependencies:
       sirv:

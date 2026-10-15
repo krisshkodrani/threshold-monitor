@@ -4,7 +4,10 @@ import {
   type Alert,
   type AlertRecord,
   type Hello,
+  type ReadingValue,
   type ServerMessage,
+  type SettingsRecord,
+  type SettingsValue,
 } from "@app/protocol";
 import { vi } from "vitest";
 import type {
@@ -26,6 +29,10 @@ export class FakeRelay {
   /** Every alert frame received, resends included. */
   readonly alertFrames: Alert[] = [];
   readonly urls: string[] = [];
+  readonly readings: ReadingValue[] = [];
+  readonly reportedSettings: SettingsValue[] = [];
+  /** What the next welcome carries as the stored settings. */
+  storedSettings: SettingsRecord | null = null;
   private readonly records = new Map<string, AlertRecord>();
   private readonly connections: Connection[] = [];
   private acceptedToDrop = 0;
@@ -78,6 +85,13 @@ export class FakeRelay {
       this.reply(connection, { type: "acknowledged", alertId, operator, at });
   }
 
+  /** A monitor changed the settings: the relay stores and forwards them. */
+  pushSettings(settings: SettingsRecord): void {
+    this.storedSettings = settings;
+    for (const connection of this.connections)
+      this.reply(connection, { type: "settings", settings });
+  }
+
   /** Sends raw text to every open connection, for malformed-input tests. */
   sendRaw(data: string): void {
     for (const connection of this.connections)
@@ -96,7 +110,14 @@ export class FakeRelay {
         type: "welcome",
         connectionId: "00000000-0000-4000-8000-0000000000ff",
         recent,
+        settings: this.storedSettings,
+        sensor: null,
+        readings: [],
       });
+    } else if (message.type === "reading") {
+      this.readings.push(message.reading);
+    } else if (message.type === "settingsApplied") {
+      this.reportedSettings.push(message.settings);
     } else if (message.type === "alert") {
       this.alertFrames.push(message.alert);
       const existing = this.records.get(message.alert.id);

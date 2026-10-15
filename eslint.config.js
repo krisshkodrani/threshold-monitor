@@ -42,7 +42,7 @@ export default defineConfig(
     languageOptions: { globals: globals.browser },
   },
   {
-    files: ["server/**/*.ts"],
+    files: ["server/**/*.ts", "sensor/**/*.ts"],
     languageOptions: { globals: globals.node },
   },
 );
