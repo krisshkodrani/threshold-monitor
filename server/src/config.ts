@@ -37,7 +37,7 @@ const envSchema = z.object({
   ),
   // Off by default, so plain http://localhost works; set it behind TLS.
   COOKIE_SECURE: optional(z.stringbool().default(false)),
-  // Adds the demo users "operator" and "monitor" (password "demo") at start.
+  // Adds the demo users "operator", "monitor" and "demo" (password "demo") at start.
   DEMO_USERS: optional(z.stringbool().default(false)),
 });
 

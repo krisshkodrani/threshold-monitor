@@ -154,6 +154,14 @@ export const DEMO_USERS: NewUser[] = [
     password: "demo",
     roles: ["monitor"],
   },
+  // Both roles: one browser has one cookie for localhost, so one login must
+  // open both apps in the same window.
+  {
+    username: "demo",
+    displayName: "Demo User",
+    password: "demo",
+    roles: ["operator", "monitor"],
+  },
 ];
 
 /** Adds the demo users that do not exist yet. Returns the names it added. */

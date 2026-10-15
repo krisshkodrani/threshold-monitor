@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-/** The relay's login page; DEMO_USERS gives "operator" and "monitor" (password "demo"). */
+/** The relay's login page; DEMO_USERS gives "operator", "monitor" and "demo" (password "demo"). */
 async function logIn(page: Page, username: string) {
   await expect(page).toHaveURL(/\/login\?next=/);
   await page.getByLabel("Username").fill(username);
