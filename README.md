@@ -37,8 +37,8 @@ pnpm dev
 | Control room | http://localhost:5174/control/ | Vite dev server; it sends `/ws` to the relay      |
 | Relay        | http://localhost:8080/         | Development mode: it accepts the two Vite origins |
 
-In development, the relay adds two demo users (`DEMO_USERS=true` in
-`server/.env.development`). The password of both is `demo`.
+In development, the relay adds three demo users (`DEMO_USERS=true` in
+`server/.env.development`). The password of each is `demo`.
 
 | Username   | Role       | Can open         |
 | ---------- | ---------- | ---------------- |
@@ -51,15 +51,15 @@ stop `pnpm dev` and delete the `data` folder.
 
 ## Two-minute demo
 
-1. Open the control room. The login page opens. Log in as `operator` with the
+1. Open the control room. The login page opens. Log in as `demo` with the
    password `demo`.
-2. In a second browser profile (or a private window), open the monitor at
-   http://localhost:5173/?rate=10&seed=7. Log in as `monitor` with the
-   password `demo`. The badge shows "Connected".
+2. In a new tab of the same browser, open the monitor at
+   http://localhost:5173/?rate=10&seed=7. You do not log in again, because
+   the session cookie is for `localhost`. The badge shows "Connected".
 3. Wait for a crossing. The alert log shows "Accepted", and the alarm appears
    in the control room.
 4. In the control room, click **Acknowledge**. The monitor shows
-   "Acknowledged by Demo Operator". The name comes from the session.
+   "Acknowledged by Demo User". The name comes from the session.
 5. Restart the relay: in a second terminal, run `touch server/src/index.ts`.
    The relay restarts, and both badges show "Reconnecting", then "Connected".
    Alerts from the monitor wait in its outbox and then go to the relay. The
@@ -67,8 +67,9 @@ stop `pnpm dev` and delete the `data` folder.
 6. Click **Log out**. The page goes back to the login page.
 
 The two apps share one cookie on `localhost`, so a second login in the same
-browser replaces the first. To test both apps in one browser, log in to both
-as `demo`, which has both roles.
+browser replaces the first. To test with `operator` and `monitor` (one role
+each), use two browsers or a private window for the second user. Log in to
+the control room as `monitor` to see the role check.
 
 The monitor reads two optional URL parameters: `rate` (1, 2, 5 or 10 readings
 each second) and `seed` (an integer for the random data).
