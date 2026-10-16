@@ -1,6 +1,6 @@
 # Roadmap
 
-The project was built in eight milestones. Each milestone ended with one commit,
+The project was built in nine milestones. Each milestone ended with one commit,
 and with typecheck, lint, format and tests green.
 
 ## Status
@@ -16,6 +16,7 @@ and with typecheck, lint, format and tests green.
 | M6        | Control room app                                                                                                             | Done   | `5955cb6`            |
 | M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Done   | `33c8823`            |
 | M8        | Login with sessions for both apps, SQLite for users, sessions and alerts                                                     | Done   | `e64a52e`–`2b3bcda`  |
+| M9        | Sensor agent: readings, detection and alerts move to a service; the monitor becomes a live view with shared settings         | Done   | `897e5f1`–`f96c810`  |
 
 ## Decisions
 
@@ -190,8 +191,40 @@ The ADRs and the README use these decisions.
 - The control room table fills the window under the header (from 560 px
   window height), so it shows as many alarms as fit.
 
+### Sensor agent (M9) — ADR 0009
+
+- A new Node service, `sensor/`, makes the readings, finds the crossings and
+  sends the alerts. The random walk, the detector, the outbox, the backoff and
+  the transport moved from `apps/monitor` with `git mv`, with their tests.
+  `agent.ts` is the old `useThresholdMonitor` loop without React.
+- The sensor has no session. Its `hello` carries `SENSOR_TOKEN`, and the relay
+  checks it in constant time. One sensor at a time; a second one gets 4005.
+- Protocol version 3: `reading`, `settingsApplied`, `setSettings`, `settings`
+  and `sensorStatus`. `welcome` has the settings, the sensor and the last 120
+  readings (monitors only).
+- Readings are at most once and in memory only. Alerts stay at least once.
+- Shared settings in SQLite (migration 2), with the name of the user who
+  changed them. The sensor's defaults are stored only when nothing is stored.
+  The monitor form shows a change from another tab, unless the user is
+  editing it.
+- The sensor has its own rate limit bucket: capacity 600, refill 50 each
+  second.
+- The monitor lost its data source, detector, outbox, `?rate` and `?seed`,
+  the pause button and `localStorage` persistence. A new sensor panel shows
+  the rate, the chart span and who changed the settings last.
+- Packaging: the sensor bundle includes `zod` and `@app/protocol`, so it is
+  one file. The Docker image contains it, and Compose starts it as a second
+  container from the same image. Both containers read `SENSOR_TOKEN` from
+  `.env`.
+- The e2e test starts the relay and the sensor (`e2e/start-backend.mjs`). A
+  new test checks that two monitor tabs show the same reading and share a
+  threshold change. `DataTable` rows have a `data-key`, so the test finds a
+  row again after live updates.
+- Login rate limit: only a failed login spends a token. A user who types the
+  correct password is never limited.
+
 ## Out of scope
 
 User management page, single sign-on (OIDC), horizontal scaling,
-high and low thresholds, multiple data sources, Turborepo, canvas charts for high
+high and low thresholds, more than one sensor, Turborepo, canvas charts for high
 rates.
