@@ -1,0 +1,26 @@
+# Weekly update PRs. CI checks each one like any other change.
+version: 2
+updates:
+  - package-ecosystem: npm # reads pnpm-lock.yaml
+    directory: /
+    schedule:
+      interval: weekly
+    # Like the pnpm minimum release age: no version younger than a week.
+    cooldown:
+      default-days: 7
+    groups:
+      # One PR for all minor and patch updates; each major update alone.
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

@@ -19,6 +19,10 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Known vulnerabilities: none in production dependencies, and none of
+      # high severity or above in the build and test tools.
+      - run: pnpm audit --prod
+      - run: pnpm audit --audit-level high
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
