@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { Provider } from "react-redux";
@@ -117,6 +117,55 @@ test("a new threshold is sent to the relay, not applied locally", async () => {
   expect(
     screen.getByText(/Settings changed by Demo Monitor/),
   ).toBeInTheDocument();
+});
+
+// Regression: each change sent both fields from the shared state, so a second
+// change before the relay answered sent the first field's old value again.
+test("a second change before the answer keeps the first change", async () => {
+  const user = userEvent.setup();
+  const { connection } = renderApp();
+  act(() => connection().welcome([], { settings: SETTINGS, sensor: SENSOR }));
+
+  const input = screen.getByLabelText("Threshold (°C)");
+  await user.clear(input);
+  await user.type(input, "30{Enter}");
+  const slider = screen.getByRole("slider");
+  fireEvent.change(slider, { target: { value: "1.0" } });
+  fireEvent.pointerUp(slider);
+
+  expect(connection().sent).toEqual([
+    { type: "setSettings", settings: { threshold: 30, hysteresis: 0.6 } },
+    { type: "setSettings", settings: { threshold: 30, hysteresis: 1 } },
+  ]);
+});
+
+test("after the relay answers, a change starts from the shared settings", async () => {
+  const user = userEvent.setup();
+  const { connection } = renderApp();
+  act(() => connection().welcome([], { settings: SETTINGS, sensor: SENSOR }));
+  const input = screen.getByLabelText("Threshold (°C)");
+  await user.clear(input);
+  await user.type(input, "30{Enter}");
+  act(() =>
+    connection().receive({
+      type: "settings",
+      settings: { ...SETTINGS, threshold: 30, updatedBy: "Demo Monitor" },
+    }),
+  );
+  // Another tab then changes the threshold; the next change keeps it.
+  act(() =>
+    connection().receive({
+      type: "settings",
+      settings: { ...SETTINGS, threshold: 21, updatedBy: "Ana" },
+    }),
+  );
+  const slider = screen.getByRole("slider");
+  fireEvent.change(slider, { target: { value: "1.0" } });
+  fireEvent.pointerUp(slider);
+  expect(connection().sent.at(-1)).toEqual({
+    type: "setSettings",
+    settings: { threshold: 21, hysteresis: 1 },
+  });
 });
 
 test("a change from another tab updates the form", () => {

@@ -1,5 +1,5 @@
 import type { ServerMessage, SettingsValue } from "@app/protocol";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AccountBar } from "./components/AccountBar";
 import { AlertLog } from "./components/AlertLog";
 import { ConnectionBadge } from "./components/ConnectionBadge";
@@ -41,10 +41,14 @@ export type AppProps = {
 export function App({ connect, readings, account }: AppProps) {
   const dispatch = useAppDispatch();
   const [notice, setNotice] = useState<string | null>(null);
+  // The last change sent and not yet confirmed. The next change starts from
+  // it, so a fast second change does not send the first field's old value.
+  const requested = useRef<SettingsValue | null>(null);
 
   function onMessage(message: ServerMessage) {
     switch (message.type) {
       case "welcome":
+        requested.current = null;
         dispatch(welcomed(message.recent));
         dispatch(settingsReceived(message.settings));
         dispatch(sensorChanged(message.sensor));
@@ -66,12 +70,18 @@ export function App({ connect, readings, account }: AppProps) {
         );
         return;
       case "settings":
+        if (
+          requested.current?.threshold === message.settings.threshold &&
+          requested.current.hysteresis === message.settings.hysteresis
+        )
+          requested.current = null;
         dispatch(settingsReceived(message.settings));
         return;
       case "sensorStatus":
         dispatch(sensorChanged(message.sensor));
         return;
       case "error":
+        requested.current = null; // the relay may have refused the change
         setNotice(message.message);
         return;
       case "accepted":
@@ -91,10 +101,15 @@ export function App({ connect, readings, account }: AppProps) {
 
   const canChange = status.kind === "open" && settings !== null;
 
-  function changeSettings(next: SettingsValue) {
+  function changeSettings(change: Partial<SettingsValue>) {
     setNotice(null);
-    if (!send({ type: "setSettings", settings: next }))
-      setNotice("Not connected. Try again when the badge shows Connected.");
+    const base = requested.current ?? {
+      threshold: cfg.threshold,
+      hysteresis: cfg.hysteresis,
+    };
+    const next = { ...base, ...change };
+    if (send({ type: "setSettings", settings: next })) requested.current = next;
+    else setNotice("Not connected. Try again when the badge shows Connected.");
   }
 
   return (
@@ -129,16 +144,12 @@ export function App({ connect, readings, account }: AppProps) {
           <ThresholdForm
             threshold={cfg.threshold}
             disabled={!canChange}
-            onCommit={(threshold) =>
-              changeSettings({ threshold, hysteresis: cfg.hysteresis })
-            }
+            onCommit={(threshold) => changeSettings({ threshold })}
           />
           <HysteresisControl
             value={cfg.hysteresis}
             disabled={!canChange}
-            onChange={(hysteresis) =>
-              changeSettings({ threshold: cfg.threshold, hysteresis })
-            }
+            onChange={(hysteresis) => changeSettings({ hysteresis })}
           />
           <SensorPanel sensor={sensor} settings={settings} />
           {notice && (
