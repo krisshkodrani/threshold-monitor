@@ -124,8 +124,12 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
   } = auth;
   const buckets = new Map<string, Bucket>();
 
-  /** One token per try. The map is cleared when it grows too large, which only forgives. */
-  function allowTry(address: string): boolean {
+  /**
+   * A try is allowed while the address has a token. Only a failed login
+   * spends it (`spend`), so people who type the right password are never
+   * limited. The map is cleared when it grows too large, which only forgives.
+   */
+  function checkTry(address: string): { allowed: boolean; spend: () => void } {
     if (buckets.size > MAX_TRACKED_ADDRESSES) buckets.clear();
     const now = clock();
     const result = take(
@@ -133,8 +137,10 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
       now,
       loginBucket,
     );
-    buckets.set(address, result.bucket);
-    return result.allowed;
+    return {
+      allowed: result.allowed,
+      spend: () => buckets.set(address, result.bucket),
+    };
   }
 
   /** The same Origin rule as the WebSocket upgrade: no posts from other sites. */
@@ -150,7 +156,8 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
       if (!body) return json(res, 413, { error: "Body too large" });
       const next = safeNext(body.get("next"));
 
-      if (!allowTry(address)) {
+      const attempt = checkTry(address);
+      if (!attempt.allowed) {
         logger.warn("login rate limited", { address });
         res.writeHead(429, { ...LOGIN_PAGE_HEADERS, "retry-after": "10" });
         return res.end(
@@ -161,6 +168,7 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
       const username = body.get("username") ?? "";
       const user = await users.verify(username, body.get("password") ?? "");
       if (!user) {
+        attempt.spend();
         logger.warn("login failed", { address });
         res.writeHead(401, LOGIN_PAGE_HEADERS);
         return res.end(loginPage({ next, error: LOGIN_FAILED }));

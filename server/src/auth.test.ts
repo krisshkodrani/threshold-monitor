@@ -334,6 +334,17 @@ describe("login routes", () => {
     expect(res.headers.get("set-cookie")).toBeNull();
   });
 
+  test("correct logins do not count against the limit", async () => {
+    const { login } = await start({
+      clock: () => 0,
+      loginBucket: { capacity: 2, refillPerSecond: 1 },
+    });
+    for (let i = 0; i < 5; i++) {
+      const res = await login({ username: "ana", password: "secret-1" });
+      expect(res.status).toBe(303);
+    }
+  });
+
   test("a body above 4 KiB is refused", async () => {
     const { login } = await start();
     const res = await login({ username: "ana", password: "x".repeat(5000) });
