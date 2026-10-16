@@ -291,17 +291,32 @@ Before the first `pnpm test:e2e`, install the browser once:
 `pnpm --filter @app/e2e exec playwright install chromium`.
 
 CI runs all of these commands and `pnpm build` on each push. A second CI job
-builds the Docker image and waits until the container reports healthy.
+builds the Docker image, starts `docker-compose.yml`, and waits until the
+relay is healthy and the sensor is connected.
 
-| Package             | Tests | What they cover                                                                                                                                                       |
-| ------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`            | 144   | Routing rules, relay on real sockets, sensor token, sessions and roles, login routes and rate limit, passwords, alert and settings stores, configuration, HTTP        |
-| `apps/monitor`      | 103   | Relay connection, store slices, components, shared settings form, accessibility (axe)                                                                                 |
-| `sensor`            | 88    | Detector (with fast-check properties), random walk, outbox, backoff, transport contract on a fake relay, the agent, and one test of the agent against the real relay  |
-| `packages/protocol` | 54    | Each message schema, valid and invalid                                                                                                                                |
-| `apps/control`      | 27    | Alarm list rules, connection, account bar, Acknowledge flow, accessibility (axe)                                                                                      |
-| `packages/ui`       | 5     | DataTable: rows and cells from the columns, widths, classes, row keys, tooltips, the named scroll region, the empty state, accessibility (axe)                        |
-| `e2e`               | 4     | The production build with the sensor: login, live data, Acknowledge, "Acknowledged by", logout; two monitor tabs with shared settings; a wrong role; a wrong password |
+### Core Web Vitals
+
+`e2e/web-vitals.spec.ts` measures LCP, CLS and INP on the production build,
+with the CPU 4 times slower (like the Lighthouse mobile preset). It uses the
+browser's `PerformanceObserver` entries and fails above the "good" limits of
+web.dev. These are lab values on a local network, not field data.
+
+| Page                                 | LCP    | CLS   | INP     |
+| ------------------------------------ | ------ | ----- | ------- |
+| Login                                | 120 ms | 0     | < 16 ms |
+| Monitor (5 s of live data, a change) | 290 ms | 0.015 | 24 ms   |
+| Control room (an acknowledgement)    | 125 ms | 0.006 | 24 ms   |
+| Limit ("good")                       | 2.5 s  | 0.1   | 200 ms  |
+
+| Package             | Tests | What they cover                                                                                                                                                                        |
+| ------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`            | 149   | Routing rules, relay on real sockets, sensor token, sessions and roles, login routes and rate limit, passwords, alert and settings stores, configuration, HTTP                         |
+| `apps/monitor`      | 109   | Relay connection, store slices, components, shared settings form, accessibility (axe)                                                                                                  |
+| `sensor`            | 91    | Detector (with fast-check properties), random walk, outbox, backoff, transport contract on a fake relay, the agent, and one test of the agent against the real relay                   |
+| `packages/protocol` | 54    | Each message schema, valid and invalid                                                                                                                                                 |
+| `apps/control`      | 27    | Alarm list rules, connection, account bar, Acknowledge flow, accessibility (axe)                                                                                                       |
+| `packages/ui`       | 5     | DataTable: rows and cells from the columns, widths, classes, row keys, tooltips, the named scroll region, the empty state, accessibility (axe)                                         |
+| `e2e`               | 7     | The production build with the sensor: login, live data, Acknowledge, "Acknowledged by", logout; two monitor tabs with shared settings; a wrong role; a wrong password; Core Web Vitals |
 
 ## Decisions and changes from the specification
 

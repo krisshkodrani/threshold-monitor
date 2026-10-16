@@ -41,13 +41,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: docker build -t threshold-monitor .
-      # The image must start and report healthy, not only build.
+      # docker-compose.yml as users run it: the relay must report healthy,
+      # and the sensor container must connect to it.
+      - run: echo "SENSOR_TOKEN=$(openssl rand -hex 24)" > .env
+      - run: docker compose up -d --no-build --wait --wait-timeout 60
       - run: |
-          docker run -d --name relay -p 8080:8080 threshold-monitor
           for i in $(seq 1 30); do
-            status=$(docker inspect -f '{{.State.Health.Status}}' relay)
-            [ "$status" = healthy ] && exit 0
+            docker compose logs relay | grep -q '"sensor online"' && exit 0
             sleep 1
           done
-          docker logs relay
+          docker compose logs
           exit 1
+      - if: always()
+        run: docker compose down -v

@@ -16,7 +16,7 @@ and with typecheck, lint, format and tests green.
 | M6        | Control room app                                                                                                             | Done   | `5955cb6`            |
 | M7        | Packaging and docs: Docker, e2e, README, ADRs, architecture                                                                  | Done   | `33c8823`            |
 | M8        | Login with sessions for both apps, SQLite for users, sessions and alerts                                                     | Done   | `e64a52e`–`2b3bcda`  |
-| M9        | Sensor agent: readings, detection and alerts move to a service; the monitor becomes a live view with shared settings         | Done   | `897e5f1`–`f96c810`  |
+| M9        | Sensor agent: readings, detection and alerts move to a service; the monitor becomes a live view with shared settings         | Done   | `897e5f1`–`4309c93`  |
 
 ## Decisions
 
@@ -229,6 +229,9 @@ The ADRs and the README use these decisions.
   the sensor's `welcome` has its own recent alerts. The monitor slider sends
   its value on release, and a second settings change starts from the first.
   The sensor drains its outbox for up to 3 s on SIGTERM.
+- Release checks: the CI Docker job starts `docker-compose.yml` and waits for
+  "sensor online". A new e2e file measures the Core Web Vitals (LCP, CLS,
+  INP) with a 4x CPU slowdown and checks the "good" limits.
 
 ## Out of scope
 
