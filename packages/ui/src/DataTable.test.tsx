@@ -58,6 +58,10 @@ test("applies column widths, cell classes, titles and row classes", () => {
     "Apple",
   );
   expect(screen.getByText("Banana").closest("tr")).toHaveClass("many");
+  expect(screen.getByText("Banana").closest("tr")).toHaveAttribute(
+    "data-key",
+    "b",
+  );
   expect(screen.getByText("Apple").closest("tr")).not.toHaveAttribute("class");
 });
 

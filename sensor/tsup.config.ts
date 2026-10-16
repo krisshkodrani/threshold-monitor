@@ -6,5 +6,6 @@ export default defineConfig({
   target: "node24",
   clean: true,
   // Source-only workspace package; bundled like in the server.
-  noExternal: ["@app/protocol"],
+  // zod too, so the sensor is one file with no node_modules in the image.
+  noExternal: ["@app/protocol", "zod"],
 });

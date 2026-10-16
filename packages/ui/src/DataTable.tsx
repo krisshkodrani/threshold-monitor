@@ -67,7 +67,12 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={rowKey(row)} className={rowClassName?.(row)}>
+            <tr
+              key={rowKey(row)}
+              // The key, so a row can be found again after live updates.
+              data-key={rowKey(row)}
+              className={rowClassName?.(row)}
+            >
               {columns.map((column) => (
                 <td
                   key={column.id}
