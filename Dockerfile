@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- build: install everything, build the packages -------------------------
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 RUN corepack enable
 WORKDIR /repo
 
@@ -23,7 +23,7 @@ RUN pnpm build
 RUN pnpm --filter @app/server deploy --prod --legacy /out
 
 # ---- runtime: Node, the server and sensor bundles, the two built apps -------
-FROM node:24-alpine
+FROM node:25-alpine
 ENV NODE_ENV=production
 WORKDIR /app/server
 
