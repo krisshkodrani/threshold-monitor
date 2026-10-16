@@ -1,3 +1,5 @@
+# Set SENSOR_TOKEN (16 characters or more) in a .env file next to this file:
+#   echo "SENSOR_TOKEN=$(openssl rand -hex 24)" > .env
 services:
   relay:
     build: .
@@ -6,6 +8,8 @@ services:
       - "8080:8080"
     environment:
       LOG_LEVEL: info
+      # The relay accepts a sensor only with this token.
+      SENSOR_TOKEN: ${SENSOR_TOKEN:?set SENSOR_TOKEN in .env}
       # ALLOWED_ORIGINS: "https://monitor.example.com"
       # Set to "true" when a TLS proxy serves the app over https.
       # COOKIE_SECURE: "true"
@@ -19,6 +23,29 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     stop_grace_period: 10s
+
+  # The sensor agent: makes the readings and the alerts, and sends them to the
+  # relay. The same image; it writes nothing and opens no port.
+  sensor:
+    image: threshold-monitor
+    command: ["node", "/app/sensor/dist/index.js"]
+    environment:
+      LOG_LEVEL: info
+      RELAY_URL: ws://relay:8080/ws
+      SENSOR_TOKEN: ${SENSOR_TOKEN:?set SENSOR_TOKEN in .env}
+      # SENSOR_LABEL: "Sensor 1"
+      # SENSOR_RATE_HZ: "2" # 1, 2, 5 or 10 readings each second
+    depends_on:
+      relay:
+        condition: service_healthy
+    # The image's health check is for the relay's port, not for the sensor.
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 5s
 
 # Users, sessions and alerts. Add a user:
 #   echo 'a-long-password' | docker compose exec -T relay \

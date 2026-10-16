@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# ---- build: install everything, build the three packages ------------------
+# ---- build: install everything, build the packages -------------------------
 FROM node:24-alpine AS build
 RUN corepack enable
 WORKDIR /repo
@@ -10,6 +10,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/monitor/package.json apps/monitor/
 COPY apps/control/package.json apps/control/
 COPY server/package.json server/
+COPY sensor/package.json sensor/
 COPY packages/protocol/package.json packages/protocol/
 COPY packages/ui/package.json packages/ui/
 RUN pnpm install --frozen-lockfile
@@ -20,7 +21,7 @@ RUN pnpm build
 # bundled into server/dist, so no workspace package is needed at runtime.
 RUN pnpm --filter @app/server deploy --prod --legacy /out
 
-# ---- runtime: Node, the server bundle, its dependencies, the two built apps -
+# ---- runtime: Node, the server and sensor bundles, the two built apps -------
 FROM node:24-alpine
 ENV NODE_ENV=production
 WORKDIR /app/server
@@ -32,6 +33,9 @@ COPY --from=build /repo/server/dist ./dist
 # The server finds the apps at ../../apps from dist/index.js (STATIC_DIR default).
 COPY --from=build /repo/apps/monitor/dist /app/apps/monitor/dist
 COPY --from=build /repo/apps/control/dist /app/apps/control/dist
+# The sensor agent: one file with its dependencies bundled. The same image runs
+# it as a second container: node /app/sensor/dist/index.js (docker-compose.yml).
+COPY --from=build /repo/sensor/dist /app/sensor/dist
 # The SQLite database (DATABASE_PATH default: /app/data/threshold-monitor.db).
 # The only folder the server writes to; mount a volume here to keep the data.
 RUN mkdir /app/data && chown node:node /app/data
