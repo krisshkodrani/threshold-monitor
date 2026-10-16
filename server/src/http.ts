@@ -125,11 +125,11 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
   const buckets = new Map<string, Bucket>();
 
   /**
-   * A try is allowed while the address has a token. Only a failed login
-   * spends it (`spend`), so people who type the right password are never
-   * limited. The map is cleared when it grows too large, which only forgives.
+   * Each try takes a token before the password check, so parallel tries
+   * cannot all see the same full bucket. The map is cleared when it grows
+   * too large, which only forgives.
    */
-  function checkTry(address: string): { allowed: boolean; spend: () => void } {
+  function takeTry(address: string): boolean {
     if (buckets.size > MAX_TRACKED_ADDRESSES) buckets.clear();
     const now = clock();
     const result = take(
@@ -137,10 +137,18 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
       now,
       loginBucket,
     );
-    return {
-      allowed: result.allowed,
-      spend: () => buckets.set(address, result.bucket),
-    };
+    buckets.set(address, result.bucket);
+    return result.allowed;
+  }
+
+  /** A correct login gives its token back, so people who know the password are never limited. */
+  function giveBack(address: string) {
+    const bucket = buckets.get(address);
+    if (bucket)
+      buckets.set(address, {
+        ...bucket,
+        tokens: Math.min(loginBucket.capacity, bucket.tokens + 1),
+      });
   }
 
   /** The same Origin rule as the WebSocket upgrade: no posts from other sites. */
@@ -156,8 +164,7 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
       if (!body) return json(res, 413, { error: "Body too large" });
       const next = safeNext(body.get("next"));
 
-      const attempt = checkTry(address);
-      if (!attempt.allowed) {
+      if (!takeTry(address)) {
         logger.warn("login rate limited", { address });
         res.writeHead(429, { ...LOGIN_PAGE_HEADERS, "retry-after": "10" });
         return res.end(
@@ -168,12 +175,12 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
       const username = body.get("username") ?? "";
       const user = await users.verify(username, body.get("password") ?? "");
       if (!user) {
-        attempt.spend();
         logger.warn("login failed", { address });
         res.writeHead(401, LOGIN_PAGE_HEADERS);
         return res.end(loginPage({ next, error: LOGIN_FAILED }));
       }
 
+      giveBack(address);
       const token = sessions.create(user.id);
       logger.info("login", { userId: user.id, username: user.username });
       res.writeHead(303, {

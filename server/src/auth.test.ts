@@ -345,6 +345,22 @@ describe("login routes", () => {
     }
   });
 
+  // Regression: the token was spent only after the async password check, so
+  // parallel tries all saw the same full bucket and none was limited.
+  test("parallel wrong logins cannot bypass the limit", async () => {
+    const { login } = await start({
+      clock: () => 0,
+      loginBucket: { capacity: 2, refillPerSecond: 1 },
+    });
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        login({ username: "ana", password: "nope" }),
+      ),
+    );
+    const statuses = results.map((res) => res.status).sort();
+    expect(statuses).toEqual([401, 401, 429, 429, 429, 429]);
+  });
+
   test("a body above 4 KiB is refused", async () => {
     const { login } = await start();
     const res = await login({ username: "ana", password: "x".repeat(5000) });
