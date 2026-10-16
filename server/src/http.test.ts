@@ -65,6 +65,20 @@ describe("http server", () => {
     expect(await res.json()).toEqual({ status: "ok" });
   });
 
+  test.each(["/healthz", "/readyz"])(
+    "%s accepts GET and HEAD only",
+    async (check) => {
+      expect((await fetch(`${base}${check}`, { method: "HEAD" })).status).toBe(
+        200,
+      );
+      for (const method of ["POST", "PUT", "DELETE"]) {
+        const res = await fetch(`${base}${check}`, { method });
+        expect(res.status).toBe(405);
+        expect(res.headers.get("allow")).toBe("GET, HEAD");
+      }
+    },
+  );
+
   test("serves the monitor at / and the control room at /control/", async () => {
     expect(await (await fetch(`${base}/`)).text()).toBe("<p>monitor app</p>");
     expect(await (await fetch(`${base}/control/`)).text()).toBe(

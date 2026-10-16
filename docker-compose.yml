@@ -13,6 +13,9 @@ services:
       # ALLOWED_ORIGINS: "https://monitor.example.com"
       # Set to "true" when a TLS proxy serves the app over https.
       # COOKIE_SECURE: "true"
+      # Set to "true" when a reverse proxy is in front, so each user has their
+      # own login limit.
+      # TRUST_PROXY: "true"
       # Only for a local demo: "operator", "monitor" and "demo" (both roles), password "demo".
       # DEMO_USERS: "true"
     restart: unless-stopped

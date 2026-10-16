@@ -22,6 +22,7 @@ describe("loadConfig", () => {
       sessionTtlMs: 12 * 60 * 60 * 1000,
       cookieSecure: false,
       demoUsers: false,
+      trustProxy: false,
       sensorToken: undefined,
     });
   });
@@ -43,12 +44,14 @@ describe("loadConfig", () => {
       SESSION_TTL_HOURS: "1",
       COOKIE_SECURE: "true",
       DEMO_USERS: "1",
+      TRUST_PROXY: "true",
     });
     expect(config).toMatchObject({
       databasePath: ":memory:",
       sessionTtlMs: 60 * 60 * 1000,
       cookieSecure: true,
       demoUsers: true,
+      trustProxy: true,
       port: 9000,
       mode: "development",
       allowedOrigins: ["https://a.example", "https://b.example"],

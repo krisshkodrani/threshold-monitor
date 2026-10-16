@@ -210,13 +210,18 @@ async function start(overrides: Partial<AuthDeps> = {}) {
   servers.push(server);
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
-  const login = (fields: Record<string, string>, origin = ORIGIN) =>
+  const login = (
+    fields: Record<string, string>,
+    origin = ORIGIN,
+    headers: Record<string, string> = {},
+  ) =>
     fetch(`${base}/api/login`, {
       method: "POST",
       redirect: "manual",
       headers: {
         origin,
         "content-type": "application/x-www-form-urlencoded",
+        ...headers,
       },
       body: new URLSearchParams(fields),
     });
@@ -359,6 +364,55 @@ describe("login routes", () => {
     );
     const statuses = results.map((res) => res.status).sort();
     expect(statuses).toEqual([401, 401, 429, 429, 429, 429]);
+  });
+
+  describe("behind a reverse proxy (TRUST_PROXY)", () => {
+    const viaProxy = (forwardedFor: string) => ({
+      "x-forwarded-for": forwardedFor,
+    });
+    const startBehindProxy = async (trustProxy: boolean) => {
+      const testAuth = createTestAuth({ origin: ORIGIN });
+      return start({
+        clock: () => 0,
+        loginBucket: { capacity: 2, refillPerSecond: 1 },
+        config: { ...testAuth.auth.config, trustProxy },
+      });
+    };
+    const wrong = { username: "ana", password: "nope" };
+
+    // Regression: all users came through the proxy's one address, so five
+    // bad logins locked out everybody.
+    test("each client has its own bucket", async () => {
+      const { login } = await startBehindProxy(true);
+      await login(wrong, ORIGIN, viaProxy("203.0.113.1"));
+      await login(wrong, ORIGIN, viaProxy("203.0.113.1"));
+      const attacker = await login(wrong, ORIGIN, viaProxy("203.0.113.1"));
+      expect(attacker.status).toBe(429);
+      const other = await login(
+        { username: "ana", password: "secret-1" },
+        ORIGIN,
+        viaProxy("198.51.100.7"),
+      );
+      expect(other.status).toBe(303);
+    });
+
+    test("only the entry that the proxy adds counts", async () => {
+      const { login } = await startBehindProxy(true);
+      // The client writes the first entries; the proxy adds the last one.
+      await login(wrong, ORIGIN, viaProxy("1.1.1.1, 203.0.113.1"));
+      await login(wrong, ORIGIN, viaProxy("2.2.2.2, 203.0.113.1"));
+      const res = await login(wrong, ORIGIN, viaProxy("3.3.3.3, 203.0.113.1"));
+      expect(res.status).toBe(429);
+    });
+
+    test("without TRUST_PROXY, the header is ignored", async () => {
+      const { login } = await startBehindProxy(false);
+      await login(wrong, ORIGIN, viaProxy("203.0.113.1"));
+      await login(wrong, ORIGIN, viaProxy("203.0.113.2"));
+      // A forged header does not give a new bucket.
+      const res = await login(wrong, ORIGIN, viaProxy("203.0.113.3"));
+      expect(res.status).toBe(429);
+    });
   });
 
   test("a body above 4 KiB is refused", async () => {

@@ -9,8 +9,8 @@ const ALERT_ID = "3f0c6a8e-6b1d-4c2a-9f4e-2a7d5b9c1e01";
 
 const alert: Alert = {
   id: ALERT_ID,
-  sourceId: "8b2e4d71-0c3f-4a59-b6e8-5d1a9f7c3b02",
-  sourceLabel: "Monitor 8B2",
+  sourceId: "5d0a2f6e-1c3b-4e7a-9b8d-2f4e6a8c0b13", // the test sensor's id
+  sourceLabel: "Sensor 1",
   metric: "temperature",
   unit: "°C",
   threshold: 25,
@@ -118,6 +118,25 @@ describe("alerts from the sensor", () => {
     ]);
     expect(store.has(ALERT_ID)).toBe(false);
   });
+});
+
+// Regression: the relay stored an alert with any sourceId, so a sensor could
+// send alerts in the name of another source.
+test("a sensor cannot send an alert for another source", () => {
+  const forged = { ...alert, sourceId: "9c4b1e2a-7d3f-4a6b-8e5c-1f2a3b4c5d6e" };
+  const out = route(sensor, { type: "alert", alert: forged }, ctx);
+  expect(out).toEqual([
+    {
+      to: "sender",
+      message: {
+        type: "error",
+        code: "NOT_ALLOWED",
+        message: "An alert's sourceId must be the sensor's id.",
+        ref: ALERT_ID,
+      },
+    },
+  ]);
+  expect(ctx.store.get(ALERT_ID)).toBeUndefined();
 });
 
 describe("acknowledgements from a control room", () => {

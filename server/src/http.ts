@@ -27,7 +27,10 @@ import type { UserStore } from "./users";
 export type AuthDeps = {
   users: UserStore;
   sessions: SessionStore;
-  config: Pick<Config, "mode" | "allowedOrigins" | "cookieSecure">;
+  config: Pick<
+    Config,
+    "mode" | "allowedOrigins" | "cookieSecure" | "trustProxy"
+  >;
   /** Called with the session id after a logout, so the relay can close its sockets. */
   onLogout?: (sessionId: string) => void;
   clock?: () => number;
@@ -96,6 +99,12 @@ export function createHttpServer({
       "http://localhost",
     );
 
+    // The checks only read; a write to them is a mistake, so say so.
+    const isCheck = pathname === "/healthz" || pathname === "/readyz";
+    if (isCheck && req.method !== "GET" && req.method !== "HEAD") {
+      res.writeHead(405, { allow: "GET, HEAD" });
+      return res.end();
+    }
     if (pathname === "/healthz") {
       res.writeHead(200, { "content-type": "application/json" });
       return res.end(JSON.stringify({ status: "ok" }));
@@ -185,7 +194,7 @@ function authRoutes(auth: AuthDeps, logger: Logger) {
   return {
     async login(req: IncomingMessage, res: ServerResponse) {
       if (!sameSite(req)) return json(res, 403, { error: "Forbidden origin" });
-      const address = req.socket.remoteAddress ?? "unknown";
+      const address = clientAddress(req, config.trustProxy);
 
       const body = await readForm(req);
       if (!body) return json(res, 413, { error: "Body too large" });
@@ -289,6 +298,26 @@ async function readForm(
   }
   for (const [key, field] of new URLSearchParams(text)) fields.set(key, field);
   return fields;
+}
+
+/**
+ * The address for the login limit. Behind a reverse proxy, the socket address
+ * is the proxy's, so all users would share one bucket. With `trustProxy`, the
+ * last X-Forwarded-For entry is used: the proxy adds it, and a client cannot
+ * change it. The earlier entries come from the client and are not trusted.
+ */
+export function clientAddress(
+  req: IncomingMessage,
+  trustProxy: boolean,
+): string {
+  const socketAddress = req.socket.remoteAddress ?? "unknown";
+  if (!trustProxy) return socketAddress;
+  const header = req.headers["x-forwarded-for"];
+  const entries = (Array.isArray(header) ? header.join(",") : (header ?? ""))
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return entries.at(-1) ?? socketAddress;
 }
 
 function json(res: ServerResponse, status: number, body: unknown) {

@@ -52,9 +52,21 @@ export function route(
     case "hello":
       return [error("NOT_ALLOWED", "Already identified.")];
     case "alert":
-      return role === "sensor"
-        ? routeAlert(message.alert, ctx)
-        : [error("NOT_ALLOWED", "Only sensors send alerts.", message.alert.id)];
+      if (sender.role !== "sensor")
+        return [
+          error("NOT_ALLOWED", "Only sensors send alerts.", message.alert.id),
+        ];
+      // A sensor sends only its own alerts: the relay filters the sensor's
+      // welcome.recent by this id, and the views show it as the source.
+      if (message.alert.sourceId !== sender.sensor.sensorId)
+        return [
+          error(
+            "NOT_ALLOWED",
+            "An alert's sourceId must be the sensor's id.",
+            message.alert.id,
+          ),
+        ];
+      return routeAlert(message.alert, ctx);
     case "ack":
       return sender.role === "control"
         ? routeAck(message.alertId, sender, ctx)

@@ -15,7 +15,12 @@ export function createTestAuth({
   const auth: AuthDeps = {
     users,
     sessions,
-    config: { mode: "test", allowedOrigins: [origin], cookieSecure: false },
+    config: {
+      mode: "test",
+      allowedOrigins: [origin],
+      cookieSecure: false,
+      trustProxy: false,
+    },
     clock,
   };
 

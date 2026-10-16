@@ -40,6 +40,9 @@ const envSchema = z.object({
   COOKIE_SECURE: optional(z.stringbool().default(false)),
   // Adds the demo users "operator", "monitor" and "demo" (password "demo") at start.
   DEMO_USERS: optional(z.stringbool().default(false)),
+  // "true" behind one reverse proxy (for TLS): the login limit then uses the
+  // client address from X-Forwarded-For, not the proxy's address.
+  TRUST_PROXY: optional(z.stringbool().default(false)),
   // The shared secret of the sensor agent. Without it, no sensor can connect.
   SENSOR_TOKEN: optional(z.string().min(16).optional()),
 });
@@ -54,6 +57,7 @@ export type Config = {
   sessionTtlMs: number;
   cookieSecure: boolean;
   demoUsers: boolean;
+  trustProxy: boolean;
   sensorToken: string | undefined;
 };
 
@@ -82,6 +86,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     sessionTtlMs: e.SESSION_TTL_HOURS * 60 * 60 * 1000,
     cookieSecure: e.COOKIE_SECURE,
     demoUsers: e.DEMO_USERS,
+    trustProxy: e.TRUST_PROXY,
     sensorToken: e.SENSOR_TOKEN,
   };
 }
