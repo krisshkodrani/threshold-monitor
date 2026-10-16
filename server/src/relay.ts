@@ -46,7 +46,17 @@ export type RelayDeps = {
   bucket?: BucketConfig;
   /** The sensor sends 10 readings each second, so it has a larger bucket. */
   sensorBucket?: BucketConfig;
+  /** Above this send buffer, a client gets no readings until it catches up. */
+  maxBufferedBytes?: number;
+  /** For tests: the send buffer of a client. Default: `ws.bufferedAmount`. */
+  bufferedAmountOf?: (connectionId: string, ws: WebSocket) => number;
 };
+
+/**
+ * A slow client (a weak network, a busy tab) cannot read 10 readings each
+ * second. Without a limit, the relay keeps all of them in memory for it.
+ */
+export const MAX_BUFFERED_BYTES = 1024 * 1024;
 
 /** Capacity for a catch-up burst; the refill is well above 10 readings each second. */
 export const SENSOR_BUCKET: BucketConfig = {
@@ -67,6 +77,8 @@ type Client = {
   connectedAt: number;
   bucket: Bucket;
   limitedInARow: number;
+  /** True while the client gets no readings because its send buffer is full. */
+  skipsReadings: boolean;
   alive: boolean;
   helloTimer: ReturnType<typeof setTimeout>;
 };
@@ -104,6 +116,8 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     heartbeatMs = 15_000,
     bucket: bucketConfig = DEFAULT_BUCKET,
     sensorBucket = SENSOR_BUCKET,
+    maxBufferedBytes = MAX_BUFFERED_BYTES,
+    bufferedAmountOf = (_id, ws) => ws.bufferedAmount,
   } = deps;
   const wss = new WebSocketServer({
     noServer: true,
@@ -153,6 +167,7 @@ export function attachRelay(server: Server, deps: RelayDeps) {
       connectedAt: clock(),
       bucket: createBucket(clock(), bucketConfig),
       limitedInARow: 0,
+      skipsReadings: false,
       alive: true,
       helloTimer: setTimeout(
         () => ws.close(CLOSE.helloRequired, "Hello timeout"),
@@ -376,8 +391,23 @@ export function attachRelay(server: Server, deps: RelayDeps) {
       out.to === "sender"
         ? [sender]
         : [...clients].filter((c) => receives(c, out.to));
-    for (const client of recipients) send(client, out.message);
+    for (const client of recipients)
+      if (out.message.type !== "reading" || canTakeReading(client))
+        send(client, out.message);
     log(sender, out);
+  }
+
+  /** Readings are at most once, so a slow client skips them. Alerts never. */
+  function canTakeReading(client: Client): boolean {
+    const slow = bufferedAmountOf(client.id, client.ws) > maxBufferedBytes;
+    if (slow !== client.skipsReadings) {
+      client.skipsReadings = slow;
+      logger.warn(slow ? "slow client, readings skipped" : "client caught up", {
+        connectionId: client.id,
+        name: client.name,
+      });
+    }
+    return !slow;
   }
 
   function log(sender: Client, { to, message }: Outgoing) {

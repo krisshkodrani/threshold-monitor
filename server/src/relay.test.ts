@@ -5,7 +5,7 @@ import { connect as tcpConnect, type AddressInfo } from "node:net";
 import { afterEach, describe, expect, test } from "vitest";
 import { WebSocket } from "ws";
 import { createMemoryAlertStore } from "./alertStore";
-import { silentLogger } from "./logger";
+import { createLogger, silentLogger } from "./logger";
 import { attachRelay, type RelayDeps } from "./relay";
 import { createMemorySettingsStore } from "./settingsStore";
 import type { Session } from "./sessions";
@@ -552,6 +552,54 @@ describe("sensor", () => {
       sensor: SENSOR,
       readings: [reading],
     });
+  });
+
+  test("a slow monitor skips readings, but still gets alerts", async () => {
+    const slow = new Set<string>();
+    const logs: { msg: string; connectionId?: string }[] = [];
+    const { url } = await startRelay({
+      maxBufferedBytes: 1024,
+      // A full send buffer for the slow monitor only.
+      bufferedAmountOf: (id, ws) => (slow.has(id) ? 1e6 : ws.bufferedAmount),
+      logger: createLogger("warn", (line) =>
+        logs.push(JSON.parse(line) as { msg: string }),
+      ),
+    });
+    const sensor = await sensorHello(url);
+    const monitorWithId = async (name: string) => {
+      const client = await connect(url);
+      client.send({ type: "hello", v: 3, role: "monitor", clientName: name });
+      const welcome = await client.next();
+      if (welcome.type !== "welcome") throw new Error("no welcome");
+      return { client, id: welcome.connectionId };
+    };
+    const fast = await monitorWithId("Fast");
+    const behind = await monitorWithId("Slow");
+    slow.add(behind.id);
+
+    const reading = { t: 1_791_000_000_000, value: 24.5 };
+    sensor.send({ type: "reading", reading });
+    sensor.send({ type: "alert", alert });
+    expect(await fast.client.next()).toEqual({ type: "reading", reading });
+    expect(await fast.client.next()).toMatchObject({ type: "alert" });
+    expect(await behind.client.next()).toMatchObject({ type: "alert" });
+    expect(logs).toContainEqual(
+      expect.objectContaining({
+        msg: "slow client, readings skipped",
+        connectionId: behind.id,
+      }),
+    );
+
+    // When its buffer is empty again, it gets the readings again.
+    slow.delete(behind.id);
+    sensor.send({ type: "reading", reading });
+    expect(await behind.client.next()).toEqual({ type: "reading", reading });
+    expect(logs).toContainEqual(
+      expect.objectContaining({
+        msg: "client caught up",
+        connectionId: behind.id,
+      }),
+    );
   });
 
   test("alerts reach monitors as well as control rooms", async () => {
