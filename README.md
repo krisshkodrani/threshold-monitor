@@ -122,9 +122,13 @@ file; the relay makes it).
 ## Docker
 
 ```sh
-docker compose up --build                     # no setup
-DEMO_USERS=true docker compose up --build     # with the demo users
+docker compose up --build                      # no setup, with the demo users
+DEMO_USERS=false docker compose up --build     # without the demo users
 ```
+
+Then open http://localhost:8080 (the monitor) and
+http://localhost:8080/control/ (the control room). Log in as `demo` with the
+password `demo`: this user can open both apps.
 
 The image (`node:24-alpine`, approximately 250 MB) contains the server bundle,
 its three production dependencies, the sensor bundle and both built apps.
@@ -146,8 +150,11 @@ echo 'a-long-password' | docker compose exec -T relay \
   node dist/cli.js user:add kris --name "Kris" --roles operator,monitor
 ```
 
-The demo users are off unless you start with `DEMO_USERS=true`. Do not use
-them in production.
+The demo users are on by default in `docker-compose.yml` (the server's own
+default is off). Do not use them in production: start with
+`DEMO_USERS=false`. The users are saved in the volume, so if they were on
+before, remove the volume first (`docker compose down -v`; this also deletes
+the alarms).
 
 ## Architecture
 

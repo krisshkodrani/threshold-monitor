@@ -1,7 +1,8 @@
 # No setup: `docker compose up --build`. On its first start, the relay makes
 # the sensor token in the data volume; the sensor reads it from there. To set
 # your own token, put SENSOR_TOKEN (16 characters or more) in a .env file.
-# For a local demo with the demo users: DEMO_USERS=true docker compose up --build
+# The demo users are on by default, for a local demo. For anything else:
+#   DEMO_USERS=false docker compose up --build
 services:
   relay:
     build: .
@@ -20,9 +21,11 @@ services:
       # Set to "true" when a reverse proxy is in front, so each user has their
       # own login limit.
       # TRUST_PROXY: "true"
-      # Only for a local demo: "operator", "monitor" and "demo" (both roles),
-      # password "demo". Off unless DEMO_USERS=true is set when you start.
-      DEMO_USERS: ${DEMO_USERS:-false}
+      # "operator", "monitor" and "demo" (both roles), password "demo". On by
+      # default here, for a local demo; the server's own default is off. The
+      # users stay in the volume: after DEMO_USERS=false, remove the volume
+      # (docker compose down -v) or the users.
+      DEMO_USERS: ${DEMO_USERS:-true}
     restart: unless-stopped
     # The server writes only to the database volume; the rest is read-only.
     read_only: true

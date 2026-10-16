@@ -271,7 +271,8 @@ these changes:
   "Checking your session…" until the session check ends.
 - `docker compose up --build` needs no setup: the relay makes the sensor
   token in the data volume on its first start (`SENSOR_TOKEN_FILE`), and the
-  sensor reads it from a read-only mount. `DEMO_USERS` comes from the shell.
+  sensor reads it from a read-only mount. The demo users are on by default in
+  `docker-compose.yml` only (`DEMO_USERS=false` turns them off).
 
 ## Out of scope
 
