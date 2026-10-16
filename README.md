@@ -2,6 +2,33 @@
 
 [![CI](https://github.com/krisshkodrani/threshold-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/krisshkodrani/threshold-monitor/actions/workflows/ci.yml)
 
+## Run it
+
+You need Docker. No other setup is necessary:
+
+```sh
+docker compose up --build
+```
+
+Then open:
+
+- http://localhost:8080 for the monitor
+- http://localhost:8080/control/ for the control room
+
+Log in as `demo` with the password `demo`. This user can open both apps. The
+other demo users have one role each:
+
+| Username   | Password | Can open         |
+| ---------- | -------- | ---------------- |
+| `demo`     | `demo`   | Both apps        |
+| `operator` | `demo`   | The control room |
+| `monitor`  | `demo`   | The monitor      |
+
+To run it without Docker (Node 24 and pnpm 11), refer to
+[Development](#development).
+
+## What it is
+
 A sensor agent reads a value, finds the crossings of a threshold and sends an
 alert for each crossing. A relay server stores each alert and sends it to the
 monitors and the control rooms. The monitor shows the live readings and the
@@ -14,7 +41,7 @@ SQLite.
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | ![The monitor with live chart and alert log](docs/images/monitor.png) | ![The control room with an acknowledged alarm](docs/images/control.png) |
 
-## Quick start
+## Development
 
 You need Node 24 and pnpm 11. Corepack installs the correct pnpm version from
 `package.json`.
@@ -37,14 +64,8 @@ pnpm dev
 The relay and the sensor use the same development `SENSOR_TOKEN`, from
 `server/.env.development` and `sensor/.env.development`.
 
-In development, the relay adds three demo users (`DEMO_USERS=true` in
-`server/.env.development`). The password of each is `demo`.
-
-| Username   | Role       | Can open         |
-| ---------- | ---------- | ---------------- |
-| `operator` | `operator` | The control room |
-| `monitor`  | `monitor`  | The monitor      |
-| `demo`     | both       | Both apps        |
+In development, the relay adds the same three demo users (`DEMO_USERS=true`
+in `server/.env.development`). Open the monitor at http://localhost:5173/.
 
 The database is in `data/threshold-monitor.db`. To start again with no data,
 stop `pnpm dev` and delete the `data` folder.
@@ -122,13 +143,9 @@ file; the relay makes it).
 ## Docker
 
 ```sh
-docker compose up --build                      # no setup, with the demo users
+docker compose up --build                      # with the demo users
 DEMO_USERS=false docker compose up --build     # without the demo users
 ```
-
-Then open http://localhost:8080 (the monitor) and
-http://localhost:8080/control/ (the control room). Log in as `demo` with the
-password `demo`: this user can open both apps.
 
 The image (`node:24-alpine`, approximately 250 MB) contains the server bundle,
 its three production dependencies, the sensor bundle and both built apps.
@@ -137,10 +154,11 @@ after the relay is healthy. On its first start, the relay makes a random
 sensor token in the data volume (`/app/data/sensor-token`, mode `0600`), and
 later starts use the same token. The sensor mounts the volume read-only and
 reads the token there. To use your own token, put `SENSOR_TOKEN` in a `.env`
-file; it has priority over the file. Both containers run as the `node` user. A health
-check calls `/healthz` every 15 seconds. On `docker compose stop`, the relay
-closes each client connection with code 1001, and the clients reconnect when
-it starts again.
+file; it has priority over the file.
+
+Both containers run as the `node` user. A health check calls `/healthz` every
+15 seconds. On `docker compose stop`, the relay closes each client connection
+with code 1001, and the clients reconnect when it starts again.
 
 The database is in the volume `data` (`/app/data`). The rest of the container
 filesystem is read-only. Add a user:
