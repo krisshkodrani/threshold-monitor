@@ -60,16 +60,17 @@ node sensor/dist/index.js        # the sensor, in a second terminal with the sam
 
 The relay serves everything on one port, with no CORS:
 
-| Path           | Content                                    |
-| -------------- | ------------------------------------------ |
-| `/`            | The monitor                                |
-| `/control/`    | The control room                           |
-| `/login`       | The login page (one for both apps)         |
-| `/api/login`   | `POST`: check the password, set the cookie |
-| `/api/logout`  | `POST`: end the session, close its sockets |
-| `/api/session` | `GET`: the signed-in user, or `401`        |
-| `/ws`          | The WebSocket relay (a session or a token) |
-| `/healthz`     | Health check: `{"status":"ok"}`            |
+| Path           | Content                                                      |
+| -------------- | ------------------------------------------------------------ |
+| `/`            | The monitor                                                  |
+| `/control/`    | The control room                                             |
+| `/login`       | The login page (one for both apps)                           |
+| `/api/login`   | `POST`: check the password, set the cookie                   |
+| `/api/logout`  | `POST`: end the session, close its sockets                   |
+| `/api/session` | `GET`: the signed-in user, or `401`                          |
+| `/ws`          | The WebSocket relay (a session or a token)                   |
+| `/healthz`     | Liveness: `{"status":"ok"}`                                  |
+| `/readyz`      | Readiness: `503` while the database fails or the relay stops |
 
 ## Users
 
@@ -160,7 +161,7 @@ limits, [docs/adr](docs/adr) for the main decisions, and
 | Part                | What it does                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `packages/protocol` | The message schemas (zod), their types, and parse functions that do not throw                                |
-| `packages/ui`       | `DataTable<T>`: a generic table with column definitions, a scroll box and a sticky header (both apps)        |
+| `packages/ui`       | `DataTable<T>` (column definitions, scroll box, sticky header) and `ErrorBoundary` (both apps)               |
 | `sensor`            | Node service: random-walk data, crossing detector with hysteresis, outbox, WebSocket transport               |
 | `apps/monitor`      | Live chart, alert log, shared threshold and hysteresis, sensor status                                        |
 | `server`            | Native `ws` relay: login, sessions, SQLite, validation, dedupe, routing, rate limit, heartbeat, static files |
@@ -168,7 +169,19 @@ limits, [docs/adr](docs/adr) for the main decisions, and
 
 The relay does no domain logic. It checks the session or the sensor token,
 checks each message against the schema and the sender's role, stores alerts
-and settings, and sends each message to the correct clients.
+and settings, and sends each message to the correct clients. A client with
+more than 1 MiB in its send buffer skips readings until it catches up; it
+still gets each alert.
+
+ESLint keeps the import direction: domain code uses no React, UI or I/O;
+components never use the relay connection; the relay rules (`routing.ts`)
+use no sockets; the shared packages do not know the apps. Each part of the
+UI (chart, readout, tables) has an error boundary, so an error in one part
+does not remove the page.
+
+The app pages have a strict CSP (scripts, styles and the WebSocket only from
+the same origin), `nosniff` and `frame-ancestors 'none'`. Hashed assets are
+cached for a year; `index.html` is checked on each visit.
 
 ### Messages
 
@@ -257,7 +270,8 @@ pnpm format:check
 Before the first `pnpm test:e2e`, install the browser once:
 `pnpm --filter @app/e2e exec playwright install chromium`.
 
-CI runs all of these commands and `pnpm build` on each push. A second CI job
+CI runs all of these commands, `pnpm audit` and `pnpm build` on each push.
+Dependabot opens weekly update PRs for npm, GitHub Actions and Docker. A second CI job
 builds the Docker image, starts `docker-compose.yml`, and waits until the
 relay is healthy and the sensor is connected.
 
@@ -271,19 +285,19 @@ web.dev. These are lab values on a local network, not field data.
 | Page                                 | LCP    | CLS   | INP     |
 | ------------------------------------ | ------ | ----- | ------- |
 | Login                                | 120 ms | 0     | < 16 ms |
-| Monitor (5 s of live data, a change) | 290 ms | 0.015 | 24 ms   |
+| Monitor (5 s of live data, a change) | 180 ms | 0.016 | 24 ms   |
 | Control room (an acknowledgement)    | 125 ms | 0.006 | 24 ms   |
 | Limit ("good")                       | 2.5 s  | 0.1   | 200 ms  |
 
-| Package             | Tests | What they cover                                                                                                                                                                        |
-| ------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`            | 149   | Routing rules, relay on real sockets, sensor token, sessions and roles, login routes and rate limit, passwords, alert and settings stores, configuration, HTTP                         |
-| `apps/monitor`      | 109   | Relay connection, store slices, components, shared settings form, accessibility (axe)                                                                                                  |
-| `sensor`            | 91    | Detector (with fast-check properties), random walk, outbox, backoff, transport contract on a fake relay, the agent, and one test of the agent against the real relay                   |
-| `packages/protocol` | 54    | Each message schema, valid and invalid                                                                                                                                                 |
-| `apps/control`      | 27    | Alarm list rules, connection, account bar, Acknowledge flow, accessibility (axe)                                                                                                       |
-| `packages/ui`       | 5     | DataTable: rows and cells from the columns, widths, classes, row keys, tooltips, the named scroll region, the empty state, accessibility (axe)                                         |
-| `e2e`               | 7     | The production build with the sensor: login, live data, Acknowledge, "Acknowledged by", logout; two monitor tabs with shared settings; a wrong role; a wrong password; Core Web Vitals |
+| Package             | Tests | What they cover                                                                                                                                                                                                   |
+| ------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`            | 155   | Routing rules, relay on real sockets, sensor token, slow clients, sessions and roles, login routes and rate limit, passwords, alert and settings stores, configuration, HTTP headers, readiness, fatal error logs |
+| `apps/monitor`      | 111   | Relay connection, store slices, components, shared settings form, lazy chart, error boundary, accessibility (axe)                                                                                                 |
+| `sensor`            | 93    | Detector (with fast-check properties), random walk, outbox, backoff, transport contract on a fake relay, the agent, one test against the real relay, fatal error logs                                             |
+| `packages/protocol` | 54    | Each message schema, valid and invalid                                                                                                                                                                            |
+| `apps/control`      | 28    | Alarm list rules, connection, account bar, Acknowledge flow, error boundary, accessibility (axe)                                                                                                                  |
+| `packages/ui`       | 8     | DataTable (rows, columns, widths, row keys, scroll region, empty state, axe) and ErrorBoundary                                                                                                                    |
+| `e2e`               | 10    | The production build with the sensor: the full alarm flow, two monitor tabs, a wrong role, a wrong password, the CSP with no violation, headers, readiness, Core Web Vitals                                       |
 
 ## Decisions and changes from the specification
 
@@ -324,8 +338,8 @@ The main changes from the specification are:
   chart, because readings are not stored.
 - The `alerts` table grows without a limit; a retention job is a next step.
 - The app has no TLS. Use a reverse proxy for HTTPS and set `COOKIE_SECURE`.
-- The monitor bundle is approximately 200 KB gzipped, mostly Recharts. A
-  dynamic `import()` of the chart would make the first load smaller.
+- No error tracking (for example, Sentry), metrics or tracing. The relay and
+  the sensor write JSON logs, and the error boundaries log to the console.
 
 Refer to the scaling section in [docs/architecture.md](docs/architecture.md)
 for the changes that each limit needs.

@@ -233,6 +233,29 @@ The ADRs and the README use these decisions.
   "sensor online". A new e2e file measures the Core Web Vitals (LCP, CLS,
   INP) with a 4x CPU slowdown and checks the "good" limits.
 
+### Hardening (after M9)
+
+A gap analysis against bulletproof-react and a backend checklist gave
+these changes:
+
+- Error boundaries (`ErrorBoundary` in `@app/ui`) around the chart, the
+  readout and each table.
+- A strict CSP, `nosniff` and `referrer-policy` on the app pages. Hashed
+  assets are `immutable` for a year; `index.html` is `no-cache`.
+- Backpressure: a client with more than 1 MiB in its send buffer skips
+  readings (at most once anyway) and still gets each alert.
+- The monitor loads the chart with `React.lazy`: the first JavaScript is
+  113 kB gzipped in place of 206 kB.
+- Import boundaries with `@typescript-eslint/no-restricted-imports` (no new
+  plugin). Type imports are allowed.
+- `pnpm audit` in CI (no finding in production dependencies, none of high
+  severity in the tools) and Dependabot with a 7-day cooldown.
+- `/readyz`, and a JSON log line before the process stops on an uncaught
+  exception or an unhandled rejection.
+- Not done, on purpose: React Query, React Router, React Hook Form, MSW,
+  feature folders, Storybook and kebab-case file names. They solve problems
+  that this app does not have.
+
 ## Out of scope
 
 User management page, single sign-on (OIDC), horizontal scaling,
