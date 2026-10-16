@@ -61,6 +61,15 @@ test("the welcome fills the chart, the log, the settings and the sensor", () => 
   expect(screen.getByText(/sends 10 readings each second/)).toBeInTheDocument();
 });
 
+test("the chart loads in its own file, after the rest of the page", async () => {
+  const { connection } = renderApp();
+  act(() => connection().welcome([], { settings: SETTINGS, sensor: SENSOR }));
+  // First the placeholder, with the chart's height; then the chart.
+  expect(
+    await screen.findByRole("figure", { name: /chart/ }),
+  ).toBeInTheDocument();
+});
+
 test("live readings, alerts and acknowledgements from the relay", () => {
   const { connection } = renderApp();
   act(() => connection().welcome([], { settings: SETTINGS, sensor: SENSOR }));

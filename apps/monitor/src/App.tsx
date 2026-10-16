@@ -1,10 +1,10 @@
 import type { ServerMessage, SettingsValue } from "@app/protocol";
-import { useRef, useState } from "react";
+import { ErrorBoundary } from "@app/ui";
+import { lazy, Suspense, useRef, useState } from "react";
 import { AccountBar } from "./components/AccountBar";
 import { AlertLog } from "./components/AlertLog";
 import { ConnectionBadge } from "./components/ConnectionBadge";
 import { HysteresisControl } from "./components/HysteresisControl";
-import { LiveChart } from "./components/LiveChart";
 import { ReadoutBar } from "./components/ReadoutBar";
 import { SensorPanel } from "./components/SensorPanel";
 import { ThresholdForm } from "./components/ThresholdForm";
@@ -21,6 +21,12 @@ import {
 } from "./store/alertsSlice";
 import { sensorChanged } from "./store/sensorSlice";
 import { selectDetectorConfig, settingsReceived } from "./store/settingsSlice";
+
+// Recharts is most of the bundle. The page, the readout and the alert log
+// show first; the chart follows in its own file.
+const LiveChart = lazy(() =>
+  import("./components/LiveChart").then((m) => ({ default: m.LiveChart })),
+);
 
 /**
  * Long-lived collaborators, created once in main.tsx (the composition root)
@@ -130,15 +136,22 @@ export function App({ connect, readings, account }: AppProps) {
         </div>
       </header>
 
-      <ReadoutBar
-        readings={readings}
-        threshold={cfg.threshold}
-        counts={counts}
-      />
+      <ErrorBoundary name="The readout">
+        <ReadoutBar
+          readings={readings}
+          threshold={cfg.threshold}
+          counts={counts}
+        />
+      </ErrorBoundary>
 
       <main className="app__main">
         <section className="panel app__chart" aria-label="Live chart">
-          <LiveChart readings={readings} markers={markers} cfg={cfg} />
+          <ErrorBoundary name="The chart">
+            {/* The same height as the chart, so the page does not move (CLS). */}
+            <Suspense fallback={<div className="chart" aria-busy="true" />}>
+              <LiveChart readings={readings} markers={markers} cfg={cfg} />
+            </Suspense>
+          </ErrorBoundary>
         </section>
         <section className="panel app__controls" aria-label="Settings">
           <ThresholdForm
