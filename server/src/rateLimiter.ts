@@ -8,8 +8,10 @@ export type BucketConfig = {
 export type Bucket = { tokens: number; updatedAt: number };
 
 /**
- * Capacity 60 instead of the spec's 20: after a reconnect the monitor flushes
- * its whole outbox (up to 50 alerts) at once, which must not be rate limited.
+ * The bucket of the browsers. Capacity 60 instead of the spec's 20, so a
+ * fast burst of acks or settings changes is not refused. The sensor sends
+ * readings and its outbox of up to 50 alerts, so it has its own, larger
+ * bucket (SENSOR_BUCKET in relay.ts).
  */
 export const DEFAULT_BUCKET: BucketConfig = {
   capacity: 60,

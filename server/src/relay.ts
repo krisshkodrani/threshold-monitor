@@ -172,7 +172,11 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     ws.on("close", (code) => {
       clearTimeout(client.helloTimer);
       clients.delete(client);
-      if (client.role === "sensor") broadcastSensorStatus();
+      if (client.role === "sensor") {
+        // Without a sensor, old readings would look like live data.
+        readings.clear();
+        broadcastSensorStatus();
+      }
       logger.info("disconnected", {
         connectionId: client.id,
         role: client.role,
@@ -270,13 +274,24 @@ export function attachRelay(server: Server, deps: RelayDeps) {
           CLOSE.unauthorized,
           "Unauthorized",
         );
-      if (sensorClient())
+      const old = sensorClient();
+      if (old && old.sensor?.sensorId !== hello.sensor.sensorId)
         return refuse(
           client,
           "A sensor is already connected.",
           CLOSE.sensorTaken,
           "Sensor already connected",
         );
+      if (old) {
+        // The same sensor again: its old socket is half-open after a network
+        // drop. Replace it now, not after the heartbeat finds it dead.
+        logger.warn("sensor replaced its old connection", {
+          connectionId: old.id,
+        });
+        old.role = null; // so its close event does not report "offline"
+        clients.delete(old);
+        old.ws.terminate();
+      }
       client.sensor = hello.sensor;
       client.bucketConfig = sensorBucket;
       client.bucket = createBucket(clock(), sensorBucket);
@@ -303,15 +318,17 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     client.role = hello.role;
     client.name = hello.clientName;
     const sensor = ctx.sensor();
+    const recent = store.recent(WELCOME_RECENT_LIMIT);
     send(client, {
       type: "welcome",
       connectionId: client.id,
+      // The sensor gets its own alerts, so it does not send again the ones
+      // whose `accepted` it lost (ADR 0004).
       recent:
-        client.role === "sensor" ? [] : store.recent(WELCOME_RECENT_LIMIT),
-      settings:
         client.role === "sensor"
-          ? (settings.get(client.sensor!.sensorId) ?? null)
-          : (settings.latest()?.settings ?? null),
+          ? recent.filter((r) => r.sourceId === client.sensor!.sensorId)
+          : recent,
+      settings: currentSettings(),
       sensor,
       readings: client.role === "monitor" ? readings.all() : [],
     });
@@ -324,7 +341,21 @@ export function attachRelay(server: Server, deps: RelayDeps) {
     if (client.role === "sensor") {
       readings.clear(); // old readings would leave a gap in the chart
       broadcastSensorStatus();
+      // The monitors may show the settings of an earlier sensor.
+      const stored = currentSettings();
+      if (stored)
+        for (const c of clients)
+          if (c.role === "monitor")
+            send(c, { type: "settings", settings: stored });
     }
+  }
+
+  /** The settings of the connected sensor; without a sensor, the last stored ones. */
+  function currentSettings() {
+    const sensor = ctx.sensor();
+    return sensor
+      ? (settings.get(sensor.sensorId) ?? null)
+      : (settings.latest()?.settings ?? null);
   }
 
   function broadcastSensorStatus() {

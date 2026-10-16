@@ -54,6 +54,7 @@ const SESSIONS: Record<string, Session> = {
 };
 const ANA = "tm_session=ana";
 const SENSOR_TOKEN = "test-sensor-token-0123456789";
+const OTHER_SENSOR_ID = "9c4b1e2a-7d3f-4a6b-8e5c-1f2a3b4c5d6e";
 const SENSOR = {
   sensorId: "5d0a2f6e-1c3b-4e7a-9b8d-2f4e6a8c0b13",
   label: "Sensor 1",
@@ -369,10 +370,147 @@ describe("sensor", () => {
       role: "sensor",
       clientName: "Second",
       token: SENSOR_TOKEN,
-      sensor: SENSOR,
+      sensor: { ...SENSOR, sensorId: OTHER_SENSOR_ID },
     });
     expect(await second.next()).toMatchObject({ code: "NOT_ALLOWED" });
     expect((await second.closed).code).toBe(4005);
+  });
+
+  // Regression: after a network drop, the old socket stays open until the
+  // heartbeat finds it dead, and the sensor was refused with 4005 until then.
+  test("the same sensor replaces its old connection at once", async () => {
+    const { url } = await startRelay();
+    const old = await sensorHello(url);
+    const monitor = await connect(url, { skip: [] });
+    monitor.send({ type: "hello", v: 3, role: "monitor", clientName: "M" });
+    expect(await monitor.next()).toMatchObject({ type: "welcome" });
+
+    const again = await sensorHello(url);
+    expect((await old.closed).code).toBe(1006); // terminated
+    // The monitors see the sensor come again, never "offline".
+    expect(await monitor.next()).toEqual({
+      type: "sensorStatus",
+      sensor: SENSOR,
+    });
+    expect(await monitor.silentFor(100)).toBe(true);
+    expect(again.ws.readyState).toBe(WebSocket.OPEN);
+  });
+
+  test("the sensor's welcome has its own recent alerts, so it does not send them again", async () => {
+    const { url } = await startRelay();
+    const sensor = await sensorHello(url);
+    sensor.send({ type: "alert", alert });
+    expect(await sensor.next()).toMatchObject({ type: "accepted" });
+    sensor.ws.close();
+    await sensor.closed;
+
+    const again = await connect(url, { cookie: "" });
+    again.send({
+      type: "hello",
+      v: 3,
+      role: "sensor",
+      clientName: SENSOR.label,
+      token: SENSOR_TOKEN,
+      sensor: { ...SENSOR, sensorId: alert.sourceId },
+    });
+    const welcome = await again.next();
+    expect(welcome).toMatchObject({ type: "welcome" });
+    expect(
+      welcome.type === "welcome" && welcome.recent.map((r) => r.id),
+    ).toEqual([ALERT_ID]);
+
+    // Another sensor id gets none of them.
+    again.ws.close();
+    await again.closed;
+    const other = await connect(url, { cookie: "" });
+    other.send({
+      type: "hello",
+      v: 3,
+      role: "sensor",
+      clientName: "Other",
+      token: SENSOR_TOKEN,
+      sensor: { ...SENSOR, sensorId: OTHER_SENSOR_ID },
+    });
+    expect(await other.next()).toMatchObject({ type: "welcome", recent: [] });
+  });
+
+  // Regression: the buffer was cleared only when a sensor connected, so a
+  // monitor that opened later showed old readings as live data.
+  test("the readings are cleared when the sensor goes", async () => {
+    const { url } = await startRelay();
+    const sensor = await sensorHello(url);
+    const monitor = await hello(url, "monitor");
+    const reading = { t: 1_791_000_000_000, value: 24.5 };
+    sensor.send({ type: "reading", reading });
+    expect(await monitor.next()).toEqual({ type: "reading", reading });
+    sensor.ws.close();
+    await sensor.closed;
+    await new Promise((r) => setTimeout(r, 50)); // the relay sees the close
+
+    const late = await connect(url);
+    late.send({ type: "hello", v: 3, role: "monitor", clientName: "Late" });
+    expect(await late.next()).toMatchObject({
+      type: "welcome",
+      sensor: null,
+      readings: [],
+    });
+  });
+
+  // Regression: welcome used the last stored settings of any sensor, not the
+  // settings of the connected one.
+  test("monitors get the settings of the sensor that connects", async () => {
+    const { url } = await startRelay();
+    const connectSensor = async (sensorId: string) => {
+      const client = await connect(url, { cookie: "" });
+      client.send({
+        type: "hello",
+        v: 3,
+        role: "sensor",
+        clientName: SENSOR.label,
+        token: SENSOR_TOKEN,
+        sensor: { ...SENSOR, sensorId },
+      });
+      expect(await client.next()).toMatchObject({ type: "welcome" });
+      return client;
+    };
+    // Sensor A stores 30, then sensor B stores 25 (the latest).
+    const a = await connectSensor(SENSOR.sensorId);
+    a.send({
+      type: "settingsApplied",
+      settings: { threshold: 30, hysteresis: 0.6 },
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    a.ws.close();
+    await a.closed;
+    const b = await connectSensor(OTHER_SENSOR_ID);
+    b.send({
+      type: "settingsApplied",
+      settings: { threshold: 25, hysteresis: 0.6 },
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    b.ws.close();
+    await b.closed;
+    await new Promise((r) => setTimeout(r, 50));
+
+    const monitor = await connect(url);
+    monitor.send({ type: "hello", v: 3, role: "monitor", clientName: "M" });
+    expect(await monitor.next()).toMatchObject({
+      type: "welcome",
+      settings: { threshold: 25 },
+    });
+
+    // Sensor A comes back with its stored settings and sends none.
+    await connectSensor(SENSOR.sensorId);
+    expect(await monitor.next()).toMatchObject({
+      type: "settings",
+      settings: { threshold: 30 },
+    });
+    const late = await connect(url);
+    late.send({ type: "hello", v: 3, role: "monitor", clientName: "Late" });
+    expect(await late.next()).toMatchObject({
+      type: "welcome",
+      settings: { threshold: 30 },
+    });
   });
 
   test("monitors and control rooms learn when the sensor comes and goes", async () => {
