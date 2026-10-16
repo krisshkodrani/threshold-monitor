@@ -12,6 +12,10 @@ updates:
       # One PR for all minor and patch updates; each major update alone.
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # The types follow the Node version of .nvmrc (24 LTS), not the newest.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -24,3 +28,9 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # Node 24 is the LTS version. A new major version is a decision, with
+      # .nvmrc, engines and CI, not a weekly update. Node 25 also has no
+      # corepack, which the Dockerfile needs.
+      - dependency-name: node
+        update-types: [version-update:semver-major]

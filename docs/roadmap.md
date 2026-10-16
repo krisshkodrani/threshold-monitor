@@ -28,7 +28,9 @@ The ADRs and the README use these decisions.
 - **TypeScript 6.0**: typescript-eslint does not support 7.x yet.
 - **pnpm 11** with its default supply-chain policies kept: dependency build scripts
   allowed only for esbuild; no exemptions from the minimum release age (Playwright
-  pinned to 1.63.0 because 1.64.1 was too new).
+  was pinned to 1.63.0 because 1.64.1 was too new; now 1.64.0). Dependabot
+  waits 7 days for a new version, and ignores major updates of Node and
+  `@types/node`, which follow the Node 24 LTS version.
 - **Server bundled with tsup**, `@app/protocol` inlined (`noExternal`), so the
   source-only protocol package never needs a build step.
 - Additions to the dependency list of the specification:

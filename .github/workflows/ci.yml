@@ -44,10 +44,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # First, so the cleanup at the end can read the file even if the build fails.
+      - run: echo "SENSOR_TOKEN=$(openssl rand -hex 24)" > .env
       - run: docker build -t threshold-monitor .
       # docker-compose.yml as users run it: the relay must report healthy,
       # and the sensor container must connect to it.
-      - run: echo "SENSOR_TOKEN=$(openssl rand -hex 24)" > .env
       # --wait refuses a container without a health check (the sensor), so
       # wait for the relay only; the next step checks the sensor.
       - run: docker compose up -d --no-build --wait --wait-timeout 60 relay
