@@ -44,7 +44,10 @@ jobs:
       # docker-compose.yml as users run it: the relay must report healthy,
       # and the sensor container must connect to it.
       - run: echo "SENSOR_TOKEN=$(openssl rand -hex 24)" > .env
-      - run: docker compose up -d --no-build --wait --wait-timeout 60
+      # --wait refuses a container without a health check (the sensor), so
+      # wait for the relay only; the next step checks the sensor.
+      - run: docker compose up -d --no-build --wait --wait-timeout 60 relay
+      - run: docker compose up -d --no-build sensor
       - run: |
           for i in $(seq 1 30); do
             docker compose logs relay | grep -q '"sensor online"' && exit 0
