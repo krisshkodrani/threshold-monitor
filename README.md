@@ -99,6 +99,7 @@ The relay settings are environment variables. All are optional, but without
 | `DATABASE_PATH`     | `data/threshold-monitor.db` | The SQLite file for users, sessions and alerts                                  |
 | `SESSION_TTL_HOURS` | `12`                        | How long a login lasts                                                          |
 | `COOKIE_SECURE`     | `false`                     | Set `true` when the app runs behind HTTPS                                       |
+| `TRUST_PROXY`       | `false`                     | Set `true` behind one reverse proxy: the login limit uses `X-Forwarded-For`     |
 | `DEMO_USERS`        | `false`                     | `true` adds the demo users `operator`, `monitor` and `demo`; not for production |
 | `SENSOR_TOKEN`      | (empty)                     | The sensor's token, 16 characters or more; the same value as in the sensor      |
 
@@ -162,6 +163,7 @@ limits, [docs/adr](docs/adr) for the main decisions, and
 | ------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `packages/protocol` | The message schemas (zod), their types, and parse functions that do not throw                                |
 | `packages/ui`       | `DataTable<T>` (column definitions, scroll box, sticky header) and `ErrorBoundary` (both apps)               |
+| `packages/client`   | The relay connection, `useRelay`, the session check, `ConnectionBadge` and `AccountBar` (both apps)          |
 | `sensor`            | Node service: random-walk data, crossing detector with hysteresis, outbox, WebSocket transport               |
 | `apps/monitor`      | Live chart, alert log, shared threshold and hysteresis, sensor status                                        |
 | `server`            | Native `ws` relay: login, sessions, SQLite, validation, dedupe, routing, rate limit, heartbeat, static files |
@@ -248,11 +250,12 @@ server/          Node 24, ws, sirv, node:sqlite, bundled with tsup
 sensor/          Node 24, the sensor agent, bundled with tsup into one file
 packages/
   protocol/      zod schemas, shared by all four
-  ui/            DataTable, shared by the two apps
+  ui/            DataTable and ErrorBoundary, shared by the two apps
+  client/        relay connection and session check, shared by the two apps
 e2e/             Playwright test against the production build
 docs/
   architecture.md  parts, state, message flow, scaling limits
-  adr/             architecture decision records 0001 to 0009
+  adr/             architecture decision records 0001 to 0010
   roadmap.md       milestones, decisions, next steps
 Dockerfile, docker-compose.yml
 ```
@@ -289,15 +292,16 @@ web.dev. These are lab values on a local network, not field data.
 | Control room (an acknowledgement)    | 125 ms | 0.006 | 24 ms   |
 | Limit ("good")                       | 2.5 s  | 0.1   | 200 ms  |
 
-| Package             | Tests | What they cover                                                                                                                                                                                                   |
-| ------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`            | 155   | Routing rules, relay on real sockets, sensor token, slow clients, sessions and roles, login routes and rate limit, passwords, alert and settings stores, configuration, HTTP headers, readiness, fatal error logs |
-| `apps/monitor`      | 111   | Relay connection, store slices, components, shared settings form, lazy chart, error boundary, accessibility (axe)                                                                                                 |
-| `sensor`            | 93    | Detector (with fast-check properties), random walk, outbox, backoff, transport contract on a fake relay, the agent, one test against the real relay, fatal error logs                                             |
-| `packages/protocol` | 54    | Each message schema, valid and invalid                                                                                                                                                                            |
-| `apps/control`      | 28    | Alarm list rules, connection, account bar, Acknowledge flow, error boundary, accessibility (axe)                                                                                                                  |
-| `packages/ui`       | 8     | DataTable (rows, columns, widths, row keys, scroll region, empty state, axe) and ErrorBoundary                                                                                                                    |
-| `e2e`               | 10    | The production build with the sensor: the full alarm flow, two monitor tabs, a wrong role, a wrong password, the CSP with no violation, headers, readiness, Core Web Vitals                                       |
+| Package             | Tests | What they cover                                                                                                                                                                                                                                                                   |
+| ------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`            | 161   | Routing rules (also the alert source check), relay on real sockets, sensor token, slow clients, sessions and roles, login routes and rate limit (also behind a proxy), passwords, alert and settings stores, configuration, HTTP headers and methods, readiness, fatal error logs |
+| `apps/monitor`      | 97    | Store slices, components, shared settings form, lazy chart, error boundary, accessibility (axe)                                                                                                                                                                                   |
+| `sensor`            | 93    | Detector (with fast-check properties), random walk, outbox, backoff, transport contract on a fake relay, the agent, one test against the real relay, fatal error logs                                                                                                             |
+| `packages/protocol` | 54    | Each message schema, valid and invalid                                                                                                                                                                                                                                            |
+| `apps/control`      | 20    | Alarm list rules, Acknowledge flow, error boundary, accessibility (axe)                                                                                                                                                                                                           |
+| `packages/ui`       | 8     | DataTable (rows, columns, widths, row keys, scroll region, empty state, axe) and ErrorBoundary                                                                                                                                                                                    |
+| `packages/client`   | 15    | Relay connection for both roles (hello, welcome, backoff, 4002 and 4003), connection badge                                                                                                                                                                                        |
+| `e2e`               | 10    | The production build with the sensor: the full alarm flow, two monitor tabs, a wrong role, a wrong password, the CSP with no violation, headers, readiness, Core Web Vitals                                                                                                       |
 
 ## Decisions and changes from the specification
 
@@ -312,6 +316,7 @@ The ADRs record the main decisions:
 - [0007](docs/adr/0007-sqlite-storage.md): SQLite for users, sessions and alerts
 - [0008](docs/adr/0008-shared-ui-package.md): a shared UI package for the data table
 - [0009](docs/adr/0009-sensor-agent.md): a sensor agent makes the data, the monitor shows it
+- [0010](docs/adr/0010-shared-client-package.md): a shared client package for the two apps
 
 The main changes from the specification are:
 
@@ -322,9 +327,9 @@ The main changes from the specification are:
   once after a reconnect.
 - The data source, the detector and the outbox are in a sensor service, not
   in the monitor app (ADR 0009). All monitor tabs show the same data.
-- The apps share the protocol package and the generic `DataTable` (`@app/ui`,
-  ADR 0008), but not their connection code. Each app and the sensor has its own
-  small copy of the backoff function.
+- The apps share the protocol, the generic UI parts (`@app/ui`, ADR 0008) and
+  the relay connection with the session check (`@app/client`, ADR 0010). The
+  sensor has its own transport and its own copy of the backoff function.
 
 ## Limits and next steps
 
@@ -337,7 +342,9 @@ The main changes from the specification are:
 - One sensor at a time. A gap in the sensor's connection is a gap in the
   chart, because readings are not stored.
 - The `alerts` table grows without a limit; a retention job is a next step.
-- The app has no TLS. Use a reverse proxy for HTTPS and set `COOKIE_SECURE`.
+- The app has no TLS. Use a reverse proxy for HTTPS, and set `COOKIE_SECURE`
+  and `TRUST_PROXY`. Without `TRUST_PROXY`, all users behind the proxy share
+  one login limit.
 - No error tracking (for example, Sentry), metrics or tracing. The relay and
   the sensor write JSON logs, and the error boundaries log to the console.
 

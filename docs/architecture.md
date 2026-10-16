@@ -22,15 +22,16 @@ lives, the message flow, and the limits of the current design. The ADRs in
                 packages/protocol: zod schemas used by all four
 ```
 
-| Part                | Main files                                                                                             |
-| ------------------- | ------------------------------------------------------------------------------------------------------ |
-| `packages/protocol` | `messages.ts` (schemas), `parse.ts` (parse functions that do not throw)                                |
-| `packages/ui`       | `DataTable.tsx` (generic table with column definitions; scroll box, sticky header)                     |
-| `sensor`            | `agent.ts` (the loop), `domain/crossing.ts`, `transport/outbox.ts`, `transport/websocketTransport.ts`  |
-| `server`            | `relay.ts` (sockets), `routing.ts` (rules, no sockets), `alertStore.ts`, `settingsStore.ts`, `http.ts` |
-| `server` (auth)     | `db.ts` (SQLite, migrations), `users.ts`, `sessions.ts`, `loginPage.ts`, `cli.ts`                      |
-| `apps/monitor`      | `connection/relayConnection.ts`, `store/` (Redux), `data/readingsStore.ts`, `App.tsx`                  |
-| `apps/control`      | `state/alarms.ts` (reducer), `connection/relayConnection.ts`, `App.tsx`                                |
+| Part                | Main files                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `packages/protocol` | `messages.ts` (schemas), `parse.ts` (parse functions that do not throw)                                 |
+| `packages/ui`       | `DataTable.tsx` (generic table with column definitions; scroll box, sticky header), `ErrorBoundary.tsx` |
+| `sensor`            | `agent.ts` (the loop), `domain/crossing.ts`, `transport/outbox.ts`, `transport/websocketTransport.ts`   |
+| `server`            | `relay.ts` (sockets), `routing.ts` (rules, no sockets), `alertStore.ts`, `settingsStore.ts`, `http.ts`  |
+| `server` (auth)     | `db.ts` (SQLite, migrations), `users.ts`, `sessions.ts`, `loginPage.ts`, `cli.ts`                       |
+| `packages/client`   | `relayConnection.ts` (both roles), `useRelay.ts`, `auth.ts`, `ConnectionBadge.tsx`, `AccountBar.tsx`    |
+| `apps/monitor`      | `store/` (Redux), `data/readingsStore.ts`, `App.tsx`                                                    |
+| `apps/control`      | `state/alarms.ts` (reducer), `App.tsx`                                                                  |
 
 ## Where state lives
 
@@ -77,6 +78,12 @@ again for each reading.
    `setSettings`. The relay stores the settings with the user's name and
    sends `settings` to the sensor and to all monitors. The sensor uses the
    new settings from the next reading.
+
+The two apps sort alerts by different times, on purpose. The monitor sorts
+by `eventTime` (when the sensor took the reading), so the alert log matches
+the chart. The control room sorts by `receivedAt` (when the relay stored the
+alert), so an operator sees the newest arrival at the top. The two orders are
+different only after a relay outage, when the sensor sends old alerts late.
 
 If a connection fails at any step, the client reconnects with backoff, and
 `welcome` fills the gaps (ADR 0004, ADR 0009).

@@ -256,6 +256,18 @@ these changes:
   feature folders, Storybook and kebab-case file names. They solve problems
   that this app does not have.
 
+### Review fixes (after the hardening)
+
+- The login limit can use `X-Forwarded-For` behind one trusted proxy
+  (`TRUST_PROXY`); only the last entry, which the proxy adds, counts.
+- The relay refuses an alert whose `sourceId` is not the sensor's id.
+- `/healthz` and `/readyz` accept only `GET` and `HEAD` (`405` otherwise).
+- `@app/client` replaces about 350 copied lines in the two apps (ADR 0010).
+- Both message switches end with a `never` check, so a new message type is a
+  build error.
+- `ErrorBoundary` has its own CSS; each app has a root boundary and shows
+  "Checking your session…" until the session check ends.
+
 ## Out of scope
 
 User management page, single sign-on (OIDC), horizontal scaling,

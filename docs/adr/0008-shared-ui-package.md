@@ -1,6 +1,6 @@
 # ADR 0008: A shared UI package for the data table
 
-Status: accepted
+Status: accepted. ADR 0010 moves the connection code to a shared package.
 
 ## Context
 
