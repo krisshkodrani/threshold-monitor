@@ -1,10 +1,10 @@
 import type { AlertRecord, ClientMessage, ServerMessage } from "@app/protocol";
 import type {
   ConnectionStatus,
+  ConnectRelay,
   RelayConnection,
   RelayHandlers,
-} from "../connection/relayConnection";
-import type { ConnectRelay } from "../connection/useRelay";
+} from "@app/client";
 
 /** Test doubles driven by hand, so tests control exactly when things happen. */
 

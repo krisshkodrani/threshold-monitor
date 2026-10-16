@@ -1,0 +1,15 @@
+/* Uses only the token names that both apps define (--alarm, --radius, --space-*). */
+.error-boundary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--alarm);
+  border-radius: var(--radius);
+  color: var(--alarm);
+}
+.error-boundary p {
+  margin: 0;
+}

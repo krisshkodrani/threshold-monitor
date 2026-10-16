@@ -25,6 +25,8 @@ test("an error stays in its part; the rest of the page still renders", () => {
     "The chart cannot be shown because of an error.",
   );
   expect(screen.getByText("Alert log")).toBeInTheDocument();
+  // Its own class, so it does not depend on a class that each app defines.
+  expect(screen.getByRole("alert")).toHaveClass("error-boundary");
   expect(onError).toHaveBeenCalledOnce();
   expect(onError.mock.calls[0]![0]).toEqual(new Error("render failed"));
 });

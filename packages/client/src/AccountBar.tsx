@@ -1,3 +1,5 @@
+import "./AccountBar.css";
+
 /** Who is signed in, and the way out. */
 export function AccountBar({
   displayName,
@@ -8,10 +10,10 @@ export function AccountBar({
 }) {
   return (
     <div className="account">
-      <span className="muted">
+      <span className="account__name">
         Signed in as <strong>{displayName}</strong>
       </span>
-      <button type="button" className="button--quiet" onClick={onLogout}>
+      <button type="button" className="account__logout" onClick={onLogout}>
         Log out
       </button>
     </div>

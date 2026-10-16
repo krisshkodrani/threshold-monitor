@@ -1,6 +1,5 @@
 import { encode, type ServerMessage } from "@app/protocol";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { uuid } from "../test/fakes";
 import {
   backoffDelay,
   CLOSE_UNAUTHORIZED,
@@ -18,8 +17,14 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+const uuid = (n: number) =>
+  `00000000-0000-4000-8000-${n.toString(16).padStart(12, "0")}`;
+
 /** One fake socket per connection attempt; the test drives its events. */
-function setup() {
+function setup(
+  role: "monitor" | "control" = "monitor",
+  clientName = "Monitor",
+) {
   const sockets: { events: SocketEvents; sent: string[]; closed: boolean }[] =
     [];
   const statuses: ConnectionStatus[] = [];
@@ -28,7 +33,8 @@ function setup() {
   const connection = createRelayConnection(
     {
       url: "ws://test.local/ws",
-      clientName: "Monitor",
+      role,
+      clientName,
       createSocket: (_url, events) => {
         const socket = { events, sent: [] as string[], closed: false };
         sockets.push(socket);
@@ -60,14 +66,17 @@ function setup() {
   return { connection, sockets, statuses, messages, log, last, welcome };
 }
 
-test("says hello as a monitor, then reports open on welcome", () => {
-  const { last, welcome, statuses, messages } = setup();
+test.each([
+  ["monitor", "Monitor"],
+  ["control", "Control room"],
+] as const)("says hello as %s, then reports open on welcome", (role, name) => {
+  const { last, welcome, statuses, messages } = setup(role, name);
   last().events.open();
   expect(JSON.parse(last().sent[0]!)).toEqual({
     type: "hello",
     v: 3,
-    role: "monitor",
-    clientName: "Monitor",
+    role,
+    clientName: name,
   });
   welcome();
   expect(statuses.map((s) => s.kind)).toEqual(["connecting", "open"]);

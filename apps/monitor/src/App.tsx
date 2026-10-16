@@ -1,14 +1,17 @@
 import type { ServerMessage, SettingsValue } from "@app/protocol";
+import {
+  AccountBar,
+  ConnectionBadge,
+  useRelay,
+  type ConnectRelay,
+} from "@app/client";
 import { ErrorBoundary } from "@app/ui";
 import { lazy, Suspense, useRef, useState } from "react";
-import { AccountBar } from "./components/AccountBar";
 import { AlertLog } from "./components/AlertLog";
-import { ConnectionBadge } from "./components/ConnectionBadge";
 import { HysteresisControl } from "./components/HysteresisControl";
 import { ReadoutBar } from "./components/ReadoutBar";
 import { SensorPanel } from "./components/SensorPanel";
 import { ThresholdForm } from "./components/ThresholdForm";
-import { useRelay, type ConnectRelay } from "./connection/useRelay";
 import type { ReadingsStore } from "./data/readingsStore";
 import { useAppDispatch, useAppSelector } from "./store";
 import {
@@ -92,6 +95,12 @@ export function App({ connect, readings, account }: AppProps) {
         return;
       case "accepted":
         return; // only the sensor sends alerts
+      default: {
+        // A new message type in the protocol is a build error here, not a
+        // message that is lost without a word.
+        const unhandled: never = message;
+        return unhandled;
+      }
     }
   }
 

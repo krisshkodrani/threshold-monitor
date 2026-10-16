@@ -1,0 +1,15 @@
+/* Uses only the token names that both apps define. */
+.account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.account__name {
+  color: var(--text-muted);
+}
+.account__logout {
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border);
+}

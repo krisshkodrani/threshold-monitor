@@ -56,7 +56,7 @@ export default defineConfig(
       "@reduxjs/*",
       "recharts",
       "../components/*",
-      "../connection/*",
+      "@app/client",
       "../store/*",
       "../hooks/*",
       "../data/*",
@@ -66,17 +66,12 @@ export default defineConfig(
   boundary(
     ["apps/*/src/data/**", "apps/*/src/store/**"],
     "Data and state do not use the UI or the relay connection.",
-    ["../components/*", "../connection/*", "../App"],
-  ),
-  boundary(
-    ["apps/*/src/connection/**"],
-    "The connection does not use the UI or the store; the app connects them.",
-    ["../components/*", "../store/*", "../App"],
+    ["../components/*", "@app/client", "../App"],
   ),
   boundary(
     ["apps/*/src/components/**"],
     "Components get data and callbacks as props; they never use the relay.",
-    ["../connection/*", "../App"],
+    ["@app/client", "../App"],
   ),
   boundary(
     ["sensor/src/domain/**"],

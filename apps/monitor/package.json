@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@app/client": "workspace:*",
     "@app/protocol": "workspace:*",
     "@app/ui": "workspace:*",
     "@reduxjs/toolkit": "2.13.0",

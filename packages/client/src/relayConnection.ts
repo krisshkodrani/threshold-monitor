@@ -7,9 +7,9 @@ import {
 } from "@app/protocol";
 
 /**
- * The monitor's connection to the relay, a copy of the control room's with
- * the role "monitor". The apps share the protocol, not their connection code
- * (ADR 0008), so neither app depends on the other.
+ * The connection of a browser app to the relay: hello with the app's role,
+ * welcome, reconnect with backoff, and a stop on 4002 or 4003. Both apps use
+ * it; only the role and the name are different (ADR 0010).
  */
 
 export type ConnectionStatus =
@@ -46,6 +46,8 @@ export type RelayConnection = {
 
 export type RelayOptions = {
   url: string;
+  /** The hello role. The relay checks it against the user's roles. */
+  role: "monitor" | "control";
   clientName: string;
   createSocket?: SocketFactory;
   clock?: () => number;
@@ -55,12 +57,12 @@ export type RelayOptions = {
 
 /** The server closes with this code for an unknown protocol version. Retrying cannot help. */
 export const CLOSE_UNSUPPORTED_VERSION = 4002;
-/** No session, a session without the monitor role, or a logout. A retry cannot help. */
+/** No session, a session without the needed role, or a logout. A retry cannot help. */
 export const CLOSE_UNAUTHORIZED = 4003;
 const BASE_DELAY_MS = 500;
 const MAX_DELAY_MS = 30_000;
 
-/** Same formula as the monitor (ADR 0004): capped exponential growth, equal jitter. */
+/** The formula of ADR 0004: capped exponential growth, equal jitter. */
 export function backoffDelay(attempt: number, random: () => number): number {
   const exponent = Math.min(Math.max(attempt, 0), 16);
   const capped = Math.min(MAX_DELAY_MS, BASE_DELAY_MS * 2 ** exponent);
@@ -88,6 +90,7 @@ export const browserSocket: SocketFactory = (url, events) => {
 export function createRelayConnection(
   {
     url,
+    role,
     clientName,
     createSocket = browserSocket,
     clock = Date.now,
@@ -116,7 +119,7 @@ export function createRelayConnection(
             encode({
               type: "hello",
               v: PROTOCOL_VERSION,
-              role: "monitor",
+              role,
               clientName,
             }),
           );
@@ -186,7 +189,7 @@ export function createRelayConnection(
       if (retryTimer !== null) clearTimeout(retryTimer);
       const closing = socket;
       socket = null; // its close event is now ignored
-      closing?.close(1000, "Monitor closed");
+      closing?.close(1000, `${clientName} closed`);
       onStatus({ kind: "closed" });
     },
   };

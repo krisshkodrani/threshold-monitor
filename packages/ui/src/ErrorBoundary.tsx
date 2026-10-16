@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import "./ErrorBoundary.css";
 
 export type ErrorBoundaryProps = {
   /** What failed, for the message: "The chart", "The alarm list". */
@@ -14,7 +15,7 @@ type State = { error: unknown };
  * Keeps an error in one part of the page in that part. Without a boundary,
  * React removes the whole page when a component throws during render. The
  * live data continues in the other parts, and "Try again" renders the part
- * again. It uses the `.notice` class, which both apps define.
+ * again. Its styles are in ErrorBoundary.css, like DataTable's.
  */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
   override state: State = { error: null };
@@ -31,7 +32,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
   override render() {
     if (this.state.error === null) return this.props.children;
     return (
-      <div className="notice" role="alert">
+      <div className="error-boundary" role="alert">
         <p>{this.props.name} cannot be shown because of an error.</p>
         <button type="button" onClick={() => this.setState({ error: null })}>
           Try again

@@ -13,6 +13,7 @@ COPY server/package.json server/
 COPY sensor/package.json sensor/
 COPY packages/protocol/package.json packages/protocol/
 COPY packages/ui/package.json packages/ui/
+COPY packages/client/package.json packages/client/
 RUN pnpm install --frozen-lockfile
 
 COPY . .

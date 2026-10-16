@@ -1,10 +1,13 @@
 import type { ServerMessage } from "@app/protocol";
+import {
+  AccountBar,
+  ConnectionBadge,
+  useRelay,
+  type ConnectRelay,
+} from "@app/client";
 import { ErrorBoundary } from "@app/ui";
 import { useId, useReducer, useState } from "react";
-import { AccountBar } from "./components/AccountBar";
 import { AlarmList } from "./components/AlarmList";
-import { ConnectionBadge } from "./components/ConnectionBadge";
-import { useRelay, type ConnectRelay } from "./connection/useRelay";
 import {
   alarmsReducer,
   initialAlarmsState,
@@ -49,8 +52,17 @@ export function App({ connect, account }: AppProps) {
         if (message.ref) dispatch({ type: "ackFailed", alertId: message.ref });
         setNotice(message.message);
         return;
-      case "accepted":
-        return; // only monitors send alerts
+      case "accepted": // only the sensor sends alerts
+      case "reading": // the live data is for the monitors
+      case "settings":
+      case "sensorStatus":
+        return;
+      default: {
+        // A new message type in the protocol is a build error here, not a
+        // message that is lost without a word.
+        const unhandled: never = message;
+        return unhandled;
+      }
     }
   }
 

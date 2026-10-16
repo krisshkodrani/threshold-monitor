@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import type { ConnectionStatus } from "../connection/relayConnection";
+import "./ConnectionBadge.css";
+import type { ConnectionStatus } from "./relayConnection";
 
 const labels: Record<
   Exclude<ConnectionStatus["kind"], "reconnecting">,
