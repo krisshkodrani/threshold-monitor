@@ -14,12 +14,6 @@ SQLite.
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | ![The monitor with live chart and alert log](docs/images/monitor.png) | ![The control room with an acknowledged alarm](docs/images/control.png) |
 
-## Status
-
-All milestones (M0 to M9) are done. M9 added the sensor agent and shared settings. Refer to [docs/roadmap.md](docs/roadmap.md)
-for the plan, [docs/architecture.md](docs/architecture.md) for the design and
-its limits, and [docs/adr](docs/adr) for the main decisions.
-
 ## Quick start
 
 You need Node 24 and pnpm 11. Corepack installs the correct pnpm version from
@@ -54,37 +48,6 @@ In development, the relay adds three demo users (`DEMO_USERS=true` in
 
 The database is in `data/threshold-monitor.db`. To start again with no data,
 stop `pnpm dev` and delete the `data` folder.
-
-## Two-minute demo
-
-1. Open the control room. The login page opens. Log in as `demo` with the
-   password `demo`.
-2. In a new tab of the same browser, open the monitor at
-   http://localhost:5173/. You do not log in again, because the session
-   cookie is for `localhost`. The badge shows "Connected", and the sensor
-   panel shows "Sensor 1".
-3. Wait for a crossing. The alert log shows "Received", and the alarm appears
-   in the control room.
-4. In the control room, click **Acknowledge**. The monitor shows
-   "Acknowledged by Demo User". The name comes from the session.
-5. Open the monitor in a second tab. Both tabs show the same readings. Change
-   the threshold in one tab. The other tab shows the new threshold and
-   "Settings changed by Demo User".
-6. Restart the relay: in a second terminal, run `touch server/src/index.ts`.
-   The relay restarts, and the badges show "Reconnecting", then "Connected".
-   Alerts from the sensor wait in its outbox and then go to the relay. The
-   alarms, the acknowledgements and the settings are still there, because
-   they are in SQLite.
-7. Click **Log out**. The page goes back to the login page.
-
-The two apps share one cookie on `localhost`, so a second login in the same
-browser replaces the first. To test with `operator` and `monitor` (one role
-each), use two browsers or a private window for the second user. Log in to
-the control room as `monitor` to see the role check.
-
-The sensor runs as its own process, so the data and the alerts continue
-when no monitor tab is open. A monitor that opens gets the last 120 readings
-in `welcome`, so the chart is full at once.
 
 ## Production build
 
@@ -178,6 +141,10 @@ echo 'a-long-password' | docker compose exec -T relay \
 For a quick local demo, set `DEMO_USERS: "true"` in `docker-compose.yml`.
 
 ## Architecture
+
+Refer to [docs/architecture.md](docs/architecture.md) for the design and its
+limits, [docs/adr](docs/adr) for the main decisions, and
+[docs/roadmap.md](docs/roadmap.md) for the milestones.
 
 ```
  sensor/  ──reading, alert──▶  server (relay)  ──alert──────▶  apps/control
