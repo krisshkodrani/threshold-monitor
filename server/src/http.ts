@@ -51,6 +51,22 @@ const LOGIN_PAGE_HEADERS = {
 };
 
 /**
+ * The two apps: scripts, styles and the WebSocket only from this origin.
+ * The pages have no inline script or style (Vite builds files); React sets
+ * style properties through the CSSOM, which CSP allows. `data:` is for the
+ * empty favicon.
+ */
+export const APP_HEADERS = {
+  "content-security-policy":
+    "default-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "same-origin",
+};
+
+/** Vite puts a content hash in each asset name, so a file never changes. */
+const IMMUTABLE = "public, max-age=31536000, immutable";
+
+/**
  * Plain HTTP: a health check, the login routes and the two built apps, so
  * production is one process on one port with no CORS (the pages, /api and
  * /ws share an origin). sirv does the details of the file server: content
@@ -62,10 +78,13 @@ export function createHttpServer({
   staticDir,
   logger,
   auth,
+  isReady = () => true,
 }: {
   staticDir: string;
   logger: Logger;
   auth: AuthDeps;
+  /** For /readyz: false while the database fails or the server stops. */
+  isReady?: () => boolean;
 }) {
   const monitor = serveApp(path.join(staticDir, "monitor", "dist"), logger);
   const control = serveApp(path.join(staticDir, "control", "dist"), logger);
@@ -80,6 +99,14 @@ export function createHttpServer({
     if (pathname === "/healthz") {
       res.writeHead(200, { "content-type": "application/json" });
       return res.end(JSON.stringify({ status: "ok" }));
+    }
+    // Liveness (/healthz) says the process answers; readiness says it can
+    // serve now. A load balancer sends traffic only to a ready instance.
+    if (pathname === "/readyz") {
+      const ready = isReady();
+      return json(res, ready ? 200 : 503, {
+        status: ready ? "ready" : "not ready",
+      });
     }
     if (pathname === "/login" && req.method === "GET") {
       res.writeHead(200, LOGIN_PAGE_HEADERS);
@@ -278,7 +305,19 @@ function serveApp(dir: string, logger: Logger) {
     logger.info("built app not found, not serving it", { dir });
     return null;
   }
-  return sirv(dir, { single: true, etag: true });
+  return sirv(dir, {
+    single: true,
+    etag: true,
+    setHeaders(res, pathname) {
+      for (const [name, value] of Object.entries(APP_HEADERS))
+        res.setHeader(name, value);
+      // index.html must be checked on each visit: it names the new assets.
+      res.setHeader(
+        "cache-control",
+        pathname.startsWith("/assets/") ? IMMUTABLE : "no-cache",
+      );
+    },
+  });
 }
 
 function notFound(res: ServerResponse) {

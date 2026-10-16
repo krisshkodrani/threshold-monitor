@@ -6,7 +6,7 @@ import {
   type SensorConfig,
 } from "./config";
 import { createRandomWalkSource } from "./data/randomWalkSource";
-import { createLogger } from "./logger";
+import { createLogger, logFatalErrors } from "./logger";
 import { createWebSocketTransport } from "./transport/websocketTransport";
 
 let config: SensorConfig;
@@ -19,6 +19,7 @@ try {
 }
 
 const logger = createLogger(config.logLevel);
+logFatalErrors(logger);
 const transport = createWebSocketTransport({
   url: config.relayUrl,
   sensor: config.sensor,

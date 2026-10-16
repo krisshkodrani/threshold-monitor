@@ -43,3 +43,32 @@ export function createLogger(
 
 /** For tests: swallows everything. */
 export const silentLogger: Logger = createLogger("error", () => {});
+
+/** The part of `process` that logFatalErrors uses, so tests can pass a fake. */
+export type FatalErrorSource = {
+  on(event: "uncaughtException", listener: (err: Error) => void): unknown;
+  on(event: "unhandledRejection", listener: (reason: unknown) => void): unknown;
+  exit(code: number): never;
+};
+
+/**
+ * Without this, a bug stops the process with a stack trace on stderr and no
+ * JSON log line. The handler logs the error, then stops with code 1: the
+ * state can be broken, and Docker starts a new process.
+ */
+export function logFatalErrors(
+  logger: Logger,
+  source: FatalErrorSource = process,
+) {
+  const fail = (msg: string, error: unknown) => {
+    logger.error(msg, {
+      error:
+        error instanceof Error ? (error.stack ?? error.message) : String(error),
+    });
+    source.exit(1);
+  };
+  source.on("uncaughtException", (err) => fail("uncaught exception", err));
+  source.on("unhandledRejection", (reason) =>
+    fail("unhandled rejection", reason),
+  );
+}

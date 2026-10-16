@@ -5,7 +5,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { createHttpServer } from "./http";
+import { APP_HEADERS, createHttpServer } from "./http";
 import { silentLogger } from "./logger";
 import { createTestAuth } from "./testing";
 
@@ -84,6 +84,26 @@ describe("http server", () => {
     expect(res.headers.get("content-type")).toMatch(/javascript/);
   });
 
+  test("the app pages have security headers and must be checked again", async () => {
+    for (const page of ["/", "/control/", "/control/some/route"]) {
+      const res = await fetch(`${base}${page}`);
+      expect(res.headers.get("content-security-policy")).toBe(
+        APP_HEADERS["content-security-policy"],
+      );
+      expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(res.headers.get("referrer-policy")).toBe("same-origin");
+      expect(res.headers.get("cache-control")).toBe("no-cache");
+    }
+  });
+
+  test("hashed assets are cached for a year", async () => {
+    const res = await fetch(`${base}/control/assets/app.js`);
+    expect(res.headers.get("cache-control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
   test("unknown client routes fall back to the app's index.html", async () => {
     expect(await (await fetch(`${base}/control/some/route`)).text()).toBe(
       "<p>control app</p>",
@@ -97,6 +117,32 @@ describe("http server", () => {
   ])("path traversal %s does not escape the app folder", async (attempt) => {
     expect((await rawGet(attempt)).body).not.toContain("TOP SECRET");
   });
+});
+
+test("readiness follows isReady; liveness does not", async () => {
+  let ready = true;
+  const empty = mkdtempSync(path.join(tmpdir(), "relay-ready-"));
+  const srv = createHttpServer({
+    staticDir: empty,
+    logger: silentLogger,
+    auth: createTestAuth().auth,
+    isReady: () => ready,
+  });
+  srv.listen(0);
+  await once(srv, "listening");
+  const url = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`;
+
+  const first = await fetch(`${url}/readyz`);
+  expect(first.status).toBe(200);
+  expect(await first.json()).toEqual({ status: "ready" });
+  ready = false;
+  const second = await fetch(`${url}/readyz`);
+  expect(second.status).toBe(503);
+  expect(await second.json()).toEqual({ status: "not ready" });
+  expect((await fetch(`${url}/healthz`)).status).toBe(200);
+
+  srv.close();
+  rmSync(empty, { recursive: true, force: true });
 });
 
 test("without built apps it still answers health checks and 404s pages", async () => {

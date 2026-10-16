@@ -2,7 +2,7 @@ import { createSqliteAlertStore } from "./alertStore";
 import { loadConfig, sensorTokenCheck, type Config } from "./config";
 import { openDatabase } from "./db";
 import { createHttpServer } from "./http";
-import { createLogger } from "./logger";
+import { createLogger, logFatalErrors } from "./logger";
 import { attachRelay } from "./relay";
 import { authenticate, createSessionStore } from "./sessions";
 import { createSqliteSettingsStore } from "./settingsStore";
@@ -20,6 +20,7 @@ try {
 }
 
 const logger = createLogger(config.logLevel);
+logFatalErrors(logger);
 const db = openDatabase(config.databasePath);
 const store = createSqliteAlertStore(db);
 const users = createUserStore(db);
@@ -30,9 +31,23 @@ if (config.demoUsers) {
     added,
   });
 }
+let shuttingDown = false;
+
+/** Ready while the database answers and the server does not stop. */
+function isReady() {
+  if (shuttingDown) return false;
+  try {
+    db.prepare("SELECT 1").get();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const server = createHttpServer({
   staticDir: config.staticDir,
   logger,
+  isReady,
   auth: {
     users,
     sessions,
@@ -65,8 +80,6 @@ server.listen(config.port, () => {
     databasePath: config.databasePath,
   });
 });
-
-let shuttingDown = false;
 
 async function shutdown(signal: string) {
   if (shuttingDown) return;
