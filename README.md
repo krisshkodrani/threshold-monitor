@@ -89,45 +89,51 @@ characters. The roles are `operator` (control room) and `monitor`.
 The relay settings are environment variables. All are optional, but without
 `SENSOR_TOKEN` no sensor can connect. Refer to [.env.example](.env.example).
 
-| Variable            | Default                     | Purpose                                                                         |
-| ------------------- | --------------------------- | ------------------------------------------------------------------------------- |
-| `PORT`              | `8080`                      | HTTP and WebSocket port                                                         |
-| `NODE_ENV`          | `production`                | `production` accepts WebSockets from the same origin only                       |
-| `ALLOWED_ORIGINS`   | (empty)                     | A comma-separated list of origins; it replaces the default origin rule          |
-| `STATIC_DIR`        | `apps/`                     | The folder that contains `monitor/dist` and `control/dist`                      |
-| `LOG_LEVEL`         | `info`                      | `debug`, `info`, `warn` or `error`; the relay writes JSON lines                 |
-| `DATABASE_PATH`     | `data/threshold-monitor.db` | The SQLite file for users, sessions and alerts                                  |
-| `SESSION_TTL_HOURS` | `12`                        | How long a login lasts                                                          |
-| `COOKIE_SECURE`     | `false`                     | Set `true` when the app runs behind HTTPS                                       |
-| `TRUST_PROXY`       | `false`                     | Set `true` behind one reverse proxy: the login limit uses `X-Forwarded-For`     |
-| `DEMO_USERS`        | `false`                     | `true` adds the demo users `operator`, `monitor` and `demo`; not for production |
-| `SENSOR_TOKEN`      | (empty)                     | The sensor's token, 16 characters or more; the same value as in the sensor      |
+| Variable            | Default                     | Purpose                                                                                    |
+| ------------------- | --------------------------- | ------------------------------------------------------------------------------------------ |
+| `PORT`              | `8080`                      | HTTP and WebSocket port                                                                    |
+| `NODE_ENV`          | `production`                | `production` accepts WebSockets from the same origin only                                  |
+| `ALLOWED_ORIGINS`   | (empty)                     | A comma-separated list of origins; it replaces the default origin rule                     |
+| `STATIC_DIR`        | `apps/`                     | The folder that contains `monitor/dist` and `control/dist`                                 |
+| `LOG_LEVEL`         | `info`                      | `debug`, `info`, `warn` or `error`; the relay writes JSON lines                            |
+| `DATABASE_PATH`     | `data/threshold-monitor.db` | The SQLite file for users, sessions and alerts                                             |
+| `SESSION_TTL_HOURS` | `12`                        | How long a login lasts                                                                     |
+| `COOKIE_SECURE`     | `false`                     | Set `true` when the app runs behind HTTPS                                                  |
+| `TRUST_PROXY`       | `false`                     | Set `true` behind one reverse proxy: the login limit uses `X-Forwarded-For`                |
+| `DEMO_USERS`        | `false`                     | `true` adds the demo users `operator`, `monitor` and `demo`; not for production            |
+| `SENSOR_TOKEN`      | (empty)                     | The sensor's token, 16 characters or more; the same value as in the sensor                 |
+| `SENSOR_TOKEN_FILE` | (empty)                     | Without `SENSOR_TOKEN`: read the token from this file, or make it there on the first start |
 
-The sensor reads its own environment variables. Only `SENSOR_TOKEN` is
-necessary.
+The sensor reads its own environment variables. Only the token is
+necessary: `SENSOR_TOKEN`, or `SENSOR_TOKEN_FILE` (the sensor only reads the
+file; the relay makes it).
 
-| Variable         | Default                  | Purpose                                                  |
-| ---------------- | ------------------------ | -------------------------------------------------------- |
-| `SENSOR_TOKEN`   | (none)                   | The relay's `SENSOR_TOKEN`; the sensor stops without it  |
-| `RELAY_URL`      | `ws://localhost:8080/ws` | The relay's WebSocket URL                                |
-| `SENSOR_ID`      | a fixed UUID             | Alerts and settings stay with the sensor after a restart |
-| `SENSOR_LABEL`   | `Sensor 1`               | The name in the monitor and in the alerts                |
-| `SENSOR_RATE_HZ` | `2`                      | 1, 2, 5 or 10 readings each second                       |
-| `SENSOR_SEED`    | `20261014`               | The seed of the random data                              |
-| `LOG_LEVEL`      | `info`                   | `debug`, `info`, `warn` or `error`; JSON lines           |
+| Variable            | Default                  | Purpose                                                  |
+| ------------------- | ------------------------ | -------------------------------------------------------- |
+| `SENSOR_TOKEN`      | (none)                   | The relay's `SENSOR_TOKEN`; the sensor stops without it  |
+| `SENSOR_TOKEN_FILE` | (none)                   | Without `SENSOR_TOKEN`: the file with the token          |
+| `RELAY_URL`         | `ws://localhost:8080/ws` | The relay's WebSocket URL                                |
+| `SENSOR_ID`         | a fixed UUID             | Alerts and settings stay with the sensor after a restart |
+| `SENSOR_LABEL`      | `Sensor 1`               | The name in the monitor and in the alerts                |
+| `SENSOR_RATE_HZ`    | `2`                      | 1, 2, 5 or 10 readings each second                       |
+| `SENSOR_SEED`       | `20261014`               | The seed of the random data                              |
+| `LOG_LEVEL`         | `info`                   | `debug`, `info`, `warn` or `error`; JSON lines           |
 
 ## Docker
 
 ```sh
-echo "SENSOR_TOKEN=$(openssl rand -hex 24)" > .env
-docker compose up --build
+docker compose up --build                     # no setup
+DEMO_USERS=true docker compose up --build     # with the demo users
 ```
 
 The image (`node:24-alpine`, approximately 250 MB) contains the server bundle,
 its three production dependencies, the sensor bundle and both built apps.
 Compose starts two containers from it: `relay` and `sensor`. The sensor starts
-after the relay is healthy. Both read `SENSOR_TOKEN` from `.env`; if it is
-not set, Compose stops with an error. Both run as the `node` user. A health
+after the relay is healthy. On its first start, the relay makes a random
+sensor token in the data volume (`/app/data/sensor-token`, mode `0600`), and
+later starts use the same token. The sensor mounts the volume read-only and
+reads the token there. To use your own token, put `SENSOR_TOKEN` in a `.env`
+file; it has priority over the file. Both containers run as the `node` user. A health
 check calls `/healthz` every 15 seconds. On `docker compose stop`, the relay
 closes each client connection with code 1001, and the clients reconnect when
 it starts again.
@@ -140,7 +146,8 @@ echo 'a-long-password' | docker compose exec -T relay \
   node dist/cli.js user:add kris --name "Kris" --roles operator,monitor
 ```
 
-For a quick local demo, set `DEMO_USERS: "true"` in `docker-compose.yml`.
+The demo users are off unless you start with `DEMO_USERS=true`. Do not use
+them in production.
 
 ## Architecture
 
@@ -292,16 +299,16 @@ web.dev. These are lab values on a local network, not field data.
 | Control room (an acknowledgement)    | 125 ms | 0.006 | 24 ms   |
 | Limit ("good")                       | 2.5 s  | 0.1   | 200 ms  |
 
-| Package             | Tests | What they cover                                                                                                                                                                                                                                                                   |
-| ------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`            | 161   | Routing rules (also the alert source check), relay on real sockets, sensor token, slow clients, sessions and roles, login routes and rate limit (also behind a proxy), passwords, alert and settings stores, configuration, HTTP headers and methods, readiness, fatal error logs |
-| `apps/monitor`      | 97    | Store slices, components, shared settings form, lazy chart, error boundary, accessibility (axe)                                                                                                                                                                                   |
-| `sensor`            | 93    | Detector (with fast-check properties), random walk, outbox, backoff, transport contract on a fake relay, the agent, one test against the real relay, fatal error logs                                                                                                             |
-| `packages/protocol` | 54    | Each message schema, valid and invalid                                                                                                                                                                                                                                            |
-| `apps/control`      | 20    | Alarm list rules, Acknowledge flow, error boundary, accessibility (axe)                                                                                                                                                                                                           |
-| `packages/ui`       | 8     | DataTable (rows, columns, widths, row keys, scroll region, empty state, axe) and ErrorBoundary                                                                                                                                                                                    |
-| `packages/client`   | 15    | Relay connection for both roles (hello, welcome, backoff, 4002 and 4003), connection badge                                                                                                                                                                                        |
-| `e2e`               | 10    | The production build with the sensor: the full alarm flow, two monitor tabs, a wrong role, a wrong password, the CSP with no violation, headers, readiness, Core Web Vitals                                                                                                       |
+| Package             | Tests | What they cover                                                                                                                                                                                                                                                                                  |
+| ------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `server`            | 165   | Routing rules (also the alert source check), relay on real sockets, sensor token and token file, slow clients, sessions and roles, login routes and rate limit (also behind a proxy), passwords, alert and settings stores, configuration, HTTP headers and methods, readiness, fatal error logs |
+| `apps/monitor`      | 97    | Store slices, components, shared settings form, lazy chart, error boundary, accessibility (axe)                                                                                                                                                                                                  |
+| `sensor`            | 100   | Detector (with fast-check properties), random walk, outbox, backoff, transport contract on a fake relay, the agent, one test against the real relay, token configuration, fatal error logs                                                                                                       |
+| `packages/protocol` | 54    | Each message schema, valid and invalid                                                                                                                                                                                                                                                           |
+| `apps/control`      | 20    | Alarm list rules, Acknowledge flow, error boundary, accessibility (axe)                                                                                                                                                                                                                          |
+| `packages/ui`       | 8     | DataTable (rows, columns, widths, row keys, scroll region, empty state, axe) and ErrorBoundary                                                                                                                                                                                                   |
+| `packages/client`   | 15    | Relay connection for both roles (hello, welcome, backoff, 4002 and 4003), connection badge                                                                                                                                                                                                       |
+| `e2e`               | 10    | The production build with the sensor: the full alarm flow, two monitor tabs, a wrong role, a wrong password, the CSP with no violation, headers, readiness, Core Web Vitals                                                                                                                      |
 
 ## Decisions and changes from the specification
 

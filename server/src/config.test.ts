@@ -24,6 +24,7 @@ describe("loadConfig", () => {
       demoUsers: false,
       trustProxy: false,
       sensorToken: undefined,
+      sensorTokenFile: undefined,
     });
   });
 
@@ -45,6 +46,7 @@ describe("loadConfig", () => {
       COOKIE_SECURE: "true",
       DEMO_USERS: "1",
       TRUST_PROXY: "true",
+      SENSOR_TOKEN_FILE: "/app/data/sensor-token",
     });
     expect(config).toMatchObject({
       databasePath: ":memory:",
@@ -52,6 +54,7 @@ describe("loadConfig", () => {
       cookieSecure: true,
       demoUsers: true,
       trustProxy: true,
+      sensorTokenFile: "/app/data/sensor-token",
       port: 9000,
       mode: "development",
       allowedOrigins: ["https://a.example", "https://b.example"],

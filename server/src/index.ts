@@ -5,6 +5,7 @@ import { createHttpServer } from "./http";
 import { createLogger, logFatalErrors } from "./logger";
 import { attachRelay } from "./relay";
 import { authenticate, createSessionStore } from "./sessions";
+import { loadOrCreateSensorToken } from "./sensorTokenFile";
 import { createSqliteSettingsStore } from "./settingsStore";
 import { addDemoUsers, createUserStore } from "./users";
 
@@ -55,13 +56,21 @@ const server = createHttpServer({
     onLogout: (sessionId) => relay.closeSession(sessionId),
   },
 });
-if (!config.sensorToken)
-  logger.warn("SENSOR_TOKEN is not set; no sensor can connect");
+let sensorToken = config.sensorToken;
+if (!sensorToken && config.sensorTokenFile) {
+  const loaded = loadOrCreateSensorToken(config.sensorTokenFile);
+  sensorToken = loaded.token;
+  // The file name only, never the token.
+  logger.info(loaded.created ? "sensor token created" : "sensor token read", {
+    file: config.sensorTokenFile,
+  });
+}
+if (!sensorToken) logger.warn("SENSOR_TOKEN is not set; no sensor can connect");
 const relay = attachRelay(server, {
   config,
   store,
   settings: createSqliteSettingsStore(db),
-  isSensorToken: sensorTokenCheck(config.sensorToken),
+  isSensorToken: sensorTokenCheck(sensorToken),
   logger,
   authenticate: (req) => authenticate(req, sessions),
   isSessionActive: (sessionId) => sessions.isActive(sessionId),

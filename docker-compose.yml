@@ -1,5 +1,7 @@
-# Set SENSOR_TOKEN (16 characters or more) in a .env file next to this file:
-#   echo "SENSOR_TOKEN=$(openssl rand -hex 24)" > .env
+# No setup: `docker compose up --build`. On its first start, the relay makes
+# the sensor token in the data volume; the sensor reads it from there. To set
+# your own token, put SENSOR_TOKEN (16 characters or more) in a .env file.
+# For a local demo with the demo users: DEMO_USERS=true docker compose up --build
 services:
   relay:
     build: .
@@ -8,16 +10,19 @@ services:
       - "8080:8080"
     environment:
       LOG_LEVEL: info
-      # The relay accepts a sensor only with this token.
-      SENSOR_TOKEN: ${SENSOR_TOKEN:?set SENSOR_TOKEN in .env}
+      # The relay accepts a sensor only with this token: SENSOR_TOKEN if it is
+      # set, else the token in the file (made on the first start).
+      SENSOR_TOKEN: ${SENSOR_TOKEN:-}
+      SENSOR_TOKEN_FILE: /app/data/sensor-token
       # ALLOWED_ORIGINS: "https://monitor.example.com"
       # Set to "true" when a TLS proxy serves the app over https.
       # COOKIE_SECURE: "true"
       # Set to "true" when a reverse proxy is in front, so each user has their
       # own login limit.
       # TRUST_PROXY: "true"
-      # Only for a local demo: "operator", "monitor" and "demo" (both roles), password "demo".
-      # DEMO_USERS: "true"
+      # Only for a local demo: "operator", "monitor" and "demo" (both roles),
+      # password "demo". Off unless DEMO_USERS=true is set when you start.
+      DEMO_USERS: ${DEMO_USERS:-false}
     restart: unless-stopped
     # The server writes only to the database volume; the rest is read-only.
     read_only: true
@@ -35,7 +40,8 @@ services:
     environment:
       LOG_LEVEL: info
       RELAY_URL: ws://relay:8080/ws
-      SENSOR_TOKEN: ${SENSOR_TOKEN:?set SENSOR_TOKEN in .env}
+      SENSOR_TOKEN: ${SENSOR_TOKEN:-}
+      SENSOR_TOKEN_FILE: /app/data/sensor-token
       # SENSOR_LABEL: "Sensor 1"
       # SENSOR_RATE_HZ: "2" # 1, 2, 5 or 10 readings each second
     depends_on:
@@ -46,6 +52,9 @@ services:
       disable: true
     restart: unless-stopped
     read_only: true
+    # Only to read the token file; the sensor cannot change the database.
+    volumes:
+      - data:/app/data:ro
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     stop_grace_period: 5s

@@ -269,6 +269,9 @@ these changes:
   build error.
 - `ErrorBoundary` has its own CSS; each app has a root boundary and shows
   "Checking your session…" until the session check ends.
+- `docker compose up --build` needs no setup: the relay makes the sensor
+  token in the data volume on its first start (`SENSOR_TOKEN_FILE`), and the
+  sensor reads it from a read-only mount. `DEMO_USERS` comes from the shell.
 
 ## Out of scope
 

@@ -45,6 +45,9 @@ const envSchema = z.object({
   TRUST_PROXY: optional(z.stringbool().default(false)),
   // The shared secret of the sensor agent. Without it, no sensor can connect.
   SENSOR_TOKEN: optional(z.string().min(16).optional()),
+  // Used when SENSOR_TOKEN is not set: the token is read from this file, or
+  // made and written there on the first start (Docker Compose does this).
+  SENSOR_TOKEN_FILE: optional(z.string().optional()),
 });
 
 export type Config = {
@@ -59,6 +62,7 @@ export type Config = {
   demoUsers: boolean;
   trustProxy: boolean;
   sensorToken: string | undefined;
+  sensorTokenFile: string | undefined;
 };
 
 /** Parses the environment once at startup. Throws a readable error so the process can fail fast. */
@@ -88,6 +92,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     demoUsers: e.DEMO_USERS,
     trustProxy: e.TRUST_PROXY,
     sensorToken: e.SENSOR_TOKEN,
+    sensorTokenFile: e.SENSOR_TOKEN_FILE,
   };
 }
 
