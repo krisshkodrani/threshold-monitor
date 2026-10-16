@@ -49,6 +49,7 @@ function fakeTransport() {
     },
     onStatus: () => () => {},
     onDelivery: () => () => {},
+    drain: () => Promise.resolve(0),
     dispose() {},
   };
   const welcome = (settings: SettingsRecord | null) => {

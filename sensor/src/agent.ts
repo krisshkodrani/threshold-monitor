@@ -19,7 +19,7 @@ export type AgentDeps = {
 /**
  * The sensor's loop: each reading goes to the relay, then through the
  * detector; a crossing becomes an alert in the transport's outbox.
- * This was the monitor tab's job before ADR 0009; the rules are the same.
+ * Before ADR 0009, each monitor tab did this; the rules are the same.
  */
 export function startAgent({
   source,

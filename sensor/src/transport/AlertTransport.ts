@@ -40,5 +40,11 @@ export interface AlertTransport {
   /** Calls the listener with the current status right away, then on every change. */
   onStatus(listener: (status: ConnectionStatus) => void): () => void;
   onDelivery(listener: (update: DeliveryUpdate) => void): () => void;
+  /**
+   * Waits until the relay has accepted each alert in the outbox, or until
+   * `timeoutMs` ends. Resolves with the number of alerts not yet accepted.
+   * For a clean stop: the outbox is in memory only.
+   */
+  drain(timeoutMs: number): Promise<number>;
   dispose(): void;
 }

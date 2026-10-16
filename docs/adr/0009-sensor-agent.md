@@ -26,7 +26,9 @@ A real system has one sensor. The browser only shows its data.
   Its `hello` has the role `sensor`, the token and its info (id, label, rate).
   The relay compares the token with `SENSOR_TOKEN` in constant time. Without
   `SENSOR_TOKEN`, no sensor can connect.
-- **One sensor at a time.** A second sensor is closed with **4005**.
+- **One sensor at a time.** A sensor with a different id is closed with
+  **4005**. The same sensor id replaces its old connection at once, because
+  after a network drop the old socket can stay half-open for up to 30 s.
 - **Protocol version 3.** New messages: `reading` (sensor to relay to
   monitors), `settingsApplied` (sensor), `setSettings` (monitor), `settings`
   and `sensorStatus` (relay). `welcome` has the settings, the sensor and,
@@ -56,7 +58,8 @@ A real system has one sensor. The browser only shows its data.
 - The URL parameters `?rate` and `?seed`, the pause button and the settings
   in `localStorage` are removed. The sensor reads `SENSOR_RATE_HZ` and
   `SENSOR_SEED`.
-- If the sensor stops while the relay is offline, the alerts in its outbox
-  are lost. The outbox is in memory only.
+- The outbox is in memory only. On SIGTERM, the sensor waits up to 3 s for
+  the relay to accept the queued alerts. If the relay is offline for all of
+  that time, the alerts are lost and the sensor logs their count.
 - Only one sensor is supported. More sensors need a sensor id in each
   message and a sensor choice in the monitor.

@@ -228,7 +228,8 @@ monitor, the last 120 readings. The protocol version is 3 (ADR 0009).
 
 Close codes: 4001 (no valid `hello`), 4002 (unsupported protocol version; the
 clients do not reconnect), 4003 (no session, wrong role, wrong sensor token or
-logout; the apps go to the login page), 4005 (a sensor is already connected),
+logout; the apps go to the login page), 4005 (a sensor with a different id is
+already connected),
 4008 (rate limit), 1001 (relay shutdown).
 
 ### Detection
@@ -334,8 +335,9 @@ The main changes from the specification are:
 - One relay process with a local SQLite file; there is no horizontal scaling.
 - Users are added with the CLI only. There is no admin page and no password
   change. Single sign-on (OIDC) can use the same session cookie later.
-- If the sensor stops while the relay is offline, the alerts in its outbox
-  are lost. The outbox is in memory only.
+- The outbox is in memory only. On SIGTERM, the sensor waits up to 3 s for
+  the relay to accept the queued alerts. If the relay is offline for all of
+  that time, the alerts are lost and the sensor logs their count.
 - One sensor at a time. A gap in the sensor's connection is a gap in the
   chart, because readings are not stored.
 - The `alerts` table grows without a limit; a retention job is a next step.

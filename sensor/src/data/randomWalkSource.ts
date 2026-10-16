@@ -9,32 +9,33 @@ export type RandomWalkSourceOptions = {
 };
 
 /**
- * After a long time in a hidden tab, only the last minute is made up. At
- * 10 readings each second that is 600 readings, which the app handles in one
- * go; older readings are skipped (a gap in the data).
+ * After a long stop of the process (for example, a suspended computer), only
+ * the last minute is made up. At 10 readings each second that is 600
+ * readings, which the agent handles in one go; older readings are skipped
+ * (a gap in the data).
  */
 export const MAX_CATCH_UP_MS = 60_000;
 
-const browserScheduler: Scheduler = {
+const timerScheduler: Scheduler = {
   setInterval: (callback, ms) => setInterval(callback, ms),
   clearInterval: (handle) =>
     clearInterval(handle as ReturnType<typeof setInterval>),
 };
 
 /**
- * Emits random-walk readings at the configured rate. The timer only runs while
- * someone is listening and playback is not paused, so creating a source has no
- * side effects and the last unsubscribe stops all timers.
+ * Emits random-walk readings at the configured rate. The timer runs only
+ * while the source has a listener and is not paused. Thus, a new source has
+ * no side effects, and the last unsubscribe stops all timers.
  *
  * The clock, not the number of timer ticks, decides how many readings are due.
- * Browsers slow timers in hidden tabs (to 1 each second, later 1 each minute),
- * so a tick can be late: it then emits every reading that is due, each with
- * its own scheduled time. The data has no gap, and crossings are still found.
+ * A tick can be late (a busy event loop, a suspended process). It then emits
+ * each reading that is due, with its own scheduled time. The data has no gap,
+ * and the detector still finds the crossings.
  */
 export function createRandomWalkSource({
   seed,
   rateHz,
-  scheduler = browserScheduler,
+  scheduler = timerScheduler,
   clock = Date.now,
 }: RandomWalkSourceOptions): DataSource {
   const next = createRandomWalk({ seed });
@@ -58,8 +59,8 @@ export function createRandomWalkSource({
     }
   }
 
-  // Single place that decides whether the timer should run, so it can never
-  // be started twice or left running.
+  // One place decides if the timer runs. Thus, the timer cannot start two
+  // times, and it cannot continue after the last listener goes.
   function sync() {
     if (timer !== null) {
       scheduler.clearInterval(timer);

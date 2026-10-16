@@ -186,6 +186,35 @@ describe("websocket transport", () => {
     expect(relay.readings.map((r) => r.t)).toEqual([2]);
   });
 
+  test("drain waits until the relay accepts each alert in the outbox", async () => {
+    const { relay, transport } = setup();
+    relay.stop(); // offline: the alerts wait in the outbox
+    await settle();
+    transport.send(testAlert(uuid(1), { sourceId: SOURCE_ID }));
+    transport.send(testAlert(uuid(2), { sourceId: SOURCE_ID }));
+    const drained = transport.drain(5_000);
+    relay.start();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(await drained).toBe(0);
+    expect(relay.stored().map((r) => r.id)).toEqual([uuid(1), uuid(2)]);
+  });
+
+  test("drain gives up after the timeout and reports what is left", async () => {
+    const { relay, transport } = setup();
+    relay.stop();
+    await settle();
+    transport.send(testAlert(uuid(1), { sourceId: SOURCE_ID }));
+    const drained = transport.drain(3_000);
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(await drained).toBe(1);
+  });
+
+  test("drain resolves at once with an empty outbox", async () => {
+    const { transport } = setup();
+    await settle();
+    expect(await transport.drain(3_000)).toBe(0);
+  });
+
   test("settings: null on a welcome without stored ones, then each change", async () => {
     const { relay, transport } = setup();
     const seen: unknown[] = [];

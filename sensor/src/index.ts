@@ -55,11 +55,22 @@ logger.info("sensor started", {
   ...config.sensor,
 });
 
-function shutdown(signal: string) {
+/** How long a stop waits for the relay to accept the queued alerts. */
+const DRAIN_MS = 3_000;
+
+let stopping = false;
+
+async function shutdown(signal: string) {
+  // A second signal during the drain stops at once.
+  if (stopping) process.exit(1);
+  stopping = true;
   logger.info("stopping", { signal });
-  agent.stop();
+  agent.stop(); // no new readings or alerts
+  // The outbox is in memory only: give the queued alerts a short time.
+  const lost = await transport.drain(DRAIN_MS);
+  if (lost > 0) logger.warn("alerts not delivered at stop", { count: lost });
   transport.dispose();
   process.exit(0);
 }
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+process.on("SIGINT", () => void shutdown("SIGINT"));

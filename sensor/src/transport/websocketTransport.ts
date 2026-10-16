@@ -60,7 +60,7 @@ export const CLOSE_UNSUPPORTED_VERSION = 4002;
 export const CLOSE_UNAUTHORIZED = 4003;
 
 /** The default factory: Node's built-in WebSocket (Node 22+). */
-export const browserSocket: SocketFactory = (url, events) => {
+export const nodeSocket: SocketFactory = (url, events) => {
   const ws = new WebSocket(url);
   ws.onopen = () => events.open();
   ws.onmessage = (event) =>
@@ -87,7 +87,7 @@ export function createWebSocketTransport({
   url,
   sensor,
   token,
-  createSocket = browserSocket,
+  createSocket = nodeSocket,
   clock = Date.now,
   random = Math.random,
   log = (message, detail) => console.warn(message, detail),
@@ -205,8 +205,9 @@ export function createWebSocketTransport({
   }
 
   /**
-   * The server may already hold alerts whose `accepted` never arrived here,
-   * and acknowledgements made while this tab was offline. `recent` carries both.
+   * The relay may already hold alerts whose `accepted` never arrived here,
+   * and acknowledgements made while the sensor was offline. The relay sends
+   * the sensor's own recent alerts in `welcome`, so they are not sent again.
    */
   function reconcile(recent: AlertRecord[]) {
     for (const record of recent) {
@@ -320,6 +321,22 @@ export function createWebSocketTransport({
     onDelivery(listener) {
       deliveryListeners.add(listener);
       return () => deliveryListeners.delete(listener);
+    },
+    drain(timeoutMs) {
+      const left = () => outbox.queue.length + outbox.pending.length;
+      if (disposed || left() === 0) return Promise.resolve(left());
+      return new Promise((resolve) => {
+        const done = () => {
+          clearTimeout(timer);
+          deliveryListeners.delete(onUpdate);
+          resolve(left());
+        };
+        const onUpdate = () => {
+          if (left() === 0) done();
+        };
+        const timer = setTimeout(done, timeoutMs);
+        deliveryListeners.add(onUpdate);
+      });
     },
     dispose() {
       if (disposed) return;

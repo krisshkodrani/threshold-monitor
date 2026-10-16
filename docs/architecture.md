@@ -88,17 +88,17 @@ sufficient for one site with one sensor and a few monitors and control rooms.
 These are the limits, and the changes that each limit needs. None of these
 changes is built.
 
-| Limit                                       | Effect                                                                     | Next step                                                                                           |
-| ------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| One relay process, local SQLite file        | All sockets are on one machine; no failover                                | Several relays with a shared store and a publish/subscribe channel between them (for example Redis) |
-| `welcome` sends at most 100 alerts          | A long disconnect can miss older alerts                                    | Let a client ask for alerts after a given time                                                      |
-| Outbox in memory only                       | If the sensor stops while the relay is offline, the queued alerts are lost | Keep the outbox in a file next to the sensor                                                        |
-| Users are added with a CLI only             | No page to manage users or change a password                               | An admin page, password change, and single sign-on (OIDC) with the same session cookie              |
-| The alerts table grows without a limit      | The database file grows over time                                          | A retention job that deletes old acknowledged alerts                                                |
-| One sensor, one threshold, one metric       | A second sensor is refused (4005)                                          | A sensor id in each message, a sensor choice in the monitor, high and low thresholds                |
-| Readings at most once, not stored           | A gap in the relay connection is a gap in the chart                        | Store the readings, or let the sensor send the missed ones after a reconnect                        |
-| SVG chart (Recharts)                        | Not tested above 10 readings each second                                   | A canvas chart for high rates                                                                       |
-| Monitor bundle approximately 200 KB gzipped | Most of it is Recharts                                                     | Load the chart with a dynamic `import()`                                                            |
+| Limit                                       | Effect                                                                                 | Next step                                                                                           |
+| ------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| One relay process, local SQLite file        | All sockets are on one machine; no failover                                            | Several relays with a shared store and a publish/subscribe channel between them (for example Redis) |
+| `welcome` sends at most 100 alerts          | A long disconnect can miss older alerts                                                | Let a client ask for alerts after a given time                                                      |
+| Outbox in memory only                       | If the relay is offline for the 3 s drain at a sensor stop, the queued alerts are lost | Keep the outbox in a file next to the sensor                                                        |
+| Users are added with a CLI only             | No page to manage users or change a password                                           | An admin page, password change, and single sign-on (OIDC) with the same session cookie              |
+| The alerts table grows without a limit      | The database file grows over time                                                      | A retention job that deletes old acknowledged alerts                                                |
+| One sensor, one threshold, one metric       | A sensor with a different id is refused (4005)                                         | A sensor id in each message, a sensor choice in the monitor, high and low thresholds                |
+| Readings at most once, not stored           | A gap in the relay connection is a gap in the chart                                    | Store the readings, or let the sensor send the missed ones after a reconnect                        |
+| SVG chart (Recharts)                        | Not tested above 10 readings each second                                               | A canvas chart for high rates                                                                       |
+| Monitor bundle approximately 200 KB gzipped | Most of it is Recharts                                                                 | Load the chart with a dynamic `import()`                                                            |
 
 With several relays, a client can connect to any relay, because each message
 carries all its data and dedupe uses the alert id. The shared store must make

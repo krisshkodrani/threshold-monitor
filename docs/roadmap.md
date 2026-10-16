@@ -198,7 +198,8 @@ The ADRs and the README use these decisions.
   the transport moved from `apps/monitor` with `git mv`, with their tests.
   `agent.ts` is the old `useThresholdMonitor` loop without React.
 - The sensor has no session. Its `hello` carries `SENSOR_TOKEN`, and the relay
-  checks it in constant time. One sensor at a time; a second one gets 4005.
+  checks it in constant time. One sensor at a time; a different sensor id gets 4005,
+  and the same id replaces its old connection.
 - Protocol version 3: `reading`, `settingsApplied`, `setSettings`, `settings`
   and `sensorStatus`. `welcome` has the settings, the sensor and the last 120
   readings (monitors only).
@@ -220,8 +221,14 @@ The ADRs and the README use these decisions.
   new test checks that two monitor tabs show the same reading and share a
   threshold change. `DataTable` rows have a `data-key`, so the test finds a
   row again after live updates.
-- Login rate limit: only a failed login spends a token. A user who types the
-  correct password is never limited.
+- Login rate limit: each try takes a token before the password check, and a
+  correct login gives it back. Thus, parallel tries cannot bypass the limit,
+  and a user who types the correct password is not limited.
+- Review fixes after M9: the relay clears the readings when the sensor goes;
+  `welcome` and a sensor connect send the settings of the connected sensor;
+  the sensor's `welcome` has its own recent alerts. The monitor slider sends
+  its value on release, and a second settings change starts from the first.
+  The sensor drains its outbox for up to 3 s on SIGTERM.
 
 ## Out of scope
 
