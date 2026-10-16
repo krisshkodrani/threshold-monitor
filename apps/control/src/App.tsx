@@ -1,4 +1,5 @@
 import type { ServerMessage } from "@app/protocol";
+import { ErrorBoundary } from "@app/ui";
 import { useId, useReducer, useState } from "react";
 import { AccountBar } from "./components/AccountBar";
 import { AlarmList } from "./components/AlarmList";
@@ -130,12 +131,14 @@ export function App({ connect, account }: AppProps) {
             {notice}
           </p>
         )}
-        <AlarmList
-          alarms={shown}
-          pendingAcks={state.pendingAcks}
-          canAcknowledge={status.kind === "open"}
-          onAcknowledge={acknowledge}
-        />
+        <ErrorBoundary name="The alarm list">
+          <AlarmList
+            alarms={shown}
+            pendingAcks={state.pendingAcks}
+            canAcknowledge={status.kind === "open"}
+            onAcknowledge={acknowledge}
+          />
+        </ErrorBoundary>
       </section>
     </div>
   );

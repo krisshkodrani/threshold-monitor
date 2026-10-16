@@ -1,4 +1,4 @@
-import { DataTable, type Column } from "@app/ui";
+import { DataTable, ErrorBoundary, type Column } from "@app/ui";
 import { useId } from "react";
 import { formatClock, formatReading, formatThreshold } from "../format";
 import { statusOf, type AlertEntity } from "../store/alertsSlice";
@@ -82,18 +82,20 @@ export function AlertLog({ alerts }: { alerts: readonly AlertEntity[] }) {
           </span>
         )}
       </h2>
-      <DataTable
-        rows={alerts}
-        columns={columns}
-        rowKey={(alert) => alert.id}
-        label="Scrollable alert log"
-        minWidth="40rem"
-        empty={
-          <p className="muted">
-            No crossings yet. Move the threshold close to the current value.
-          </p>
-        }
-      />
+      <ErrorBoundary name="The alert log">
+        <DataTable
+          rows={alerts}
+          columns={columns}
+          rowKey={(alert) => alert.id}
+          label="Scrollable alert log"
+          minWidth="40rem"
+          empty={
+            <p className="muted">
+              No crossings yet. Move the threshold close to the current value.
+            </p>
+          }
+        />
+      </ErrorBoundary>
     </section>
   );
 }
