@@ -2,6 +2,16 @@
 
 Status: accepted (M1)
 
+## Current applicability
+
+[ADR 0009](0009-sensor-agent.md) adds a fourth participant, the sensor,
+and epoch-millisecond reading timestamps alongside ISO UTC event timestamps.
+[ADR 0010](0010-shared-client-package.md) supersedes the separate browser
+connection code: both apps now use `@app/client`. The sensor keeps its own
+transport. Monitor settings no longer use `localStorage`.
+
+The original decision below records the design when this ADR was accepted.
+
 ## Context
 
 Three programs exchange messages: the monitor, the relay and the control room.

@@ -2,6 +2,17 @@
 
 Status: accepted (M2, M5)
 
+## Current applicability
+
+[ADR 0007](0007-sqlite-storage.md) supersedes in-memory relay storage
+with SQLite. [ADR 0009](0009-sensor-agent.md) moves the outbox and retries
+from the monitor to the sensor; dropped alerts are logged by the sensor.
+The limit of 50 applies to queued alerts only; pending alerts are separate.
+Delivery depends on retaining the alert: overflow and process exit can lose
+alerts. See [current delivery and recovery limits](../architecture.md#delivery-and-reconnect-recovery).
+
+The original decision below records the design when this ADR was accepted.
+
 ## Context
 
 The connection between the monitor and the relay can fail at any time. An

@@ -2,6 +2,17 @@
 
 Status: accepted (M4)
 
+## Current applicability
+
+[ADR 0009](0009-sensor-agent.md) supersedes the sender permissions
+below: sensors send alerts, readings and initial settings; monitors send
+`setSettings`; control rooms send `ack`. Sensors have a separate bucket of
+600 messages, refilling at 50 per second. An upgrade without a session is
+allowed so the sensor can authenticate in `hello`; a browser without a session
+is closed with 4003 at `hello`, not before it.
+
+The original decision below records the design when this ADR was accepted.
+
 ## Context
 
 Browsers do not apply CORS to WebSockets. Any web page that a user opens can

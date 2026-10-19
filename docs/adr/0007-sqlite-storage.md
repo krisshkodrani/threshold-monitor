@@ -2,6 +2,14 @@
 
 Status: accepted (M8)
 
+## Current applicability
+
+[ADR 0009](0009-sensor-agent.md) adds the `settings` table in migration 2.
+SQLite retains every alert, but `welcome` includes at most 100 recent alerts;
+removing the storage retention limit did not remove the snapshot limit.
+
+The original decision below records the design when this ADR was accepted.
+
 ## Context
 
 Login needs users and sessions that stay after a restart. Before M8, the

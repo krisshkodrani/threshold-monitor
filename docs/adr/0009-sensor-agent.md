@@ -2,6 +2,16 @@
 
 Status: accepted (M9)
 
+## Current applicability
+
+The relay can also load or create its token through `SENSOR_TOKEN_FILE`;
+Compose shares that file with the sensor through the data volume. The
+at-least-once wording below is qualified by the
+[current delivery and recovery limits](../architecture.md#delivery-and-reconnect-recovery).
+A different sensor id is refused only while another sensor is connected.
+
+The original decision below records the design when this ADR was accepted.
+
 ## Context
 
 Before M9, each monitor tab made its own readings, found its own crossings

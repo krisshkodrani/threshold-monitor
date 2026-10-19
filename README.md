@@ -186,7 +186,8 @@ limits, [docs/adr](docs/adr) for the main decisions, and
           ◀──settings───────                   ──reading,────▶ apps/monitor
                                                ──alert───────▶ (browser)
                                                ◀─setSettings──
-          ◀────────────── acknowledged, sensorStatus ─────────▶
+          ◀────────────── acknowledged ──────────────────────▶
+                       sensorStatus: relay to browsers
                          packages/protocol
               (shared zod schemas for every message)
 ```
@@ -226,19 +227,19 @@ its `hello` contains `SENSOR_TOKEN`. The relay answers with `welcome`, which
 contains up to 100 recent alerts, the settings, the sensor and, for a
 monitor, the last 120 readings. The protocol version is 3 (ADR 0009).
 
-| From         | Message           | To                                  |
-| ------------ | ----------------- | ----------------------------------- |
-| Sensor       | `reading`         | Relay, then all monitors            |
-| Sensor       | `alert`           | Relay                               |
-| Relay        | `accepted`        | The sensor                          |
-| Relay        | `alert`           | All monitors and control rooms      |
-| Sensor       | `settingsApplied` | Relay (only if no settings stored)  |
-| Monitor      | `setSettings`     | Relay                               |
-| Relay        | `settings`        | The sensor and all monitors         |
-| Relay        | `sensorStatus`    | All browsers, when the sensor comes |
-| Control room | `ack`             | Relay                               |
-| Relay        | `acknowledged`    | All clients                         |
-| Relay        | `error`           | The client that caused it           |
+| From         | Message           | To                                                    |
+| ------------ | ----------------- | ----------------------------------------------------- |
+| Sensor       | `reading`         | Relay, then all monitors                              |
+| Sensor       | `alert`           | Relay                                                 |
+| Relay        | `accepted`        | The sensor                                            |
+| Relay        | `alert`           | All monitors and control rooms                        |
+| Sensor       | `settingsApplied` | Relay (only if no settings stored)                    |
+| Monitor      | `setSettings`     | Relay                                                 |
+| Relay        | `settings`        | The sensor and all monitors                           |
+| Relay        | `sensorStatus`    | All browsers, when the sensor connects or disconnects |
+| Control room | `ack`             | Relay                                                 |
+| Relay        | `acknowledged`    | All clients                                           |
+| Relay        | `error`           | The client that caused it                             |
 
 Close codes: 4001 (no valid `hello`), 4002 (unsupported protocol version; the
 clients do not reconnect), 4003 (no session, wrong role, wrong sensor token or
@@ -255,22 +256,32 @@ an alert.
 
 ### Delivery
 
-Alerts are delivered at least once, and the relay removes duplicates by
-alert id. Readings are delivered at most once: the sensor sends them only
-while it is connected.
+Alerts retained by the running sensor are retried until accepted, and the relay
+removes duplicates by alert id. This at-least-once delivery is conditional:
+queue overflow and process exit can lose alerts. Readings are delivered at most
+once: the sensor sends them only after `welcome`, without retry.
 
-1. The sensor puts each alert in an outbox (maximum 50; the oldest is dropped
-   and logged).
+1. The sensor puts each alert in an outbox. The queue holds at most 50; sent
+   alerts are tracked separately as pending and do not count toward that limit.
+   Queue overflow drops the oldest queued alerts and logs them.
 2. After `welcome`, the sensor sends the outbox in order. Each alert waits for
    `accepted` for 5 seconds.
-3. After a timeout or a disconnect, the alert goes back into the queue and the
-   sensor sends it again with the same id.
+3. After a timeout or a disconnect, pending alerts go back into the queue in
+   creation order. The queue limit applies again, so overflow can drop the
+   oldest entries. Retained alerts are resent with the same ids.
 4. The relay answers a repeated alert with `accepted` and `duplicate: true`. It
    does not send it to the monitors and control rooms again.
 5. After a reconnect, the sensor compares `welcome.recent` with its outbox, so
    it does not send alerts that the relay already has.
 
 Reconnect delay: `min(30 s, 500 ms × 2^n) × (0.5 + random × 0.5)`.
+
+Browser recovery is limited to the latest 100 alerts in `welcome`, not a full
+replay. The monitor replaces its alert history on reconnect; the control room
+merges the snapshot with its existing alarms. A retained older alarm can miss
+an acknowledgement made while disconnected if it is outside that snapshot.
+There is no history or acknowledgement lookup API yet. See
+[reconnect recovery](docs/architecture.md#delivery-and-reconnect-recovery).
 
 ## Project layout
 

@@ -2,6 +2,13 @@
 
 Status: accepted (M4)
 
+## Current applicability
+
+The WebSocket choice still applies. [ADR 0009](0009-sensor-agent.md)
+moves alert production from the monitor to a separate sensor service.
+
+The original decision below records the design when this ADR was accepted.
+
 ## Context
 
 The monitor sends alerts, and the control rooms must receive them and send

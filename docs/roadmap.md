@@ -1,7 +1,11 @@
 # Roadmap
 
-The project was built in nine milestones. Each milestone ended with one commit,
-and with typecheck, lint, format and tests green.
+The project was built in ten milestones (M0–M9), with typecheck, lint, format
+and tests green at each milestone. The table lists the commits for each stage.
+
+This is a chronological implementation history. Earlier milestone descriptions
+record the design at that time and can be superseded by later entries. For the
+current design and known recovery limits, use [architecture.md](architecture.md).
 
 ## Status
 

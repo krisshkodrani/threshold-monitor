@@ -2,6 +2,16 @@
 
 Status: accepted (M8)
 
+## Current applicability
+
+[ADR 0009](0009-sensor-agent.md) adds sensor token authentication.
+The cookie requirement below applies to browser roles; sensors need no session.
+The relay accepts an upgrade without a session and checks the browser session
+and role at `hello`. Protocol version 3 retains the session-derived operator
+identity introduced here.
+
+The original decision below records the design when this ADR was accepted.
+
 ## Context
 
 Before M8, the relay had no authentication. Each person who could open the

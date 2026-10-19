@@ -2,6 +2,14 @@
 
 Status: accepted. ADR 0010 moves the connection code to a shared package.
 
+## Current applicability
+
+[ADR 0010](0010-shared-client-package.md) supersedes the rule that
+connection code and badges stay in each app: they now live in `@app/client`.
+`@app/ui` also exports `ErrorBoundary` and its CSS alongside `DataTable`.
+
+The original decision below records the design when this ADR was accepted.
+
 ## Context
 
 Until now, the two apps shared only `@app/protocol`. The rule was "share the
