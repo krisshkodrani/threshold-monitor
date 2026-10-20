@@ -116,6 +116,13 @@
           padding: 0;
           break-after: page;
         }
+        .code-notes {
+          font-size: 9pt;
+          line-height: 1.4;
+        }
+        .code-notes h3 {
+          margin-top: 10px;
+        }
         .page:last-child {
           break-after: auto;
         }
@@ -154,7 +161,7 @@
   </head>
   <body>
     <section class="page">
-      <p class="eyebrow">Presenter copy · 1 / 7 · Run sheet</p>
+      <p class="eyebrow">Presenter copy · 1 / 8 · Run sheet</p>
       <h1>One alert.<br />Three architecture decisions.</h1>
       <p class="lead">
         A 10-minute walkthrough of Threshold Monitor. Show the behavior, point
@@ -192,25 +199,26 @@
             </td>
           </tr>
           <tr>
-            <td>5:00–6:00</td>
-            <td>Code: crossing.ts</td>
+            <td>5:00–6:15</td>
+            <td>Code: Sensor → crossing.ts</td>
             <td>
               Pure detection separates domain decisions from clocks and sockets.
             </td>
           </tr>
           <tr>
-            <td>6:00–7:30</td>
-            <td>Code: Redux state → Actions &amp; reducers</td>
+            <td>6:15–7:30</td>
+            <td>Code: Sensor outbox → Relay routing</td>
             <td>
-              Make state ownership explicit; show one acknowledgement update.
+              Explain pending delivery, relay acceptance, and UUID
+              deduplication.
             </td>
           </tr>
           <tr>
             <td>7:30–9:00</td>
-            <td>Code: outbox.ts → routing.ts</td>
+            <td>Code: Live Monitor → Control Room</td>
             <td>
-              Distinguish socket writes from acceptance; connect retries to UUID
-              deduplication.
+              Show messages becoming state updates and a confirmed
+              acknowledgement.
             </td>
           </tr>
           <tr>
@@ -230,8 +238,9 @@
           keep this sheet on a second screen or printed.
         </li>
         <li>
-          Use English or German consistently. The Code Explorer supports both;
-          this speaking script is English.
+          Use English or German consistently. The whole Architecture Guide
+          supports both; this speaking script is English. Set the global EN / DE
+          switch before presenting.
         </li>
         <li>
           In Live Simulator, choose <strong>Cross both directions</strong>, then
@@ -258,7 +267,7 @@
       </p>
     </section>
     <section class="page">
-      <p class="eyebrow">Presenter copy · 2 / 7 · Overview and demo</p>
+      <p class="eyebrow">Presenter copy · 2 / 8 · Overview and demo</p>
       <h2>Tell the story while stepping</h2>
       <h3>0:00 · Overview — point to each component</h3>
       <blockquote>
@@ -351,72 +360,88 @@
         “Now I’ll show three code decisions behind this behavior.”
       </p>
     </section>
-    <section class="page">
-      <p class="eyebrow">Presenter copy · 3 / 7 · Code decisions</p>
+    <section class="page code-notes">
+      <p class="eyebrow">Presenter copy · 3 / 8 · Code decisions</p>
       <h2>Show a few lines. Explain the choice.</h2>
-      <h3>5:00 · Detection &amp; delivery → crossing.ts</h3>
-      <blockquote>
-        <p>
-          “Detection is a small state machine. Previous state, a reading, and
-          settings determine the result. There are no sockets or clocks inside
-          it, so I can test exact boundaries and noisy sequences directly.”
-        </p>
-      </blockquote>
-      <p>
-        <strong>Point to:</strong> the upper and lower comparisons, and the
-        returned next state. Connect them to 25.3°C versus 25.4°C in the demo.
-      </p>
-      <p>
-        <strong>Tradeoff:</strong> hysteresis deliberately delays the opposite
-        transition until the other edge is crossed. It suppresses noise at the
-        cost of a wider switching band.
-      </p>
+      <h3>
+        5:00 · Sensor — Reading source → Agent subscription → Crossing detector
+      </h3>
       <p class="cue">
-        Do not read every branch. One boundary example establishes the design.
+        Use the grouped file list. Spend only a sentence on source and agent;
+        pause at crossing.ts. There are no highlighted rows: point to the actual
+        expressions.
       </p>
-      <h3>6:00 · Shared state → Redux state → Actions &amp; reducers</h3>
       <blockquote>
         <p>
-          “The monitor uses Redux Toolkit for confirmed settings, sensor
-          information, and normalized alerts. The state shape makes ownership
-          visible. An acknowledgement action updates the existing record by ID;
-          selectors derive the view.”
+          “The source creates timestamped readings. The agent connects the
+          source to detection and delivery. The detector itself is a pure state
+          machine: previous state, a value, and settings determine the next
+          state and an optional crossing.”
         </p>
       </blockquote>
       <p>
-        <strong>Point to:</strong> <code>settings.current</code>,
-        <code>alerts.ids</code>, <code>alerts.entities</code>, then the
-        acknowledgement guard and assignment in the alert reducer.
+        <strong>Point to:</strong> the subscription in <code>agent.ts</code>,
+        then the strict upper and lower comparisons in
+        <code>domain/crossing.ts</code>. Relate 25.3°C versus 25.4°C to the
+        demo.
       </p>
       <p>
-        <strong>Explain the boundary:</strong> “Form drafts stay local.
-        Transient readings use a bounded external store. The control room has a
-        smaller alarm model and uses <code>useReducer</code>.”
+        <strong>Decision 1:</strong> keep domain logic independent of sockets
+        and clocks. Exact boundaries and noisy sequences are easy to test.
+        Hysteresis suppresses noise by delaying the opposite transition until
+        the other edge is crossed.
       </p>
-      <p>
-        <strong>Tradeoff:</strong> there are multiple state mechanisms to
-        understand. Each has a clear owner and lifetime. Redux could handle
-        readings; the separate store is an intentional design choice, not a
-        Redux limitation.
-      </p>
-      <h3>7:30 · Detection &amp; delivery → outbox.ts → routing.ts</h3>
+      <h3>6:15 · Sensor: Delivery outbox → Relay: Route an alert</h3>
       <blockquote>
         <p>
-          “A successful socket write doesn’t prove the relay stored the alert.
-          Sending moves it into pending. Acceptance removes it; a deadline
-          returns it to the retry queue. Retries keep the same UUID, so the
-          relay can acknowledge an existing record without broadcasting a
-          duplicate.”
+          “A socket write doesn’t prove the relay stored the alert. Sending
+          moves it into pending; acceptance removes it. A deadline returns it to
+          the retry queue with the same UUID. The relay accepts an existing
+          record without broadcasting another new alert.”
         </p>
       </blockquote>
       <p>
-        <strong>Point to:</strong> pending deadlines, <code>accept</code>,
-        <code>expire</code>, then the existing-record branch in relay routing.
+        <strong>Point to:</strong> <code>takeForSend</code>,
+        <code>accept</code>, and <code>expire</code>, then the existing-record
+        branch in <code>server/src/routing.ts</code>.
       </p>
       <p>
-        <strong>Tradeoff:</strong> the outbox is bounded and in memory. Process
-        loss or queue overflow can lose alerts. This is conditional
-        at-least-once delivery, not an unconditional delivery guarantee.
+        <strong>Decision 2:</strong> confirm at the storage boundary. The outbox
+        is bounded and in memory: retries improve delivery while the process
+        survives, but a crash or overflow can lose alerts. Do not claim
+        unconditional delivery or exactly-once transport.
+      </p>
+      <h3>7:30 · Live Monitor: Messages → UI → Redux state &amp; reducers</h3>
+      <blockquote>
+        <p>
+          “The relay message becomes an action. Redux Toolkit stores confirmed
+          settings, sensor information, and normalized alerts. Here the actual
+          initial state and the reducer are together: IDs control order,
+          entities hold records, and acknowledgement updates an existing alert.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Point to:</strong> the message dispatch in <code>App.tsx</code>,
+        the state snapshot, then the acknowledgement guard and assignment in
+        <code>store/alertsSlice.ts</code>. Immer lets reducers edit a draft
+        while Redux receives immutable state. Store setup boilerplate is omitted
+        from the tour.
+      </p>
+      <p>
+        <strong>Decision 3:</strong> state has an explicit owner. Form drafts
+        stay local; readings use a bounded external store; Redux holds shared
+        server records. Selectors derive counts and views instead of duplicating
+        them.
+      </p>
+      <h3>
+        8:30 · Control Room: Alarm list reducer → Relay: Confirm acknowledgement
+      </h3>
+      <p>
+        “The smaller control-room model uses <code>useReducer</code>. Its
+        browser state is another copy of the server record. The relay takes
+        operator identity from the session, preserves the first acknowledgement,
+        and broadcasts the stored result. That completes the journey we stepped
+        through.”
       </p>
       <h3>9:00 · Return to Overview — close</h3>
       <blockquote>
@@ -435,7 +460,7 @@
       </p>
     </section>
     <section class="page">
-      <p class="eyebrow">Presenter copy · 4 / 7 · Questions and rehearsal</p>
+      <p class="eyebrow">Presenter copy · 4 / 8 · Questions and rehearsal</p>
       <h2>Short answers, with a code example ready</h2>
       <h3>Why Redux here, but not everywhere?</h3>
       <p>
@@ -453,7 +478,7 @@
       </p>
       <h3>Show a React UX decision</h3>
       <p>
-        Open <strong>Draft vs. confirmed state</strong>: “Typing 25 must not
+        Open <strong>Draft vs. confirmed settings</strong>: “Typing 25 must not
         briefly send 2 as a shared setting. The component holds a string draft,
         validates it on commit, and requests the update. Redux receives the
         server-confirmed numeric value.” The round trip introduces a delay; the
@@ -489,7 +514,7 @@
         <li>
           <strong>First pass:</strong> use a timer. Reach the first alarm in 12
           Step clicks. Acknowledge, then use three more Steps. Switch to the
-          three code examples without searching.
+          three decision stops without searching.
         </li>
         <li>
           <strong>Second pass:</strong> speak from the screen, using these notes
@@ -513,7 +538,7 @@
     </section>
     <section class="page">
       <p class="eyebrow">
-        Presenter copy · 5 / 7 · New features: domain and scope
+        Presenter copy · 5 / 8 · New features: domain and scope
       </p>
       <h2>How would you extend this system?</h2>
       <p class="lead">
@@ -594,7 +619,7 @@
     </section>
     <section class="page">
       <p class="eyebrow">
-        Presenter copy · 6 / 7 · New features: history and reliability
+        Presenter copy · 6 / 8 · New features: history and reliability
       </p>
       <h2>Extend the guarantees deliberately</h2>
       <h3>4. How would you add history and filtering?</h3>
@@ -615,11 +640,12 @@
       </p>
       <p>
         <strong>Tradeoff / verify:</strong> storing received measurements cannot
-        recover samples lost before reaching the relay. At 10 Hz, one sensor
-        produces 864,000 rows per day. Test query authorization, time
-        boundaries, concurrent inserts during pagination, and visible gaps.
-        Retention must preserve deduplication information so a late alert retry
-        cannot recreate a deleted alarm.
+        recover samples lost before reaching the relay. At the supported 10 Hz
+        rate, one sensor produces 864,000 rows per day; the local development
+        demo now runs at 2 Hz. Test query authorization, time boundaries,
+        concurrent inserts during pagination, and visible gaps. Retention must
+        preserve deduplication information so a late alert retry cannot recreate
+        a deleted alarm.
       </p>
       <h3>5. How would you recover every missed acknowledgement?</h3>
       <blockquote>
@@ -672,7 +698,7 @@
     </section>
     <section class="page">
       <p class="eyebrow">
-        Presenter copy · 7 / 7 · New features: operator workflows
+        Presenter copy · 7 / 8 · New features: operator workflows
       </p>
       <h2>Keep new workflows server-authoritative</h2>
       <h3>7. How would you add email, SMS, or webhook notifications?</h3>
@@ -751,6 +777,105 @@
           demonstrate one complete flow before broadening the feature.”
         </p>
       </blockquote>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Presenter copy · 8 / 8 · Optional demonstrations</p>
+      <h2>Use these when someone asks</h2>
+      <h3>What happens when the hysteresis band changes?</h3>
+      <p>
+        In Live simulator choose <strong>Adjust the hysteresis band</strong>,
+        then <strong>Restart</strong>. Threshold stays at 25°C. The sequence is
+        24.9, 25.2, 25.15, 24.85, 25.15°C.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Total Step clicks</th>
+            <th>What to show and say</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1–6</td>
+            <td>
+              Two readings arrive. The 0.6°C band spans 24.7–25.3°C. Neither
+              reading creates a crossing.
+            </td>
+          </tr>
+          <tr>
+            <td>7–9</td>
+            <td>
+              The Monitor requests a 0.2°C band; the relay stores and sends it
+              to the sensor. New edges: 24.9–25.1°C. Configuration alone creates
+              no alert.
+            </td>
+          </tr>
+          <tr>
+            <td>10–12</td>
+            <td>
+              Reading #3 is 25.15°C. The previous value is silently reclassified
+              under the new settings, so this reading creates no crossing.
+            </td>
+          </tr>
+          <tr>
+            <td>13–15</td>
+            <td>
+              Reading #4 is 24.85°C: below the new lower edge, so a down alert
+              reaches the apps.
+            </td>
+          </tr>
+          <tr>
+            <td>16–18</td>
+            <td>
+              Reading #5 is 25.15°C: above the new upper edge, so an up alert
+              follows. Both values were inside the old band.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <blockquote>
+        <p>
+          “A narrower band reacts to smaller changes and can produce more
+          alerts. Changing configuration is not a measured crossing. We
+          reclassify silently, then detect transitions from subsequent
+          readings.”
+        </p>
+      </blockquote>
+      <p class="cue">
+        These counts assume no acknowledgement is started during the run.
+        Restore Cross both directions → Restart before repeating the main
+        presentation.
+      </p>
+      <h3>Can you show the real applications?</h3>
+      <p>
+        Use the guide at <code>http://localhost:5175/</code>. Open Live Monitor
+        and Control Room using the project links; they open in new tabs. The
+        offline HTML is the fallback and does not start or connect the real
+        apps.
+      </p>
+      <ol>
+        <li>
+          Sign in to both apps with <code>demo / demo</code> in the local demo
+          environment. Show live readings in the Monitor and the operator list
+          in the Control Room.
+        </li>
+        <li>
+          Acknowledge an open alarm in Control Room, then show the same UUID
+          acknowledged in the Monitor. Sensor readings continue automatically at
+          2 Hz; the simulator's Step button controls only the illustrative
+          model.
+        </li>
+        <li>
+          If asked who changed settings, expand <strong>Sensor details</strong>.
+          Explain that form drafts are local and active settings come back
+          through the relay.
+        </li>
+      </ol>
+      <p class="cue">
+        Live temperatures are random: avoid depending on an alert at a precise
+        moment. Use the deterministic simulator for boundary behavior and the
+        running apps to demonstrate integration.
+      </p>
     </section>
   </body>
 </html>

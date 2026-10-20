@@ -1,8 +1,11 @@
 import { chromium } from "@playwright/test";
 import { fileURLToPath } from "node:url";
-const source = new URL("../docs/presentation-notes.html", import.meta.url);
+const documentName = process.argv.includes("--reader")
+  ? "presentation-script"
+  : "presentation-notes";
+const source = new URL(`../docs/${documentName}.html`, import.meta.url);
 const destination = fileURLToPath(
-  new URL("../docs/presentation-notes.pdf", import.meta.url),
+  new URL(`../docs/${documentName}.pdf`, import.meta.url),
 );
 const browser = await chromium.launch();
 try {
@@ -16,8 +19,7 @@ try {
     outline: true,
     displayHeaderFooter: true,
     headerTemplate: "<span></span>",
-    footerTemplate:
-      '<div style="font-size:9px;color:#637083;width:100%;text-align:center">Threshold Monitor · Presenter notes · <span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+    footerTemplate: `<div style="font-size:9px;color:#637083;width:100%;text-align:center">Threshold Monitor · ${documentName === "presentation-script" ? "Präsentationsskript" : "Presenter notes"} · <span class="pageNumber"></span> / <span class="totalPages"></span></div>`,
   });
   console.log(`Exported ${destination}`);
 } finally {

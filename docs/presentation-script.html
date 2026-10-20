@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Threshold Monitor — Präsentationsskript</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 17mm 18mm 19mm;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: #172b36;
+        background: #e9eeec;
+        font:
+          14pt/1.42 Arial,
+          sans-serif;
+      }
+      .page {
+        max-width: 820px;
+        margin: 24px auto;
+        background: white;
+        padding: 36px;
+        break-after: page;
+      }
+      .page:last-child {
+        break-after: auto;
+      }
+      .eyebrow {
+        font-size: 10pt;
+        color: #28694f;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+      h1 {
+        font-size: 26pt;
+        line-height: 1.12;
+        margin: 10px 0;
+      }
+      h2 {
+        font-size: 16pt;
+        line-height: 1.2;
+        margin: 19px 0 7px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      .timing {
+        font-size: 11pt;
+        color: #536574;
+        margin-bottom: 20px;
+      }
+      .lead {
+        font-size: 16pt;
+      }
+      .do,
+      .say,
+      .note {
+        margin: 12px 0;
+        padding: 12px 15px;
+        break-inside: avoid;
+      }
+      .do {
+        background: #edf4f7;
+        border-left: 4px solid #62859b;
+      }
+      .say {
+        background: #edf5ef;
+        border-left: 4px solid #398162;
+      }
+      .do:before,
+      .say:before {
+        display: block;
+        font-size: 10pt;
+        font-weight: bold;
+        letter-spacing: 0.08em;
+        margin-bottom: 5px;
+      }
+      .do:before {
+        content: "ZEIGEN";
+      }
+      .say:before {
+        content: "SAGEN";
+      }
+      .note {
+        background: #f8f3e8;
+        font-size: 12pt;
+      }
+      li {
+        margin: 9px 0;
+      }
+      ul,
+      ol {
+        padding-left: 24px;
+      }
+      @media print {
+        body {
+          background: white;
+        }
+        .page {
+          margin: 0;
+          padding: 0;
+          max-width: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="page">
+      <p class="eyebrow">Threshold Monitor · Präsentationsskript · 1 / 9</p>
+      <h1>Dein Ablauf auf einen Blick</h1>
+      <p class="timing">Etwa 10–12 Minuten · Erst zeigen, dann erklären</p>
+      <p class="lead">
+        Du beginnst mit dem laufenden System und bestätigst einen Alarm.
+        Anschließend erklärst du die Architektur entlang dieses Vorgangs.
+      </p>
+      <ol>
+        <li>
+          <b>0:00–2:00 · Live zeigen.</b> Messwerte laufen lassen, einen Alarm
+          im Leitstand bestätigen und das Ergebnis im Monitor zeigen.
+        </li>
+        <li>
+          <b>2:00–3:00 · Gesamtsystem zeigen.</b> Auf der Architekturkarte alle
+          Komponenten und ihre Verbindungen benennen.
+        </li>
+        <li>
+          <b>3:00–5:00 · Sensor und Relay erklären.</b> Wie wird aus einem
+          Messwert ein gespeicherter Alarm?
+        </li>
+        <li>
+          <b>5:00–7:00 · Browser und Bestätigung erklären.</b> Wer besitzt
+          welchen Zustand? Wann gilt eine Bestätigung als gespeichert?
+        </li>
+        <li>
+          <b>7:00–10:00 · Codeentscheidungen zeigen.</b> Wenige passende
+          Ausschnitte statt einer Tour durch jede Datei.
+        </li>
+        <li>
+          <b>10:00–12:00 · Grenzen und Fragen.</b> Simulator und Hysterese als
+          gezielte Vertiefung bereithalten.
+        </li>
+      </ol>
+      <div class="note">
+        <b>Dein roter Faden:</b> Messwert → Erkennung → Speicherung → Anzeige →
+        Bestätigung. Nach jedem Teil sagen, was zum nächsten Teil weitergegeben
+        wird.
+      </div>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Threshold Monitor · Präsentationsskript · 2 / 9</p>
+      <h1>1 · Mit den echten Apps starten</h1>
+      <p class="timing">0:00–2:00 · Das System zunächst laufen lassen</p>
+      <div class="do">
+        Live Monitor und Control Room in zwei Tabs öffnen. Lokal mit
+        <b>demo / demo</b> anmelden. Einen offenen Alarm mit seiner ID
+        bereithalten. Die Messwerte zunächst kurz laufen lassen.
+      </div>
+      <div class="say">
+        „Ich zeige zuerst, was die Anwendung macht. Hier kommen laufend
+        Temperaturwerte an. Der Monitor zeigt die Messwerte, die Einstellungen
+        und die erkannten Alarme. Im Control Room kann ein Operator auf diese
+        Alarme reagieren.“
+      </div>
+      <h2>Einen Alarm bestätigen</h2>
+      <div class="do">
+        Im Control Room bei einem offenen Alarm auf <b>Acknowledge</b> klicken.
+        Danach im Monitor denselben Alarm anhand seiner ID zeigen.
+      </div>
+      <div class="say">
+        „Ich bestätige diesen Alarm. Die Änderung wird vom Server gespeichert
+        und an die verbundenen Oberflächen verteilt. Beide Ansichten zeigen
+        danach dieselbe Bestätigung. Die Messwerte laufen währenddessen weiter.“
+      </div>
+      <h2>Zur Erklärung überleiten</h2>
+      <p>
+        „Jetzt schauen wir uns an, welche Teile daran beteiligt sind und wie
+        dieser Vorgang technisch durch das System läuft.“
+      </p>
+      <div class="note">
+        Die echten Apps haben englische Beschriftungen. Der lokale Sensor
+        liefert 2 Messwerte pro Sekunde. Falls kein offener Alarm vorhanden ist,
+        nutze den Simulator als angekündigten Ersatz; warte nicht lange auf
+        zufällige Werte.
+      </div>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Threshold Monitor · Präsentationsskript · 3 / 9</p>
+      <h1>2 · Das ganze System zeigen</h1>
+      <p class="timing">2:00–3:00 · Architekturleitfaden → Systemübersicht</p>
+      <div class="do">
+        Den Architekturleitfaden unter <b>localhost:5175</b> öffnen,
+        <b>DE</b> wählen und die gesamte Karte zeigen. Noch keine Dateien
+        öffnen.
+      </div>
+      <div class="say">
+        „Das System besteht aus einem Sensordienst, einem Relay mit SQLite und
+        zwei Browseranwendungen. Ich gehe die Teile jetzt in der Reihenfolge
+        durch, in der wir den Alarm gerade gesehen haben.“
+      </div>
+      <h2>Auf die Teile zeigen</h2>
+      <ol>
+        <li>
+          <b>Sensor:</b> erzeugt Messwerte und erkennt Übergänge über die
+          Hysteresegrenzen.
+        </li>
+        <li>
+          <b>Relay:</b> nimmt Nachrichten entgegen, prüft sie und verteilt
+          Änderungen.
+        </li>
+        <li>
+          <b>SQLite:</b> speichert Alarme, Bestätigungen und Einstellungen
+          dauerhaft.
+        </li>
+        <li>
+          <b>Live-Monitor:</b> zeigt Messwerte, Diagramm, Alarme und
+          Einstellungen.
+        </li>
+        <li>
+          <b>Leitstand:</b> konzentriert sich auf die Alarmliste und die
+          Operatoraktion.
+        </li>
+      </ol>
+      <div class="say">
+        „Die Erkennung hängt nicht von einem offenen Browser ab. Der Sensor
+        erkennt den Übergang. Der Relay verwaltet die gespeicherten gemeinsamen
+        Datensätze. Die Browser zeigen jeweils eine lokale Kopie davon.“
+      </div>
+      <p>
+        <b>Übergang:</b> „Beginnen wir dort, wo der Messwert entsteht: beim
+        Sensor.“
+      </p>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Threshold Monitor · Präsentationsskript · 4 / 9</p>
+      <h1>3 · Sensor: vom Wert zum Alarm</h1>
+      <p class="timing">
+        3:00–4:00 · Auf Sensor und ausgehende Verbindung zeigen
+      </p>
+      <div class="say">
+        „Die aktuelle Datenquelle simuliert Temperaturen. Jeder Messwert hat
+        einen Zeitpunkt und einen Wert. Der Agent verbindet diese Quelle mit der
+        Erkennung und dem Versand. Ein Messwert und ein Alarm sind
+        unterschiedliche Nachrichten.“
+      </div>
+      <h2>Warum Hysterese?</h2>
+      <p>
+        Bei einem Schwellwert von <b>25°C</b> und einer Hysteresebreite von
+        <b>0,6°C</b> liegen die Grenzen bei <b>24,7°C und 25,3°C</b>.
+      </p>
+      <p>
+        Von unten kommend entsteht erst oberhalb von 25,3°C ein Aufwärtsalarm.
+        Danach entsteht erst unterhalb von 24,7°C ein Abwärtsalarm. Gleichheit
+        an einer Grenze löst keinen Wechsel aus.
+      </p>
+      <div class="say">
+        „Damit erzeugt ein leichtes Schwanken um 25 Grad nicht ständig neue
+        Alarme. Der erste Messwert legt nur die Ausgangsseite fest. Ein Alarm
+        beschreibt einen späteren Übergang.“
+      </div>
+      <h2>Was wird weitergegeben?</h2>
+      <p>
+        Normale Messwerte werden als laufender Datenstrom übertragen. Erkannte
+        Alarme erhalten eine UUID und werden für die Zustellung im Outbox-Modell
+        gehalten.
+      </p>
+      <div class="note">
+        <b>Entscheidung:</b> Die Erkennung ist eine reine Zustandsfunktion ohne
+        Netzwerkzugriff oder Uhr. Dadurch lassen sich Grenzwerte und Messfolgen
+        direkt testen.
+      </div>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Threshold Monitor · Präsentationsskript · 5 / 9</p>
+      <h1>4 · Relay: speichern und verteilen</h1>
+      <p class="timing">4:00–5:00 · Auf Relay und SQLite zeigen</p>
+      <div class="say">
+        „Der Relay ist die gemeinsame Vermittlungsstelle. Er prüft Nachrichten
+        anhand des Protokolls, speichert Alarme und verteilt neue Datensätze an
+        die Browser.“
+      </div>
+      <h2>Versand ist noch keine Speicherung</h2>
+      <p>
+        Ein erfolgreicher Socket-Schreibvorgang beweist nicht, dass der Alarm in
+        SQLite steht. Der Sensor hält den Alarm deshalb ausstehend, bis der
+        Relay dessen Annahme mit <b>accepted</b> bestätigt.
+      </p>
+      <div class="say">
+        „Fehlt diese Annahme, kann der Sensor den Alarm mit derselben UUID
+        erneut senden. Wenn der Relay ihn bereits gespeichert hat, bestätigt er
+        ihn erneut, ohne einen zweiten neuen Alarm an die Browser zu verteilen.“
+      </div>
+      <h2>Was bleibt erhalten?</h2>
+      <p>
+        SQLite enthält Alarme, Operatorbestätigungen und Einstellungen.
+        Gewöhnliche Messwerte liegen nur in begrenzten Puffern; eine
+        vollständige Temperaturhistorie wird nicht gespeichert.
+      </p>
+      <div class="note">
+        <b>Grenze offen nennen:</b> Die Sensor-Outbox ist begrenzt und liegt im
+        Arbeitsspeicher. Prozessabbruch oder Überlauf können Alarme verlieren
+        lassen. Die Wiederholungslogik ist keine uneingeschränkte
+        Zustellgarantie.
+      </div>
+      <p>
+        <b>Übergang:</b> „Der Datensatz ist jetzt gespeichert. Wie kommt er in
+        die beiden Oberflächen?“
+      </p>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Threshold Monitor · Präsentationsskript · 6 / 9</p>
+      <h1>5 · Oberflächen und Bestätigung</h1>
+      <p class="timing">5:00–7:00 · Monitor, Leitstand und Rückweg zeigen</p>
+      <h2>Live-Monitor</h2>
+      <div class="say">
+        „Der Monitor übersetzt Relay-Nachrichten in Zustandsänderungen. Redux
+        Toolkit verwaltet bestätigte Einstellungen, Sensorinformationen und
+        Alarme. Zähler und Ansichten werden daraus abgeleitet.“
+      </div>
+      <p>
+        Messwerte haben einen eigenen begrenzten Store. Ein Formularentwurf
+        bleibt lokal, bis der Benutzer ihn übernimmt. Der aktive gemeinsame Wert
+        kommt über den Relay zurück.
+      </p>
+      <h2>Leitstand</h2>
+      <p>
+        Die kleinere Alarmliste verwendet <b>useReducer</b>. Sie benötigt dafür
+        keinen eigenen Redux-Store. Beide Apps zeigen dennoch dieselben
+        serverseitigen Datensätze.
+      </p>
+      <h2>Zurück zur Bestätigung vom Anfang</h2>
+      <div class="say">
+        „Der Klick sendet eine Anfrage mit der Alarm-ID. Der Relay nimmt die
+        Identität des Operators aus der angemeldeten Sitzung, speichert die
+        erste Bestätigung und verteilt das Ergebnis. Erst die Rückmeldung
+        bestätigt den gemeinsamen Zustand.“
+      </div>
+      <p>
+        <b>Zwei Begriffe unterscheiden:</b> <b>accepted</b> bedeutet: Der Relay
+        hat den Alarm angenommen. Die Operatorbestätigung bedeutet: Eine Person
+        hat auf den Alarm reagiert.
+      </p>
+      <div class="note">
+        Bei zwei gleichzeitigen Bestätigungen bleibt die erste gespeicherte
+        Bestätigung erhalten. Eine Bestätigung beendet nicht den Messwertstrom
+        und setzt den Sensor nicht zurück.
+      </div>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Threshold Monitor · Präsentationsskript · 7 / 9</p>
+      <h1>6 · Die wichtigsten Codeausschnitte</h1>
+      <p class="timing">7:00–10:00 · Code-Explorer, dann Abschluss</p>
+      <div class="do">
+        Im Code-Explorer die Projektgruppen nutzen. Nur die genannten Stellen
+        zeigen; den Code nicht Zeile für Zeile vorlesen.
+      </div>
+      <h2>Sensor → Grenzwertdetektor</h2>
+      <p>
+        <b>domain/crossing.ts:</b> die strikten Vergleiche zeigen. „Vorheriger
+        Zustand, Messwert und Konfiguration bestimmen das Ergebnis. Ich kann die
+        Fachlogik ohne Socket oder Timer testen.“ Quelle und Agent bei Bedarf
+        vorher kurz zeigen.
+      </p>
+      <h2>Sensor → Übertragungs-Outbox; Relay → Alarm weiterleiten</h2>
+      <p>
+        <b>outbox.ts / routing.ts:</b> ausstehende Alarme, <b>accept</b>,
+        <b>expire</b> und den Zweig für bekannte IDs zeigen. „Wiederholung
+        behält die UUID; der Relay verhindert einen zweiten neuen
+        Alarmdatensatz.“
+      </p>
+      <h2>Live-Monitor → Redux-Zustand und Reducer</h2>
+      <p>
+        <b>store/alertsSlice.ts:</b> Zustandsbeispiel und Bestätigungsupdate
+        zeigen. „IDs bestimmen die Reihenfolge, entities enthält die Datensätze.
+        Immer erlaubt Änderungen am Entwurf und erzeugt den unveränderlichen
+        Folgezustand.“
+      </p>
+      <h2>Abschluss</h2>
+      <div class="say">
+        „Die zentralen Entscheidungen sind eine testbare Erkennung, eine
+        ausdrückliche Zustellbestätigung und klare Zustandsverantwortung. Als
+        nächste Verbesserungen würde ich die Sensor-Outbox dauerhaft speichern
+        und die Wiederherstellung nach Verbindungsabbrüchen erweitern.“
+      </div>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Threshold Monitor · Präsentationsskript · 8 / 9</p>
+      <h1>Reserve · Gezielt im Simulator zeigen</h1>
+      <p class="timing">Nur bei Bedarf · Exakte Abläufe statt Zufallswerte</p>
+      <h2>Übergang und Bestätigung</h2>
+      <div class="do">
+        Live-Simulator → <b>Übergänge in beide Richtungen</b> beziehungsweise
+        das Szenario <b>Cross both directions</b> → Neustart. Mit
+        <b>Schritt</b> manuell fortfahren.
+      </div>
+      <p>
+        <b>Schritte 1–9:</b> 24°C, 25,1°C und genau 25,3°C ergeben noch keinen
+        Alarm. <b>Schritt 10:</b> 25,4°C erzeugt den Alarm. <b>11:</b> Relay
+        speichert und nimmt an. <b>12:</b> Browser zeigen den Alarm.
+      </p>
+      <p>
+        Danach <b>Bestätigen</b> und dreimal <b>Schritt</b>: speichern →
+        verteilen → in beiden Ansichten übernehmen. Routen bleiben zwischen den
+        Klicks markiert.
+      </p>
+      <h2>Hystereseband anpassen</h2>
+      <p>
+        Szenario <b>Hystereseband anpassen → Neustart</b>. Die folgenden
+        Zählungen gelten ohne zusätzliche Bestätigung:
+      </p>
+      <ul>
+        <li><b>1–6:</b> zwei Messwerte, noch kein Alarm.</li>
+        <li>
+          <b>7–9:</b> Bandbreite von 0,6 auf 0,2°C. Neue Grenzen: 24,9 und
+          25,1°C. Die Änderung selbst erzeugt keinen Alarm.
+        </li>
+        <li><b>10–12:</b> stille Neueinordnung, kein Übergang.</li>
+        <li><b>13–15:</b> 24,85°C erzeugt einen Abwärtsalarm.</li>
+        <li><b>16–18:</b> 25,15°C erzeugt einen Aufwärtsalarm.</li>
+      </ul>
+      <p>
+        „Das engere Band reagiert auf kleinere Änderungen. Beide späteren Werte
+        lagen noch innerhalb des alten Bands.“
+      </p>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Threshold Monitor · Präsentationsskript · 9 / 9</p>
+      <h1>Reserve · Kurze Antworten</h1>
+      <p class="timing">Für Rückfragen nach der Präsentation</p>
+      <h2>Warum Redux und nicht Zustand?</h2>
+      <p>
+        Redux Toolkit macht Aktionen, normalisierte Datensätze und abgeleitete
+        Ansichten gut nachvollziehbar. Zustand wäre ebenfalls möglich. Die
+        Entscheidung passt zum Zustandsmodell des Monitors; sie ist keine
+        technische Notwendigkeit.
+      </p>
+      <h2>Warum ein eigener Store für Messwerte?</h2>
+      <p>
+        Messwerte sind vorübergehend und begrenzt. Diagramm und Anzeige
+        abonnieren sie über useSyncExternalStore. Redux könnte die Rate
+        ebenfalls verarbeiten; entscheidend sind Lebensdauer und Verantwortung.
+      </p>
+      <h2>Stellt Reconnect alles wieder her?</h2>
+      <p>
+        Nein. Die Begrüßungsnachricht enthält höchstens 100 aktuelle Alarme. Ein
+        älterer, lokal vorhandener Alarm kann eine Bestätigung während einer
+        Unterbrechung verpassen. Ein dauerhafter Änderungsverlauf mit
+        Wiederholung wäre eine Erweiterung.
+      </p>
+      <h2>Wie würdest du neue Funktionen ergänzen?</h2>
+      <p>
+        Zuerst Verhalten und Zuständigkeit klären, dann Datenfluss und Tests
+        festlegen. Mehrere Sensoren brauchen getrennte Identitäten und Zustände.
+        Alarmhistorie benötigt eine autorisierte, paginierte Abfrage.
+        Vollständige Messhistorie braucht zusätzliche Speicherung.
+      </p>
+      <h2>Was ist nur simuliert?</h2>
+      <p>
+        Die Temperaturquelle erzeugt aktuell künstliche Werte. Die echten Apps
+        verwenden dennoch reale Netzwerkverbindungen und Speicherung. Der
+        Architektur-Simulator ist ein separates Erklärmodell und steuert diese
+        Verbindungen nicht.
+      </p>
+    </section>
+  </body>
+</html>
