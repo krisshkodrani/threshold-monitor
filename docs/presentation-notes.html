@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Threshold Monitor — Presentation notes</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 15mm 17mm 18mm;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e9eeec;
+        color: #182936;
+        font:
+          14px/1.5 Arial,
+          sans-serif;
+      }
+      .page {
+        max-width: 800px;
+        margin: 24px auto;
+        padding: 42px 48px;
+        background: white;
+      }
+      .eyebrow {
+        color: #28694f;
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        font-size: 10px;
+        font-weight: bold;
+      }
+      h1 {
+        font-size: 32px;
+        line-height: 1.15;
+        margin: 12px 0;
+        letter-spacing: -0.7px;
+      }
+      h2 {
+        font-size: 20px;
+        line-height: 1.2;
+        margin: 10px 0 18px;
+      }
+      h3 {
+        font-size: 14px;
+        margin: 20px 0 6px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      .lead {
+        color: #536574;
+        font-size: 15px;
+      }
+      blockquote {
+        margin: 12px 0;
+        padding: 12px 16px;
+        background: #edf5ef;
+        border-left: 3px solid #398162;
+      }
+      blockquote p {
+        margin: 0;
+      }
+      .cue {
+        color: #536574;
+        font-size: 12px;
+      }
+      code {
+        font-size: 0.9em;
+        overflow-wrap: anywhere;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        margin: 16px 0;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 7px;
+        border-bottom: 1px solid #d9e3de;
+        vertical-align: top;
+      }
+      th {
+        color: #28694f;
+      }
+      a {
+        color: #23674d;
+      }
+      ul,
+      ol {
+        padding-left: 20px;
+      }
+      li {
+        margin-bottom: 7px;
+      }
+      .footer {
+        border-top: 1px solid #d9e3de;
+        margin-top: 24px;
+        padding-top: 10px;
+        font-size: 11px;
+        color: #536574;
+      }
+      @media print {
+        body {
+          background: white;
+          font-size: 10pt;
+        }
+        .page {
+          max-width: none;
+          margin: 0;
+          padding: 0;
+          break-after: page;
+        }
+        .page:last-child {
+          break-after: auto;
+        }
+        h1 {
+          font-size: 26pt;
+        }
+        h2 {
+          font-size: 18pt;
+        }
+        h3 {
+          margin-top: 14px;
+          font-size: 11pt;
+        }
+        .lead {
+          font-size: 11pt;
+        }
+        .cue {
+          font-size: 9pt;
+        }
+        table {
+          font-size: 9pt;
+        }
+        th,
+        td {
+          padding: 8px 6px;
+        }
+        blockquote {
+          break-inside: avoid;
+          padding: 10px 14px;
+        }
+        li {
+          margin-bottom: 5px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="page">
+      <p class="eyebrow">Presenter copy · 1 / 7 · Run sheet</p>
+      <h1>One alert.<br />Three architecture decisions.</h1>
+      <p class="lead">
+        A 10-minute walkthrough of Threshold Monitor. Show the behavior, point
+        to the code, explain the tradeoff.
+      </p>
+      <blockquote>
+        <p>
+          “I’ll follow one alert from detection to an operator’s
+          acknowledgement, then show three decisions that make that behavior
+          understandable and testable.”
+        </p>
+      </blockquote>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Screen</th>
+            <th>Your purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0:00–2:00</td>
+            <td>System overview</td>
+            <td>
+              Assign responsibilities: sensor detects, relay persists, monitor
+              displays, control room responds.
+            </td>
+          </tr>
+          <tr>
+            <td>2:00–5:00</td>
+            <td>Live simulator</td>
+            <td>
+              Show one crossing, delivery, and server-confirmed acknowledgement.
+            </td>
+          </tr>
+          <tr>
+            <td>5:00–6:00</td>
+            <td>Code: crossing.ts</td>
+            <td>
+              Pure detection separates domain decisions from clocks and sockets.
+            </td>
+          </tr>
+          <tr>
+            <td>6:00–7:30</td>
+            <td>Code: Redux state → Actions &amp; reducers</td>
+            <td>
+              Make state ownership explicit; show one acknowledgement update.
+            </td>
+          </tr>
+          <tr>
+            <td>7:30–9:00</td>
+            <td>Code: outbox.ts → routing.ts</td>
+            <td>
+              Distinguish socket writes from acceptance; connect retries to UUID
+              deduplication.
+            </td>
+          </tr>
+          <tr>
+            <td>9:00–10:00</td>
+            <td>System overview</td>
+            <td>
+              Name current limits and the next concrete reliability improvement.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Before people arrive</h3>
+      <ul>
+        <li>
+          Open
+          <a href="architecture-guide.html#overview">the offline guide</a> and
+          keep this sheet on a second screen or printed.
+        </li>
+        <li>
+          Use English or German consistently. The Code Explorer supports both;
+          this speaking script is English.
+        </li>
+        <li>
+          In Live Simulator, choose <strong>Cross both directions</strong>, then
+          <strong>Restart</strong>. Saved runs survive a reload.
+        </li>
+        <li>
+          Return to Overview. Check screen sharing, readable browser zoom, and
+          that the simulator map and alarm list are visible.
+        </li>
+        <li>
+          The guide is an offline educational model. A real relay or login is
+          unnecessary for this walkthrough.
+        </li>
+      </ul>
+      <h3>If you only get five minutes</h3>
+      <p>
+        Use one minute for the map, two for the crossing and acknowledgement,
+        one for the outbox code, and one for state ownership and limits. Keep
+        the remaining examples for questions.
+      </p>
+      <p class="footer">
+        Keep the visible guide focused on the system. These notes are separate
+        presenter material.
+      </p>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Presenter copy · 2 / 7 · Overview and demo</p>
+      <h2>Tell the story while stepping</h2>
+      <h3>0:00 · Overview — point to each component</h3>
+      <blockquote>
+        <p>
+          “The sensor detects transitions in the measurements. The relay
+          validates and stores alerts, then distributes them. The monitor shows
+          readings and edits settings. The control room lets an operator
+          acknowledge an alarm. SQLite preserves alerts, acknowledgements, and
+          settings across relay restarts.”
+        </p>
+      </blockquote>
+      <p class="cue">
+        Transition: “Let’s follow one alert. This simulator models the message
+        flow; it does not connect to the running relay.”
+      </p>
+      <h3>2:00 · Simulator — choose Cross both directions → Restart</h3>
+      <p>
+        Threshold: <strong>25°C</strong>. Hysteresis width:
+        <strong>0.6°C</strong>. Edges: <strong>24.7°C and 25.3°C</strong>.
+        Counts below are total Step clicks since Restart.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Step count</th>
+            <th>What you see</th>
+            <th>What to say</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1–3</td>
+            <td>Sample 1: 24°C reaches the monitor.</td>
+            <td>
+              “The first reading establishes state. Starting on one side does
+              not itself create an alert.”
+            </td>
+          </tr>
+          <tr>
+            <td>4–9</td>
+            <td>25.1°C, then exactly 25.3°C. No alert.</td>
+            <td>
+              “Crossing the central threshold is insufficient. Even touching the
+              upper edge creates no alert: the comparison is strict.”
+            </td>
+          </tr>
+          <tr>
+            <td>10 · pause</td>
+            <td>25.4°C creates an upward alert. Sensor stage.</td>
+            <td>
+              “Now the reading exceeds the upper edge. The sensor creates an
+              alert and keeps it pending in the outbox.”
+            </td>
+          </tr>
+          <tr>
+            <td>11 · pause</td>
+            <td>Relay stores the alert and returns accepted.</td>
+            <td>
+              “Storage and acceptance are separate from the sensor’s socket
+              write. The sensor can now remove this UUID from its outbox.”
+            </td>
+          </tr>
+          <tr>
+            <td>12 · pause</td>
+            <td>The alert appears in both browser apps.</td>
+            <td>“Each app updates its own view of the same server record.”</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Acknowledge, then three more Step clicks</h3>
+      <p>
+        Click <strong>Acknowledge</strong>: the request is sent, but the alarm
+        is not yet confirmed.
+      </p>
+      <p>
+        <strong>Step 1:</strong> relay stores the first acknowledgement.
+        <strong>Step 2:</strong> relay broadcasts confirmation.
+        <strong>Step 3:</strong> browser copies show “Acknowledged by Alex”.
+        Routes stay highlighted between clicks.
+      </p>
+      <blockquote>
+        <p>
+          “The click requests a change. The UI shows success after server
+          confirmation. The operator’s identity comes from the authenticated
+          session, rather than a name supplied in the request.”
+        </p>
+      </blockquote>
+      <p class="cue">
+        Stop the main demo here. The downward crossing is optional. Transition:
+        “Now I’ll show three code decisions behind this behavior.”
+      </p>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Presenter copy · 3 / 7 · Code decisions</p>
+      <h2>Show a few lines. Explain the choice.</h2>
+      <h3>5:00 · Detection &amp; delivery → crossing.ts</h3>
+      <blockquote>
+        <p>
+          “Detection is a small state machine. Previous state, a reading, and
+          settings determine the result. There are no sockets or clocks inside
+          it, so I can test exact boundaries and noisy sequences directly.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Point to:</strong> the upper and lower comparisons, and the
+        returned next state. Connect them to 25.3°C versus 25.4°C in the demo.
+      </p>
+      <p>
+        <strong>Tradeoff:</strong> hysteresis deliberately delays the opposite
+        transition until the other edge is crossed. It suppresses noise at the
+        cost of a wider switching band.
+      </p>
+      <p class="cue">
+        Do not read every branch. One boundary example establishes the design.
+      </p>
+      <h3>6:00 · Shared state → Redux state → Actions &amp; reducers</h3>
+      <blockquote>
+        <p>
+          “The monitor uses Redux Toolkit for confirmed settings, sensor
+          information, and normalized alerts. The state shape makes ownership
+          visible. An acknowledgement action updates the existing record by ID;
+          selectors derive the view.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Point to:</strong> <code>settings.current</code>,
+        <code>alerts.ids</code>, <code>alerts.entities</code>, then the
+        acknowledgement guard and assignment in the alert reducer.
+      </p>
+      <p>
+        <strong>Explain the boundary:</strong> “Form drafts stay local.
+        Transient readings use a bounded external store. The control room has a
+        smaller alarm model and uses <code>useReducer</code>.”
+      </p>
+      <p>
+        <strong>Tradeoff:</strong> there are multiple state mechanisms to
+        understand. Each has a clear owner and lifetime. Redux could handle
+        readings; the separate store is an intentional design choice, not a
+        Redux limitation.
+      </p>
+      <h3>7:30 · Detection &amp; delivery → outbox.ts → routing.ts</h3>
+      <blockquote>
+        <p>
+          “A successful socket write doesn’t prove the relay stored the alert.
+          Sending moves it into pending. Acceptance removes it; a deadline
+          returns it to the retry queue. Retries keep the same UUID, so the
+          relay can acknowledge an existing record without broadcasting a
+          duplicate.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Point to:</strong> pending deadlines, <code>accept</code>,
+        <code>expire</code>, then the existing-record branch in relay routing.
+      </p>
+      <p>
+        <strong>Tradeoff:</strong> the outbox is bounded and in memory. Process
+        loss or queue overflow can lose alerts. This is conditional
+        at-least-once delivery, not an unconditional delivery guarantee.
+      </p>
+      <h3>9:00 · Return to Overview — close</h3>
+      <blockquote>
+        <p>
+          “The current design targets one sensor and one relay. My next
+          reliability improvement would be a durable sensor outbox. Browser
+          recovery also needs replay after a cursor or an acknowledgement
+          lookup, because the welcome snapshot is bounded. The key decisions are
+          explicit state ownership, pure domain logic, and confirmation at the
+          right boundary.”
+        </p>
+      </blockquote>
+      <p class="cue">
+        Pause for questions. Keep the draft form, hooks, and database examples
+        as backup.
+      </p>
+    </section>
+    <section class="page">
+      <p class="eyebrow">Presenter copy · 4 / 7 · Questions and rehearsal</p>
+      <h2>Short answers, with a code example ready</h2>
+      <h3>Why Redux here, but not everywhere?</h3>
+      <p>
+        The monitor has shared settings, normalized alerts, and derived views.
+        Redux Toolkit gives those updates explicit actions and selectors. The
+        control room’s smaller alarm list uses a reducer. Local editing state
+        stays with its component.
+      </p>
+      <h3>Why a separate readings store?</h3>
+      <p>
+        Measurements are transient and bounded. The chart and readout subscribe
+        through <code>useSyncExternalStore</code>. Redux could support the
+        update rate; the reason is ownership and lifetime, not that every Redux
+        subscriber must re-render.
+      </p>
+      <h3>Show a React UX decision</h3>
+      <p>
+        Open <strong>Draft vs. confirmed state</strong>: “Typing 25 must not
+        briefly send 2 as a shared setting. The component holds a string draft,
+        validates it on commit, and requests the update. Redux receives the
+        server-confirmed numeric value.” The round trip introduces a delay; the
+        active value remains visible.
+      </p>
+      <h3>What if the relay stored an alert but acceptance was lost?</h3>
+      <p>
+        The sensor retries the same UUID. The relay recognizes the stored record
+        and accepts it without sending another new-alert broadcast. Open
+        <strong>routing.ts</strong>.
+      </p>
+      <h3>What if two operators acknowledge the same alarm?</h3>
+      <p>
+        The server takes identity from the session. A conditional database
+        update preserves the first acknowledgement. Open
+        <strong>alertStore.ts</strong>; the client’s click alone is not
+        authoritative.
+      </p>
+      <h3>Does reconnect recover everything?</h3>
+      <p>
+        No. Welcome includes at most 100 recent alerts, not a complete replay.
+        An older retained control-room alarm can miss its acknowledgement.
+        Readings are transient, and the sensor outbox is not durable.
+      </p>
+      <h3>Why SQLite? How would this scale?</h3>
+      <p>
+        A single relay and local database keep this deployment simple. Several
+        relays would need a shared store, distribution between relay instances,
+        and atomic deduplication and first-acknowledgement behavior.
+      </p>
+      <h3>Rehearse twice</h3>
+      <ol>
+        <li>
+          <strong>First pass:</strong> use a timer. Reach the first alarm in 12
+          Step clicks. Acknowledge, then use three more Steps. Switch to the
+          three code examples without searching.
+        </li>
+        <li>
+          <strong>Second pass:</strong> speak from the screen, using these notes
+          only for timing. If you pass five minutes before opening code, shorten
+          the demo explanation.
+        </li>
+        <li>
+          <strong>Before presenting:</strong> restart the simulator, return to
+          Overview, and keep the offline guide and this PDF available. If screen
+          sharing fails, explain sensor → relay → browsers verbally using the
+          same story.
+        </li>
+      </ol>
+      <p class="footer">
+        For more questions:
+        <a href="interview-questions.pdf">interview-questions.pdf</a>.
+        Reference: <a href="architecture.md">architecture.md</a>. These notes
+        describe the current implementation; proposed reliability improvements
+        are not implemented.
+      </p>
+    </section>
+    <section class="page">
+      <p class="eyebrow">
+        Presenter copy · 5 / 7 · New features: domain and scope
+      </p>
+      <h2>How would you extend this system?</h2>
+      <p class="lead">
+        These answers describe proposed work. The features below are not
+        implemented.
+      </p>
+      <p class="cue">
+        Answer pattern: clarify the behavior → identify the owner → explain the
+        data flow → name a tradeoff → describe a test. Avoid an estimate until
+        the scope is clear.
+      </p>
+      <h3>1. How would you support multiple sensors?</h3>
+      <blockquote>
+        <p>
+          “I’d make sensor identity explicit throughout the live data path. Each
+          sensor keeps its own detector and outbox; the relay manages
+          connections, readings, and settings by sensor ID. The monitor can then
+          select a sensor without mixing streams.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Where:</strong> alerts already contain <code>sourceId</code> and
+        the settings table is keyed by sensor ID. However, reading messages
+        carry no sensor ID, and welcome and sensor status describe a single
+        sensor. Extend <code>packages/protocol/src/messages.ts</code>, replace
+        the relay’s single-sensor lookup with a registry, and key browser stores
+        and subscriptions by sensor.
+      </p>
+      <p>
+        <strong>Tradeoff / verify:</strong> this is a protocol and state-model
+        change, not only a dropdown. Authorize sensor identities and browser
+        access. Test two simultaneous streams, independent settings, a
+        disconnect of only one sensor, and reconnect isolation.
+      </p>
+      <h3>2. How would you add humidity or a real hardware sensor?</h3>
+      <blockquote>
+        <p>
+          “For replacing the temperature generator, I’d implement the existing
+          DataSource interface and inject it into the agent. The detector
+          already works with numeric values. For humidity, I’d also update
+          metric labels, units, defaults, and shared validation limits.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Where:</strong> <code>sensor/src/data/DataSource.ts</code>,
+        <code>sensor/src/agent.ts</code>, the sensor and monitor configs, and
+        protocol settings validation. Supporting temperature and humidity
+        simultaneously needs metric identity and settings per stream: ordinary
+        readings currently contain only time and value.
+      </p>
+      <p>
+        <strong>Tradeoff / verify:</strong> hardware brings missing, invalid,
+        and delayed readings. Decide the adapter’s error and timestamp behavior.
+        Test known sample sequences, invalid measurements, disconnect/reconnect,
+        and unit and threshold consistency.
+      </p>
+      <h3>3. What about separate high and low alarm limits?</h3>
+      <blockquote>
+        <p>
+          “I’d first distinguish an alarm threshold from hysteresis. Today there
+          is one threshold with a noise-suppression band. Independent high and
+          low alarms need explicit alarm rules, rather than relabeling the
+          existing edges.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Where:</strong> extend shared settings and validation, migrate
+        stored settings, and update the pure detector, alert metadata, settings
+        form, and chart. Define alarm activation and clearing separately from
+        operator acknowledgement.
+      </p>
+      <p>
+        <strong>Tradeoff / verify:</strong> decide what happens on startup,
+        configuration changes, and a jump across both limits. Test equality,
+        noisy edges, repeated samples, and settings changes without synthetic
+        crossings.
+      </p>
+    </section>
+    <section class="page">
+      <p class="eyebrow">
+        Presenter copy · 6 / 7 · New features: history and reliability
+      </p>
+      <h2>Extend the guarantees deliberately</h2>
+      <h3>4. How would you add history and filtering?</h3>
+      <blockquote>
+        <p>
+          “Alert history can query records already in SQLite through an
+          authorized, paginated API. Temperature history needs new storage
+          because ordinary readings are currently transient. I’d keep historical
+          results separate from the live buffer.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Where:</strong> extend the alert store and HTTP handlers; add a
+        monitor history view with loading, error, and empty states. For
+        measurements, add a readings table, bounded batched writes, range
+        queries, and retention or aggregation. Use a stable pagination cursor
+        with a unique tie-breaker.
+      </p>
+      <p>
+        <strong>Tradeoff / verify:</strong> storing received measurements cannot
+        recover samples lost before reaching the relay. At 10 Hz, one sensor
+        produces 864,000 rows per day. Test query authorization, time
+        boundaries, concurrent inserts during pagination, and visible gaps.
+        Retention must preserve deduplication information so a late alert retry
+        cannot recreate a deleted alarm.
+      </p>
+      <h3>5. How would you recover every missed acknowledgement?</h3>
+      <blockquote>
+        <p>
+          “I’d add an ordered, durable change log for alert creation and
+          acknowledgement. On reconnect, clients request changes after the last
+          sequence they applied. A bounded recent-alert snapshot alone cannot
+          guarantee recovery.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Where:</strong> write each mutation and its change-log entry in
+        one SQLite transaction. Extend the protocol and connection layer with
+        bounded replay pages, cursors, and reset responses; reducers apply
+        changes idempotently. Hand replay over to live updates without skipping
+        a sequence.
+      </p>
+      <p>
+        <strong>Tradeoff / verify:</strong> retain the cursor with the state it
+        describes; a reload that discards state must also discard that cursor.
+        Expired cursors or a replaced database require an explicit reset. Test
+        an old alarm acknowledged while offline, duplicate replay, live updates
+        during replay, and retention expiry.
+      </p>
+      <h3>6. How would you keep sensor alerts across a crash?</h3>
+      <blockquote>
+        <p>
+          “I’d persist alerts locally before sending them, then remove or mark
+          them delivered only after relay acceptance. Restart restores the
+          original UUIDs, so relay deduplication still works.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Where:</strong> add a durable sensor outbox adapter and connect
+        it to transport startup, sending, and acceptance. Keep pure queue
+        decisions separate from disk access. Use persistent storage with a
+        documented transaction and flush policy.
+      </p>
+      <p>
+        <strong>Tradeoff / verify:</strong> this protects alerts committed
+        locally, not an event lost before its first durable write. Define disk
+        limits, overflow, and full-disk behavior. Test crashes before send and
+        after relay storage but before local deletion; retries must not produce
+        another new-alert broadcast.
+      </p>
+      <p class="footer">
+        More detailed proposals and file mappings:
+        <a href="proposed-improvements.md">proposed-improvements.md</a>.
+      </p>
+    </section>
+    <section class="page">
+      <p class="eyebrow">
+        Presenter copy · 7 / 7 · New features: operator workflows
+      </p>
+      <h2>Keep new workflows server-authoritative</h2>
+      <h3>7. How would you add email, SMS, or webhook notifications?</h3>
+      <blockquote>
+        <p>
+          “I’d trigger notification work from a committed alert on the relay,
+          not from an open browser. I’d store a notification job in the same
+          database transaction as the alert, then let a worker deliver it with
+          retries.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Where:</strong> extend the persistence boundary with a
+        transactional notification outbox, then add a worker and channel
+        adapter. Use a job identity based on alert, channel, and destination.
+        Keep provider credentials on the server, and define which rules and
+        recipients receive notifications.
+      </p>
+      <p>
+        <strong>Tradeoff / verify:</strong> delivery to an external provider is
+        not atomic with a local commit. Prefer provider idempotency where
+        available; otherwise a crash after sending can cause a duplicate. Test
+        provider timeouts, retry backoff, duplicate alerts, and a relay restart
+        between commit and sending.
+      </p>
+      <h3>8. How would you add snooze, mute, or escalation?</h3>
+      <blockquote>
+        <p>
+          “I’d first separate a local sound preference from a shared operational
+          action. Snooze should not silently acknowledge an alarm. A shared
+          snooze or escalation rule belongs on the server with an owner, expiry
+          time, and audit record.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Where:</strong> a tab-only sound preference can stay local.
+        Shared snooze needs persisted state, authorized commands, protocol
+        updates, and browser reconciliation. Escalation needs a server-owned
+        deadline and restart-safe processing; browser timers are unsuitable when
+        tabs close.
+      </p>
+      <p>
+        <strong>Tradeoff / verify:</strong> agree whether new alerts inherit a
+        snooze and what happens when it expires. Test two operator tabs,
+        permission denial, exact expiry, acknowledgement racing with escalation,
+        and a server restart while a deadline is pending.
+      </p>
+      <h3>9. How would you add an admin role or configurable permissions?</h3>
+      <blockquote>
+        <p>
+          “I’d define capabilities first: viewing measurements, editing
+          settings, acknowledging alarms, and managing users. I’d enforce each
+          action on the server and use the same capabilities to explain
+          available controls in the UI.”
+        </p>
+      </blockquote>
+      <p>
+        <strong>Where:</strong> extend user and session authorization, relay
+        handshake and routing checks, and relevant HTTP endpoints. An
+        administrator does not necessarily need a new WebSocket client role; a
+        management HTTP API may be enough. The authenticated session remains the
+        source of operator identity.
+      </p>
+      <p>
+        <strong>Tradeoff / verify:</strong> define how existing sessions react
+        when permissions change. Hiding a button does not authorize an action.
+        Test direct forbidden requests, role changes during a session, and audit
+        attribution, as well as the visible UI states.
+      </p>
+      <h3>If asked which feature you would build first</h3>
+      <blockquote>
+        <p>
+          “I’d prioritize the user’s need. For correctness, reconnect recovery
+          fixes a known stale-acknowledgement gap. For sensor process failures,
+          I’d prioritize the durable outbox. I’d agree acceptance criteria and
+          demonstrate one complete flow before broadening the feature.”
+        </p>
+      </blockquote>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,268 @@
+<section class="page" id="state" aria-labelledby="state-title" hidden>
+  <div class="page-heading">
+    <span class="eyebrow">Chapter 2 · The guarantees</span>
+    <div class="heading-line">
+      <h1 id="state-title">Who owns it? What can be lost?</h1>
+    </div>
+    <p>
+      The relay stores the durable record. The sensor and browsers also hold
+      temporary state.
+    </p>
+  </div>
+  {{learning-path}}
+  <div class="panel" id="state-ownership" tabindex="-1">
+    <div class="panel-top"><h2>Where state lives</h2></div>
+    <div
+      class="table-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="State ownership and recovery"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Part</th>
+            <th>What it keeps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sensor</td>
+            <td>
+              Detector and outbox in memory. Unaccepted alerts can be lost on
+              exit or overflow.
+            </td>
+          </tr>
+          <tr>
+            <td>Relay</td>
+            <td>
+              SQLite stores alerts, acknowledgements, and settings across
+              restarts.
+            </td>
+          </tr>
+          <tr>
+            <td>Readings</td>
+            <td>
+              Relay and monitor keep 120 samples in memory. No durable history.
+            </td>
+          </tr>
+          <tr>
+            <td>Monitor</td>
+            <td>
+              Redux holds a browser copy. welcome replaces its alert collection.
+            </td>
+          </tr>
+          <tr>
+            <td>Control room</td>
+            <td>
+              A reducer holds a browser copy. welcome merges recent alarms.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="note-strip">
+    <svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>
+    <p>
+      <strong>accepted = stored.</strong>
+      <strong>acknowledged = operator response.</strong>
+    </p>
+  </div>
+  <div class="section-row"><h2>Three failure cases to remember</h2></div>
+  <div class="limits">
+    <article class="limit" id="state-retry" tabindex="-1">
+      <h3>Lost storage confirmation</h3>
+      <p>
+        The sensor retries the same UUID; the relay avoids duplicates. This only
+        works while the sensor still retains the alert.
+      </p>
+      <div class="chapter-links">
+        <button class="text-button" data-open-code="outbox">
+          Read the retry code →
+        </button>
+      </div>
+    </article>
+    <article class="limit" id="state-reconnect" tabindex="-1">
+      <h3>Missed acknowledgement</h3>
+      <p>
+        welcome contains at most 100 recent alerts. An older control-room alarm
+        can stay stale after reconnecting.
+      </p>
+      <div class="chapter-links">
+        <button class="text-button" data-open-code="control">
+          Read the alarm reducer →
+        </button>
+      </div>
+    </article>
+    <article class="limit" id="state-freshness" tabindex="-1">
+      <h3>Disconnected sensor</h3>
+      <p>
+        The last reading can stay visible after disconnecting. A visible value
+        does not prove the sensor is still measuring.
+      </p>
+      <div class="chapter-links">
+        <button class="text-button" data-open-code="readings">
+          Read the reading hooks →
+        </button>
+      </div>
+    </article>
+  </div>
+  <details class="chapter-details">
+    <summary>Exact limits and recovery details</summary>
+    <div
+      class="table-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="State ownership and recovery"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>State</th>
+            <th>Who owns it?</th>
+            <th>What survives?</th>
+            <th>Code to inspect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Detector side</td>
+            <td>Sensor process memory</td>
+            <td>
+              A process restart initializes the side again. A first reading
+              never alerts.
+            </td>
+            <td>
+              <button class="text-button" data-open-code="crossing">
+                Detector →
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td>Readings</td>
+            <td>Relay memory and monitor ring buffer</td>
+            <td>
+              120 samples in each window. No durable reading history; relay
+              clears its buffer on sensor connect/disconnect.
+            </td>
+            <td>
+              <button class="text-button" data-open-code="readings">
+                Reading hooks →
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td>Unaccepted alerts</td>
+            <td>Sensor’s in-memory outbox</td>
+            <td>
+              50 queued; sent alerts are pending separately. Overflow and
+              process exit can lose alerts.
+            </td>
+            <td>
+              <button class="text-button" data-open-code="outbox">
+                Outbox →
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td>Accepted alerts and acknowledgements</td>
+            <td>Relay SQLite</td>
+            <td>
+              Persist across process restarts when the database file is
+              retained. No current retention job.
+            </td>
+            <td>
+              <button class="text-button" data-open-code="database">
+                Alert store →
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td>Threshold and hysteresis</td>
+            <td>Relay SQLite; browser and sensor hold copies</td>
+            <td>
+              Confirmed settings persist per sensor identity. Editing a browser
+              draft does not change the stored value.
+            </td>
+            <td>
+              <button class="text-button" data-open-code="alerts">
+                Monitor store →
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td>Monitor alert collection</td>
+            <td>Redux in that browser tab</td>
+            <td>
+              200 retained live; 50 shown. welcome replaces the collection with
+              at most 100 recent alerts.
+            </td>
+            <td>
+              <button class="text-button" data-open-code="alerts">
+                Alerts slice →
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td>Control-room alarm list</td>
+            <td>useReducer in that browser tab</td>
+            <td>
+              500 retained. welcome merges at most 100 recent alerts. Reload
+              starts a fresh list.
+            </td>
+            <td>
+              <button class="text-button" data-open-code="control">
+                Alarm reducer →
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="chapter-intro">
+      The monitor retains 200 alerts live and shows 50. The control room retains
+      500. Snapshots are bounded; full replay and a durable sensor outbox are
+      proposed improvements.
+    </p>
+    <a class="text-button" href="proposed-improvements.md"
+      >Read proposed improvements →</a
+    >
+  </details>
+  <details class="chapter-details">
+    <summary>Supporting boundaries: identity and deployment</summary>
+    <div class="detail-grid">
+      <article class="detail-block">
+        <h3>Browser session and role</h3>
+        <p>
+          Login sets an HttpOnly, SameSite=Strict session cookie; SQLite stores
+          the token hash. hello checks the requested role. The control room
+          requires the operator role. Logout closes that session’s sockets;
+          heartbeat checks session expiry. Sessions default to 12 hours.
+        </p>
+      </article>
+      <article class="detail-block">
+        <h3>Sensor service identity</h3>
+        <p>
+          The sensor authenticates with a token in hello. A different sensor ID
+          is refused while another is connected; the same ID replaces its old
+          socket. Acknowledgement identity comes from the operator’s server-side
+          session.
+        </p>
+      </article>
+      <article class="detail-block">
+        <h3>One relay, one database</h3>
+        <p>
+          Docker Compose runs a relay and a sensor process. The relay writes a
+          persistent volume; the sensor reads the token file through a read-only
+          mount. A reverse proxy provides TLS. Compose enables demo users by
+          default; the server alone does not.
+        </p>
+      </article>
+    </div>
+  </details>
+  <div class="chapter-links">
+    <a href="#code">← Revisit the implementation</a
+    ><a href="#react">Continue: how React displays this state →</a>
+  </div>
+</section>

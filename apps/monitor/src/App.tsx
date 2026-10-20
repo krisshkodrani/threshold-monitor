@@ -5,7 +5,7 @@ import {
   useRelay,
   type ConnectRelay,
 } from "@app/client";
-import { ErrorBoundary } from "@app/ui";
+import { ErrorBoundary, ProjectNavigation } from "@app/ui";
 import { lazy, Suspense, useRef, useState } from "react";
 import { AlertLog } from "./components/AlertLog";
 import { HysteresisControl } from "./components/HysteresisControl";
@@ -130,12 +130,13 @@ export function App({ connect, readings, account }: AppProps) {
   return (
     <div className="app">
       <header className="app__header">
-        <div>
+        <div className="app__brand">
           <h1>Threshold Monitor</h1>
           <p className="muted">
             {sensor ? `${sensor.label} · online` : "Sensor offline"}
           </p>
         </div>
+        <ProjectNavigation current="monitor" />
         <div className="app__status">
           <AccountBar
             displayName={account.displayName}
@@ -144,14 +145,6 @@ export function App({ connect, readings, account }: AppProps) {
           <ConnectionBadge status={status} />
         </div>
       </header>
-
-      <ErrorBoundary name="The readout">
-        <ReadoutBar
-          readings={readings}
-          threshold={cfg.threshold}
-          counts={counts}
-        />
-      </ErrorBoundary>
 
       <main className="app__main">
         <section className="panel app__chart" aria-label="Live chart">
@@ -163,6 +156,9 @@ export function App({ connect, readings, account }: AppProps) {
           </ErrorBoundary>
         </section>
         <section className="panel app__controls" aria-label="Settings">
+          <ErrorBoundary name="The readout">
+            <ReadoutBar readings={readings} threshold={cfg.threshold} />
+          </ErrorBoundary>
           <ThresholdForm
             threshold={cfg.threshold}
             disabled={!canChange}
@@ -173,14 +169,17 @@ export function App({ connect, readings, account }: AppProps) {
             disabled={!canChange}
             onChange={(hysteresis) => changeSettings({ hysteresis })}
           />
-          <SensorPanel sensor={sensor} settings={settings} />
+          <details className="sensor-details">
+            <summary>Sensor details</summary>
+            <SensorPanel sensor={sensor} settings={settings} />
+          </details>
           {notice && (
             <p className="notice" role="alert">
               {notice}
             </p>
           )}
         </section>
-        <AlertLog alerts={alerts} />
+        <AlertLog alerts={alerts} counts={counts} />
       </main>
     </div>
   );

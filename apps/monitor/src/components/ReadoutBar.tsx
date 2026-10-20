@@ -7,7 +7,7 @@ import type { AlertCounts } from "../store/alertsSlice";
 type Props = {
   readings: ReadingsStore;
   threshold: number;
-  counts: AlertCounts;
+  counts?: AlertCounts;
 };
 
 const sideLabels = { above: "▲ Above", below: "▼ Below" } as const;
@@ -41,18 +41,22 @@ export function ReadoutBar({ readings, threshold, counts }: Props) {
           {side ? sideLabels[side] : "—"}
         </dd>
       </div>
-      <div className="readout__item">
-        <dt>Alerts</dt>
-        <dd>{counts.total}</dd>
-      </div>
-      <div className="readout__item">
-        <dt>Open</dt>
-        <dd>{counts.received}</dd>
-      </div>
-      <div className="readout__item">
-        <dt>Acknowledged</dt>
-        <dd>{counts.acknowledged}</dd>
-      </div>
+      {counts && (
+        <>
+          <div className="readout__item">
+            <dt>Alerts</dt>
+            <dd>{counts.total}</dd>
+          </div>
+          <div className="readout__item">
+            <dt>Open</dt>
+            <dd>{counts.received}</dd>
+          </div>
+          <div className="readout__item">
+            <dt>Acknowledged</dt>
+            <dd>{counts.acknowledged}</dd>
+          </div>
+        </>
+      )}
     </dl>
   );
 }

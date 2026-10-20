@@ -1,0 +1,1667 @@
+<section class="page" id="code" aria-labelledby="code-title" hidden>
+  <header class="code-explorer-header">
+    <h1 id="code-title">Code explorer</h1>
+  </header>
+  <label class="code-topic-picker"
+    >Example<select id="code-topic" aria-label="Choose a code example"></select
+  ></label>
+  <div class="code-layout">
+    <nav
+      class="panel file-browser"
+      aria-label="Source examples by project part"
+    >
+      <section class="code-file-group" data-code-group="Sensor">
+        <h2 class="file-group"><span>Sensor</span><code>sensor/</code></h2>
+        <button class="file-button" data-code="source" data-code-order="1">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Reading source</strong
+            ><small title="sensor/src/data/randomWalkSource.ts"
+              >data/randomWalkSource.ts</small
+            ></span
+          ></button
+        ><button class="file-button" data-code="agent" data-code-order="2">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Agent subscription</strong
+            ><small title="sensor/src/agent.ts">agent.ts</small></span
+          ></button
+        ><button class="file-button" data-code="crossing" data-code-order="3">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Crossing detector</strong
+            ><small title="sensor/src/domain/crossing.ts"
+              >domain/crossing.ts</small
+            ></span
+          ></button
+        ><button class="file-button" data-code="outbox" data-code-order="4">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Delivery outbox</strong
+            ><small title="sensor/src/transport/outbox.ts"
+              >transport/outbox.ts</small
+            ></span
+          >
+        </button>
+      </section>
+      <section class="code-file-group" data-code-group="Relay">
+        <h2 class="file-group"><span>Relay</span><code>server/</code></h2>
+        <button class="file-button" data-code="routing" data-code-order="5">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Route an alert</strong
+            ><small title="server/src/routing.ts">routing.ts</small></span
+          ></button
+        ><button class="file-button" data-code="database" data-code-order="6">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Durable alert records</strong
+            ><small title="server/src/alertStore.ts">alertStore.ts</small></span
+          ></button
+        ><button class="file-button" data-code="ack" data-code-order="10">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Confirm acknowledgement</strong
+            ><small title="server/src/routing.ts">routing.ts</small></span
+          >
+        </button>
+      </section>
+      <section class="code-file-group" data-code-group="Live Monitor">
+        <h2 class="file-group">
+          <span>Live Monitor</span><code>apps/monitor/</code>
+        </h2>
+        <button class="file-button" data-code="redux-flow" data-code-order="7">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Messages → UI</strong
+            ><small title="apps/monitor/src/App.tsx">App.tsx</small></span
+          ></button
+        ><button class="file-button" data-code="alerts" data-code-order="8">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Redux state &amp; reducers</strong
+            ><small title="apps/monitor/src/store/alertsSlice.ts"
+              >store/alertsSlice.ts</small
+            ></span
+          ></button
+        ><button class="file-button" data-code="readings" data-code-order="12">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Live reading subscriptions</strong
+            ><small title="apps/monitor/src/hooks/useReadings.ts"
+              >hooks/useReadings.ts</small
+            ></span
+          ></button
+        ><button class="file-button" data-code="draft" data-code-order="11">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Draft vs. confirmed settings</strong
+            ><small title="apps/monitor/src/components/ThresholdForm.tsx"
+              >components/ThresholdForm.tsx</small
+            ></span
+          >
+        </button>
+      </section>
+      <section class="code-file-group" data-code-group="Control Room">
+        <h2 class="file-group">
+          <span>Control Room</span><code>apps/control/</code>
+        </h2>
+        <button class="file-button" data-code="control" data-code-order="9">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Alarm list reducer</strong
+            ><small title="apps/control/src/state/alarms.ts"
+              >state/alarms.ts</small
+            ></span
+          >
+        </button>
+      </section>
+      <section class="code-file-group" data-code-group="Packages">
+        <h2 class="file-group"><span>Packages</span><code>packages/</code></h2>
+        <button class="file-button" data-code="protocol" data-code-order="13">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Message contracts</strong
+            ><small title="packages/protocol/src">protocol/src</small></span
+          ></button
+        ><button class="file-button" data-code="hook" data-code-order="14">
+          <svg class="icon" aria-hidden="true"><use href="#i-code" /></svg
+          ><span
+            ><strong>Connection lifecycle</strong
+            ><small title="packages/client/src/useRelay.ts"
+              >useRelay.ts</small
+            ></span
+          >
+        </button>
+      </section>
+    </nav>
+    <div class="code-workspace">
+      <div class="code-reader" tabindex="0" aria-label="Code examples">
+        <article class="code-panel" data-code-panel="source" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Sensor</span>
+            <h3>Produce a reading before detecting an alert</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>sensor/src/data/randomWalkSource.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="source"
+                  aria-label="Copy sensor/src/data/randomWalkSource.ts excerpt"
+                >
+                  Copy excerpt</button
+                ><a href="../sensor/src/data/randomWalkSource.ts"
+                  >Open source ↗</a
+                >
+              </div>
+              <pre><code id="snippet-source" data-source="sensor/src/data/randomWalkSource.ts">  function tick() {
+    const now = clock();
+    const period = 1000 / rate;
+    if (now - nextAt &gt; MAX_CATCH_UP_MS) {
+      // Keep the schedule&#x27;s phase, but start at most MAX_CATCH_UP_MS back.
+      nextAt += Math.floor((now - MAX_CATCH_UP_MS - nextAt) / period) * period;
+    }
+    while (nextAt &lt;= now) {
+      const reading = { t: nextAt, value: next() };
+      for (const listener of listeners) listener(reading);
+      nextAt += period;
+    }
+  }</code></pre>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Generates simulated temperature readings at the configured rate
+                and delivers them to subscribers. Each reading contains a
+                scheduled timestamp and a value.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Clock and sample rate</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Timestamped readings</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                The clock decides which samples are due; an injected scheduler
+                makes late ticks testable. Catch-up is capped at one minute, so
+                a long suspension can leave a gap.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="agent" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Sensor</span>
+            <h3>One reading, one decision path</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>sensor/src/agent.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="agent"
+                  aria-label="Copy sensor/src/agent.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from sensor/src/agent.ts"
+              ><code id="snippet-agent">  const stopSource = source.subscribe((reading) =&gt; {
+    // Settings changed since the last reading: re-derive the side from the
+    // last value first, silently. Only a new reading can raise an alert,
+    // never a settings change (ADR 0003).
+    if (applied !== cfg) {
+      applied = cfg;
+      detector = classify(lastValue, cfg.threshold);
+    }
+    lastValue = reading.value;
+
+    transport.sendReading({ t: Math.round(reading.t), value: reading.value });
+
+    const [next, event] = step(detector, reading.value, cfg);
+    detector = next;
+    if (!event) return;
+
+    transport.send(
+      createAlert(newId(), reading, event.direction, cfg, {
+        sourceId: sensor.sensorId,
+        sourceLabel: sensor.label,
+        metric: metric.key,
+        unit: metric.unit,
+      }),
+    );
+    onAlert?.(event.direction, reading.value);
+  });
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a href="../sensor/src/agent.ts" target="_blank" rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <details class="code-more">
+                <summary>More detail</summary>
+                <div class="code-note">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-book" />
+                  </svg>
+                  <div>
+                    <strong>Why this boundary?</strong>
+                    <p>
+                      A source and a transport are injected. Tests can supply
+                      readings and inspect sent alerts without real clocks or
+                      sockets.
+                    </p>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Coordinates the sensor workflow: receives readings, applies
+                confirmed settings, runs the crossing detector, and hands
+                readings and new alerts to the transport.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Reading and confirmed settings</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Reading message and optional alert</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                Inject the source and transport so the same coordinator can run
+                against real connections or test doubles.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="crossing" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Sensor</span>
+            <h3>A small state machine</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>sensor/src/domain/crossing.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="crossing"
+                  aria-label="Copy sensor/src/domain/crossing.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from sensor/src/domain/crossing.ts"
+              ><code id="snippet-crossing">export function step(
+  state: DetectorState,
+  value: number,
+  cfg: DetectorConfig,
+): [DetectorState, CrossingEvent | null] {
+  // A broken reading tells us nothing; keep the last known side.
+  if (!Number.isFinite(value)) return [state, null];
+
+  const { threshold, hysteresis } = cfg;
+
+  // First reading: we learn which side we are on, but there was no transition.
+  if (state.side === null) return [classify(value, threshold), null];
+
+  // Strict comparisons: a value exactly on a band edge does not switch.
+  if (state.side === &quot;below&quot; &amp;&amp; value &gt; threshold + hysteresis / 2) {
+    return [{ side: &quot;above&quot; }, { direction: &quot;up&quot; }];
+  }
+  if (state.side === &quot;above&quot; &amp;&amp; value &lt; threshold - hysteresis / 2) {
+    return [{ side: &quot;below&quot; }, { direction: &quot;down&quot; }];
+  }
+  return [state, null];
+}
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../sensor/src/domain/crossing.ts"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <details class="code-more">
+                <summary>More detail</summary>
+                <div class="code-note">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-book" />
+                  </svg>
+                  <div>
+                    <strong>Watch the boundary</strong>
+                    <p>
+                      With T = 25 and h = 0.6, a below state changes only above
+                      25.3. The first reading establishes state and never
+                      alerts.
+                    </p>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Compares a reading with the hysteresis edges and the previous
+                detector state. Returns the next state and, when the side
+                changes, an upward or downward crossing event.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Previous side, reading, settings</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Next side and optional crossing</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                Keep detection pure: the same previous state, reading, and
+                settings produce the same decision. Hysteresis prevents repeated
+                alerts around one boundary.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="outbox" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Sensor</span>
+            <h3>Queued → pending → accepted</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>sensor/src/transport/outbox.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="outbox"
+                  aria-label="Copy sensor/src/transport/outbox.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from sensor/src/transport/outbox.ts"
+              ><code id="snippet-outbox">export function takeForSend&lt;T&gt;(
+  state: Outbox&lt;T&gt;,
+  now: number,
+  timeoutMs = ACCEPT_TIMEOUT_MS,
+): { state: Outbox&lt;T&gt;; toSend: T[] } {
+  const sent = state.queue.map((entry) =&gt; ({
+    ...entry,
+    deadline: now + timeoutMs,
+  }));
+  return {
+    state: { ...state, queue: [], pending: [...state.pending, ...sent] },
+    toSend: sent.map((entry) =&gt; entry.item),
+  };
+}
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../sensor/src/transport/outbox.ts"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <h4 class="code-section-heading">
+                Confirmation removes the pending alert
+              </h4>
+              <div class="code-toolbar">
+                <code>sensor/src/transport/outbox.ts</code
+                ><a href="../sensor/src/transport/outbox.ts">Open source ↗</a>
+              </div>
+              <pre><code id="snippet-outbox-accept" data-source="sensor/src/transport/outbox.ts">export function accept&lt;T extends { id: string }&gt;(
+  state: Outbox&lt;T&gt;,
+  id: string,
+): Outbox&lt;T&gt; {
+  return {
+    ...state,
+    queue: state.queue.filter((entry) =&gt; entry.item.id !== id),
+    pending: state.pending.filter((entry) =&gt; entry.item.id !== id),
+  };
+}</code></pre>
+              <h4 class="code-section-heading">
+                A deadline returns it to the retry queue
+              </h4>
+              <div class="code-toolbar">
+                <code>sensor/src/transport/outbox.ts</code
+                ><a href="../sensor/src/transport/outbox.ts">Open source ↗</a>
+              </div>
+              <pre><code id="snippet-outbox-expire" data-source="sensor/src/transport/outbox.ts">export function expire&lt;T&gt;(
+  state: Outbox&lt;T&gt;,
+  now: number,
+): { state: Outbox&lt;T&gt;; expired: T[]; dropped: T[] } {
+  const expired = state.pending.filter((entry) =&gt; entry.deadline &lt;= now);
+  const pending = state.pending.filter((entry) =&gt; entry.deadline &gt; now);
+  const result = withCapacity({
+    ...state,
+    pending,
+    queue: mergeBySeq(state.queue, expired),
+  });
+  return { ...result, expired: expired.map((entry) =&gt; entry.item) };
+}</code></pre>
+              <details class="code-more">
+                <summary>More detail</summary>
+                <div class="code-note">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-book" />
+                  </svg>
+                  <div>
+                    <strong>Know the limit</strong>
+                    <p>
+                      Capacity applies to queued entries, not all outstanding
+                      alerts. Requeueing can cause overflow. The outbox is
+                      currently memory-only.
+                    </p>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Tracks alerts waiting to be sent or accepted. Its pure functions
+                move entries between queued and pending states, remove accepted
+                UUIDs, and requeue expired sends.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Alert UUID and current time</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Pending sends, acceptance, or retries</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                A socket write is not delivery confirmation. Keep the alert
+                pending until the relay accepts its UUID; retry after a
+                deadline. Memory is bounded, so overflow or process loss can
+                still lose queued alerts.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="routing" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Relay</span>
+            <h3>Validate, store, acknowledge, distribute</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>server/src/routing.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="routing"
+                  aria-label="Copy server/src/routing.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from server/src/routing.ts"
+              ><code id="snippet-routing">function routeAlert(alert: Alert, ctx: RouteContext): Outgoing[] {
+  const existing = ctx.store.get(alert.id);
+  if (existing) {
+    // A resend after a lost `accepted`: confirm again, but do not alert
+    // the views a second time (at-least-once made effectively-once).
+    return [toSender(existing, true)];
+  }
+
+  // The server stamps its own receipt time; nothing else is added or trusted.
+  const record: AlertRecord = {
+    ...alert,
+    receivedAt: ctx.now(),
+    acknowledgement: null,
+  };
+  ctx.store.add(record);
+  return [
+    toSender(record, false),
+    { to: &quot;views&quot;, message: { type: &quot;alert&quot;, record } },
+  ];
+}
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../server/src/routing.ts"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <details class="code-more">
+                <summary>More detail</summary>
+                <div class="code-note">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-book" />
+                  </svg>
+                  <div>
+                    <strong>The lost-response case</strong>
+                    <p>
+                      If accepted is lost, the sensor resends the same UUID. The
+                      existing record is returned without broadcasting another
+                      alert.
+                    </p>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Handles an incoming sensor alert. If its UUID already exists,
+                returns acceptance again. Otherwise stores the record and
+                prepares messages for the sensor and browser apps.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Validated sensor alert</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Stored record, acceptance, browser broadcast</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                Retries reuse the same UUID. The relay confirms an existing
+                record instead of broadcasting a duplicate alert.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="database" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Relay</span>
+            <h3>Let the database protect the invariant</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>server/src/alertStore.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="database"
+                  aria-label="Copy server/src/alertStore.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from server/src/alertStore.ts"
+              ><code id="snippet-database">export function createSqliteAlertStore(db: DatabaseSync): AlertStore {
+  const insert = db.prepare(
+    &quot;INSERT INTO alerts (id, record, received_at) VALUES (?, ?, ?) ON CONFLICT (id) DO NOTHING&quot;,
+  );
+  const byId = db.prepare(
+    &quot;SELECT record, ack_operator, ack_at FROM alerts WHERE id = ?&quot;,
+  );
+  // The WHERE clause makes &quot;first one wins&quot; a single atomic statement.
+  const ack = db.prepare(
+    &quot;UPDATE alerts SET ack_operator = ?, ack_user_id = ?, ack_at = ? WHERE id = ? AND ack_at IS NULL&quot;,
+  );
+  const newest = db.prepare(
+    &quot;SELECT record, ack_operator, ack_at FROM alerts ORDER BY received_at DESC, rowid DESC LIMIT ?&quot;,
+  );
+
+  const get = (id: string) =&gt; {
+    const row = byId.get(id) as AlertRow | undefined;
+    return row &amp;&amp; toRecord(row);
+  };
+
+  return {
+    add(record) {
+      const { acknowledgement, ...rest } = record;
+      insert.run(record.id, JSON.stringify(rest), record.receivedAt);
+    },
+    get,
+    has: (id) =&gt; byId.get(id) !== undefined,
+    acknowledge(id, operator, at, userId) {
+      ack.run(operator, userId ?? null, at, id);
+      return get(id);
+    },
+    recent: (count) =&gt; (newest.all(count) as AlertRow[]).map(toRecord),
+  };
+}
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../server/src/alertStore.ts"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <details class="code-more">
+                <summary>More detail</summary>
+                <div class="code-note">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-book" />
+                  </svg>
+                  <div>
+                    <strong>Storage is not an API</strong>
+                    <p>
+                      Retaining all alerts does not mean all of them are
+                      available in the current UI. Browser snapshots are
+                      bounded.
+                    </p>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Stores alert records and acknowledgements in SQLite. Provides
+                lookup by UUID and queries for recent alerts, so these records
+                survive a relay restart.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Alert or acknowledgement write</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Durable authoritative record</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                Persist acknowledgements on the server and keep the first
+                acknowledgement authoritative. Browser state is a view of that
+                record.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="redux-flow" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Live Monitor</span>
+            <h3>Message → action → state → selector → component</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>apps/monitor/src/App.tsx</code
+                ><button
+                  class="copy-button"
+                  data-copy="redux-flow"
+                  aria-label="Copy apps/monitor/src/App.tsx excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from apps/monitor/src/App.tsx"
+              ><code id="snippet-redux-flow">      case &quot;welcome&quot;:
+        requested.current = null;
+        dispatch(welcomed(message.recent));
+        dispatch(settingsReceived(message.settings));
+        dispatch(sensorChanged(message.sensor));
+        readings.reset(message.readings);
+        return;
+      case &quot;reading&quot;:
+        readings.push(message.reading);
+        return;
+      case &quot;alert&quot;:
+        dispatch(alertReceived(message.record));
+        return;
+      case &quot;acknowledged&quot;:
+        dispatch(
+          acknowledged({
+            alertId: message.alertId,
+            operator: message.operator,
+            at: message.at,
+          }),
+        );
+        return;
+      case &quot;settings&quot;:
+        if (
+          requested.current?.threshold === message.settings.threshold &amp;&amp;
+          requested.current.hysteresis === message.settings.hysteresis
+        )
+          requested.current = null;
+        dispatch(settingsReceived(message.settings));
+        return;
+      case &quot;sensorStatus&quot;:
+        dispatch(sensorChanged(message.sensor));
+        return;
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../apps/monitor/src/App.tsx"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <div class="code-section-heading">
+                <h4>Selectors derive values instead of duplicating state</h4>
+              </div>
+              <div class="code-toolbar">
+                <code>apps/monitor/src/store/alertsSlice.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="redux-derived"
+                  aria-label="Copy apps/monitor/src/store/alertsSlice.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from apps/monitor/src/store/alertsSlice.ts"
+              ><code id="snippet-redux-derived">export const selectLoggedAlerts = createSelector([selectAllAlerts], (alerts) =&gt;
+  alerts.slice(0, limits.loggedAlerts),
+);
+
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../apps/monitor/src/store/alertsSlice.ts"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <div class="code-toolbar">
+                <code>apps/monitor/src/App.tsx</code
+                ><button
+                  class="copy-button"
+                  data-copy="redux-selectors"
+                  aria-label="Copy apps/monitor/src/App.tsx excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from apps/monitor/src/App.tsx"
+              ><code id="snippet-redux-selectors">  const cfg = useAppSelector(selectDetectorConfig);
+  const settings = useAppSelector((state) =&gt; state.settings.current);
+  const sensor = useAppSelector((state) =&gt; state.sensor.sensor);
+  const counts = useAppSelector(selectAlertCounts);
+  const markers = useAppSelector(selectChartMarkers);
+  const alerts = useAppSelector(selectLoggedAlerts);
+
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../apps/monitor/src/App.tsx"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <div class="code-note">
+                <div>
+                  <strong>One concrete example</strong>
+                  <p>
+                    acknowledged arrives → the reducer updates
+                    alerts.entities[id].acknowledgement → selectLoggedAlerts and
+                    selectAlertCounts recompute → the monitor displays the
+                    acknowledgement and updated counts. This does not mark the
+                    sensor outbox accepted; that is a different message.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Connects relay messages to the Live Monitor screen. Dispatches
+                shared-record updates to Redux, pushes readings into their
+                buffer, and selects the data components render.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Relay message</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Action, selected state, rendered UI</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                Translate incoming protocol messages into state updates at one
+                boundary. Components select the data they render instead of
+                parsing socket messages.
+              </p>
+            </aside>
+          </div>
+        </article>
+
+        <article class="code-panel" data-code-panel="alerts" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Live Monitor</span>
+            <h3>Redux state and alert updates</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>createAppStore().getState()</code
+                ><button
+                  class="copy-button"
+                  data-copy="redux-initial"
+                  aria-label="Copy createAppStore().getState() excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from createAppStore().getState()"
+              ><code id="snippet-redux-initial">{
+  &quot;settings&quot;: { &quot;current&quot;: null },
+  &quot;alerts&quot;: { &quot;ids&quot;: [], &quot;entities&quot;: {} },
+  &quot;sensor&quot;: { &quot;sensor&quot;: null }
+}</code></pre>
+              <p class="source-caption">
+                Initial shape produced by createAppStore().getState()
+              </p>
+              <div
+                class="table-scroll"
+                tabindex="0"
+                role="region"
+                aria-label="Redux state fields"
+              >
+                <table>
+                  <thead>
+                    <tr>
+                      <th>State field</th>
+                      <th>What it holds</th>
+                      <th>Used by</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>settings.current</code></td>
+                      <td>
+                        Confirmed threshold and hysteresis; null until received.
+                      </td>
+                      <td>Settings form, chart, readout</td>
+                    </tr>
+                    <tr>
+                      <td><code>alerts.ids + alerts.entities</code></td>
+                      <td>
+                        Alert IDs in event-time order, with records indexed by
+                        UUID.
+                      </td>
+                      <td>Alert log, counts, chart markers</td>
+                    </tr>
+                    <tr>
+                      <td><code>sensor.sensor</code></td>
+                      <td>
+                        Connected sensor information, or null when none is
+                        connected.
+                      </td>
+                      <td>Online status, sensor panel</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="code-note">
+                <div>
+                  <strong>ids + entities = normalized state</strong>
+                  <p>
+                    ids controls the display order. entities[id] retrieves that
+                    alert directly. Counts and chart markers are derived by
+                    selectors; they are not separate copies in state. Live
+                    readings stay in their own ring buffer.
+                  </p>
+                </div>
+              </div>
+
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Action</th>
+                      <th>State change</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>welcomed</code></td>
+                      <td>Replace alerts from the reconnect snapshot.</td>
+                    </tr>
+                    <tr>
+                      <td><code>alertReceived</code></td>
+                      <td>
+                        Insert or update one alert by UUID; keep a known
+                        acknowledgement.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>acknowledged</code></td>
+                      <td>
+                        Set entities[id].acknowledgement if that alarm exists
+                        and has no acknowledgement yet.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>settingsReceived</code></td>
+                      <td>
+                        Replace settings.current with the relay-confirmed
+                        settings.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>sensorChanged</code></td>
+                      <td>
+                        Replace sensor.sensor with the current sensor or null.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="code-toolbar">
+                <code>apps/monitor/src/store/alertsSlice.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="alerts"
+                  aria-label="Copy apps/monitor/src/store/alertsSlice.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from apps/monitor/src/store/alertsSlice.ts"
+              ><code id="snippet-alerts">const alertsSlice = createSlice({
+  name: &quot;alerts&quot;,
+  initialState: adapter.getInitialState(),
+  reducers: {
+    /** The relay&#x27;s recent alerts on each (re)connect replace the list. */
+    welcomed(state, action: PayloadAction&lt;AlertRecord[]&gt;) {
+      adapter.setAll(state, action.payload);
+      trim(state);
+    },
+    alertReceived(state, action: PayloadAction&lt;AlertRecord&gt;) {
+      // An acknowledged copy always wins over an older unacknowledged one.
+      const existing = state.entities[action.payload.id];
+      if (existing?.acknowledgement) return;
+      adapter.upsertOne(state, action.payload);
+      trim(state);
+    },
+    acknowledged(
+      state,
+      action: PayloadAction&lt;{ alertId: string; operator: string; at: string }&gt;,
+    ) {
+      const alert = state.entities[action.payload.alertId];
+      // Unknown ids happen legitimately (an alert evicted from the log).
+      if (!alert || alert.acknowledgement) return; // the first one wins
+      alert.acknowledgement = {
+        operator: action.payload.operator,
+        at: action.payload.at,
+      };
+    },
+  },
+});
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../apps/monitor/src/store/alertsSlice.ts"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <div class="code-note">
+                <div>
+                  <strong>Why these assignments are safe</strong>
+                  <p>
+                    createSlice uses Immer. These reducers edit a draft; Redux
+                    receives an immutable next state. The first known
+                    acknowledgement is preserved.
+                  </p>
+                </div>
+              </div>
+              <div class="code-next">
+                <button class="text-button" data-open-code="redux-flow">
+                  Next: messages → actions → selectors → UI →
+                </button>
+              </div>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Updates Redux records when the relay sends a snapshot, a new
+                alert, an acknowledgement, confirmed settings, or sensor status.
+                Alerts are indexed by UUID.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Typed Redux action</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Immutable state transition</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                Immer makes reducer updates concise while Redux retains
+                immutable state transitions. Normalized IDs let an
+                acknowledgement update one existing alert.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="control" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Control Room</span>
+            <h3>A reducer for one alarm list</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>apps/control/src/state/alarms.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="control"
+                  aria-label="Copy apps/control/src/state/alarms.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from apps/control/src/state/alarms.ts"
+              ><code id="snippet-control">export function alarmsReducer(
+  state: AlarmsState,
+  action: AlarmsAction,
+): AlarmsState {
+  switch (action.type) {
+    case &quot;welcomed&quot;:
+      // The server&#x27;s list is the truth after a reconnect; keep what it no longer
+      // holds (evicted or a server restart), so the operator does not lose context.
+      return {
+        alarms: merge(state.alarms, action.recent),
+        pendingAcks: [],
+      };
+    case &quot;alertReceived&quot;:
+      return { ...state, alarms: merge(state.alarms, [action.record]) };
+    case &quot;acknowledged&quot;: {
+      const acknowledgement = { operator: action.operator, at: action.at };
+      return {
+        alarms: state.alarms.map((alarm) =&gt;
+          alarm.id === action.alertId &amp;&amp; !alarm.acknowledgement
+            ? { ...alarm, acknowledgement }
+            : alarm,
+        ),
+        pendingAcks: without(state.pendingAcks, action.alertId),
+      };
+    }
+    case &quot;ackSent&quot;:
+      return state.pendingAcks.includes(action.alertId)
+        ? state
+        : { ...state, pendingAcks: [...state.pendingAcks, action.alertId] };
+    case &quot;ackFailed&quot;:
+      return {
+        ...state,
+        pendingAcks: without(state.pendingAcks, action.alertId),
+      };
+    case &quot;disconnected&quot;:
+      // An ack in flight may or may not have arrived; the next welcome tells.
+      return state.pendingAcks.length === 0
+        ? state
+        : { ...state, pendingAcks: [] };
+    case &quot;cleared&quot;:
+      return {
+        ...state,
+        alarms: state.alarms.filter((alarm) =&gt; !alarm.acknowledgement),
+      };
+  }
+}
+</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../apps/control/src/state/alarms.ts"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <details class="code-more">
+                <summary>More detail</summary>
+                <div class="code-note">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-book" />
+                  </svg>
+                  <div>
+                    <strong>A known recovery gap</strong>
+                    <p>
+                      A retained alarm outside welcome.recent can keep a stale
+                      status if its acknowledgement was missed while
+                      disconnected.
+                    </p>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Maintains the Control Room alarm list. Merges incoming records,
+                applies acknowledgements, tracks requests still in flight, and
+                lets the operator clear acknowledged rows locally.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Alert or acknowledgement message</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Updated operator alarm list</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                A small alarm list uses a focused reducer. The UI marks an alarm
+                acknowledged only after the server response, so it does not
+                claim success before persistence.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="ack" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Relay</span>
+            <h3>Close the acknowledgement loop</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>server/src/routing.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="ack"
+                  aria-label="Copy server/src/routing.ts excerpt"
+                >
+                  Copy excerpt</button
+                ><a href="../server/src/routing.ts">Open source ↗</a>
+              </div>
+              <pre><code id="snippet-ack" data-source="server/src/routing.ts">function routeAck(
+  alertId: string,
+  { operator, userId }: { operator: string; userId: number },
+  ctx: RouteContext,
+): Outgoing[] {
+  const record = ctx.store.get(alertId);
+  if (!record)
+    return [
+      error(&quot;UNKNOWN_ALERT&quot;, &quot;No such alert (never seen or expired).&quot;, alertId),
+    ];
+
+  if (record.acknowledgement) {
+    // First acknowledgement wins; tell this operator who got there first.
+    return [
+      { to: &quot;sender&quot;, message: acknowledged(alertId, record.acknowledgement) },
+    ];
+  }
+
+  const updated = ctx.store.acknowledge(alertId, operator, ctx.now(), userId)!;
+  // Everyone: other control rooms update their list, the monitors and the
+  // sensor learn who acknowledged.
+  return [
+    {
+      to: &quot;everyone&quot;,
+      message: acknowledged(alertId, updated.acknowledgement!),
+    },
+  ];
+}</code></pre>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Processes an operator’s acknowledgement request on the relay.
+                Looks up the alert, records the session user if it is still
+                unacknowledged, and returns the stored result to clients.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Alert ID and session identity</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Stored acknowledgement broadcast</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                The server owns acknowledgement truth. The database preserves
+                the first acknowledgement; both browser apps update their copies
+                from the returned result.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="draft" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Live Monitor</span>
+            <h3>Typing is not a settings update</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>apps/monitor/src/components/ThresholdForm.tsx</code
+                ><a href="../apps/monitor/src/components/ThresholdForm.tsx"
+                  >Open source ↗</a
+                >
+              </div>
+              <pre><code id="snippet-draft" data-source="apps/monitor/src/components/ThresholdForm.tsx">  function commit() {
+    const result = parseThresholdInput(draft, metric);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setError(null);
+    setDraft(formatThreshold(result.value));
+    if (result.value !== threshold) onCommit(result.value);
+  }</code></pre>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Keeps typed threshold text local while the user edits. Validates
+                it on commit and calls the supplied callback to request a shared
+                settings change.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Editable form draft</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Validated settings request</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                The form owns an editable string. Redux owns the
+                server-confirmed numeric setting. Invalid input stays local, and
+                a valid commit requests a change rather than pretending it is
+                already confirmed.
+              </p>
+              <p>
+                Tradeoff: confirmation takes a network round trip. The active
+                value remains visible while the draft differs.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="readings" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Live Monitor</span>
+            <h3>Subscribe to an external store</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>apps/monitor/src/hooks/useReadings.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="readings"
+                  aria-label="Copy apps/monitor/src/hooks/useReadings.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from apps/monitor/src/hooks/useReadings.ts"
+              ><code id="snippet-readings">import { useSyncExternalStore } from &quot;react&quot;;
+import type { Reading } from &quot;../domain/types&quot;;
+import type { ReadingsStore } from &quot;../data/readingsStore&quot;;
+
+/**
+ * The live readings window. Only components that call this re-render on each
+ * reading. useSyncExternalStore guarantees every component sees the same
+ * snapshot in a render (no tearing), which a ref or context would not.
+ */
+export function useReadings(readings: ReadingsStore): readonly Reading[] {
+  return useSyncExternalStore(readings.subscribe, readings.getSnapshot);
+}
+
+/** Just the newest reading (the same object until the next one arrives). */
+export function useLatestReading(readings: ReadingsStore): Reading | undefined {
+  return useSyncExternalStore(readings.subscribe, readings.latest);
+}</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../apps/monitor/src/hooks/useReadings.ts"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <h4 class="code-section-heading">
+                The producer and subscription contract
+              </h4>
+              <div class="code-toolbar">
+                <code>apps/monitor/src/data/readingsStore.ts</code
+                ><a href="../apps/monitor/src/data/readingsStore.ts"
+                  >Open source ↗</a
+                >
+              </div>
+              <pre><code id="snippet-readings-store" data-source="apps/monitor/src/data/readingsStore.ts">export function createReadingsStore(windowSize: number): ReadingsStore {
+  let buffer = new RingBuffer&lt;Reading&gt;(windowSize);
+  const listeners = new Set&lt;() =&gt; void&gt;();
+
+  return {
+    push(reading) {
+      buffer.push(reading);
+      for (const listener of listeners) listener();
+    },
+    reset(readings) {
+      buffer = new RingBuffer&lt;Reading&gt;(windowSize);
+      for (const reading of readings) buffer.push(reading);
+      for (const listener of listeners) listener();
+    },
+    latest: () =&gt; buffer.toArray().at(-1),
+    subscribe(listener) {
+      listeners.add(listener);
+      return () =&gt; listeners.delete(listener);
+    },
+    getSnapshot: () =&gt; buffer.toArray(),
+  };
+}</code></pre>
+              <details class="code-more">
+                <summary>More detail</summary>
+                <div class="code-note">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-book" />
+                  </svg>
+                  <div>
+                    <strong>Snapshot identity</strong>
+                    <p>
+                      Snapshots keep their reference until the data changes.
+                      Returning a new array on every snapshot call would violate
+                      this expectation.
+                    </p>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Keeps a bounded window of live readings outside Redux. React
+                hooks subscribe to that store so the chart and readout receive
+                the latest snapshot.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Live reading stream</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Bounded snapshots for subscribers</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                Use a bounded external store for transient samples and Redux for
+                shared application records. This adds a second subscription
+                mechanism, but makes the two lifetimes explicit.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="protocol" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Packages</span>
+            <h3>Share contracts across process boundaries</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>packages/protocol/src/messages.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="protocol"
+                  aria-label="Copy packages/protocol/src/messages.ts excerpt"
+                >
+                  Copy excerpt</button
+                ><a href="../packages/protocol/src/messages.ts"
+                  >Open source ↗</a
+                >
+              </div>
+              <pre><code id="snippet-protocol" data-source="packages/protocol/src/messages.ts">export const ackAlertSchema = z.object({
+  type: z.literal(&quot;ack&quot;),
+  alertId: id,
+});</code></pre>
+              <div class="code-toolbar">
+                <code>packages/protocol/src/parse.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="protocol-parse"
+                  aria-label="Copy packages/protocol/src/parse.ts excerpt"
+                >
+                  Copy excerpt</button
+                ><a href="../packages/protocol/src/parse.ts">Open source ↗</a>
+              </div>
+              <pre><code id="snippet-protocol-parse" data-source="packages/protocol/src/parse.ts">export function parseClientMessage(
+  raw: string,
+): Result&lt;ClientMessage, ProtocolError&gt; {
+  return parseWith(clientMessageSchema, raw);
+}</code></pre>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Defines the messages exchanged by sensor, relay, and browser
+                apps. Parses incoming JSON and checks its structure against the
+                shared runtime schemas.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Untrusted network payload</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Validated message or explicit error</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                A TypeScript type cannot validate network input. Parsing checks
+                the actual payload and returns a result the relay can handle
+                without an uncaught JSON error.
+              </p>
+            </aside>
+          </div>
+        </article>
+        <article class="code-panel" data-code-panel="hook" hidden>
+          <div class="code-heading">
+            <span class="eyebrow">Packages</span>
+            <h3>One connection lifecycle per mount</h3>
+          </div>
+          <div class="code-example-layout">
+            <div class="code-excerpts">
+              <div class="code-toolbar">
+                <code>packages/client/src/useRelay.ts</code
+                ><button
+                  class="copy-button"
+                  data-copy="hook"
+                  aria-label="Copy packages/client/src/useRelay.ts excerpt"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-copy" /></svg
+                  ><span>Copy excerpt</span>
+                </button>
+              </div>
+              <pre
+                tabindex="0"
+                aria-label="Code excerpt from packages/client/src/useRelay.ts"
+              ><code id="snippet-hook">export function useRelay(
+  connect: ConnectRelay,
+  handlers: {
+    onMessage: (message: ServerMessage) =&gt; void;
+    onStatus?: (status: ConnectionStatus) =&gt; void;
+  },
+) {
+  const [status, setStatus] = useState&lt;ConnectionStatus&gt;({
+    kind: &quot;connecting&quot;,
+  });
+  const connection = useRef&lt;RelayConnection | null&gt;(null);
+  const handleMessage = useEffectEvent(handlers.onMessage);
+  const handleStatus = useEffectEvent((next: ConnectionStatus) =&gt; {
+    setStatus(next);
+    handlers.onStatus?.(next);
+  });
+
+  useEffect(() =&gt; {
+    const current = connect({
+      onStatus: (next) =&gt; handleStatus(next),
+      onMessage: (message) =&gt; handleMessage(message),
+    });
+    connection.current = current;
+    return () =&gt; {
+      connection.current = null;
+      current.dispose();
+    };
+  }, [connect]);
+
+  const send = useCallback(
+    (message: ClientMessage) =&gt; connection.current?.send(message) ?? false,
+    [],
+  );
+
+  return { status, send };
+}</code></pre>
+              <p class="source-caption">
+                Verbatim repository excerpt · Some surrounding code omitted ·
+                <a
+                  href="../packages/client/src/useRelay.ts"
+                  target="_blank"
+                  rel="noopener"
+                  >Open source file ↗</a
+                >
+              </p>
+              <details class="code-more">
+                <summary>More detail</summary>
+                <div class="code-note">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-book" />
+                  </svg>
+                  <div>
+                    <strong>Why stable connect matters</strong>
+                    <p>
+                      The effect depends on connect. A new function identity on
+                      each render would repeatedly tear down and recreate the
+                      connection.
+                    </p>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <aside class="code-connection">
+              <strong>About</strong>
+              <p>
+                Connects a mounted React component to the relay. Forwards
+                messages to its handlers, exposes connection status and sending,
+                and disposes the connection on unmount.
+              </p>
+              <dl class="code-io">
+                <div>
+                  <dt>Input</dt>
+                  <dd>Stable connection factory and handlers</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Connection status, messages, send function</dd>
+                </div>
+              </dl>
+              <strong>Why</strong>
+              <p>
+                Give one effect ownership of the connection and its cleanup.
+                Components consume messages without owning reconnect machinery.
+              </p>
+            </aside>
+          </div>
+        </article>
+      </div>
+      <nav class="code-step-navigation" aria-label="Example navigation">
+        <button id="code-previous" type="button">← Previous example</button
+        ><span id="code-example-position"></span
+        ><button id="code-next" type="button">Next example →</button>
+      </nav>
+    </div>
+  </div>
+</section>

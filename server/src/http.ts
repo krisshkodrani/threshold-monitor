@@ -91,6 +91,10 @@ export function createHttpServer({
 }) {
   const monitor = serveApp(path.join(staticDir, "monitor", "dist"), logger);
   const control = serveApp(path.join(staticDir, "control", "dist"), logger);
+  const architecture = serveApp(
+    path.join(staticDir, "architecture-guide", "dist"),
+    logger,
+  );
   const routes = authRoutes(auth, logger);
 
   return createServer((req, res) => {
@@ -135,6 +139,16 @@ export function createHttpServer({
       return routes.session(req, res);
     if (pathname.startsWith("/api/"))
       return json(res, 404, { error: "Not found" });
+    if (pathname === "/architecture") {
+      res.writeHead(301, { location: "/architecture/" });
+      return res.end();
+    }
+    if (pathname.startsWith("/architecture/")) {
+      req.url = req.url!.slice("/architecture".length);
+      return architecture
+        ? architecture(req, res, () => notFound(res))
+        : notFound(res);
+    }
     if (pathname === "/control") {
       res.writeHead(301, { location: "/control/" });
       return res.end();

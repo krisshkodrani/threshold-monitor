@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "e2e": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e:guide": "playwright test --config guide.config.ts",
+    "export:questions": "node export-questions.mjs",
+    "export:presentation": "node export-presentation.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0"

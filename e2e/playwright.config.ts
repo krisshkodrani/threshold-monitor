@@ -7,6 +7,7 @@ const PORT = 8090;
 
 export default defineConfig({
   testDir: ".",
+  testIgnore: "architecture-guide.spec.ts",
   // One relay with one shared alert store: tests must not run at the same time.
   fullyParallel: false,
   workers: 1,

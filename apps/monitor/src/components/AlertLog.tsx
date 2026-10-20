@@ -1,7 +1,11 @@
 import { DataTable, ErrorBoundary, type Column } from "@app/ui";
 import { useId } from "react";
 import { formatClock, formatReading, formatThreshold } from "../format";
-import { statusOf, type AlertEntity } from "../store/alertsSlice";
+import {
+  statusOf,
+  type AlertEntity,
+  type AlertCounts,
+} from "../store/alertsSlice";
 
 export function statusText(alert: AlertEntity): string {
   return alert.acknowledgement
@@ -70,18 +74,42 @@ const columns: Column<AlertEntity>[] = [
   },
 ];
 
-export function AlertLog({ alerts }: { alerts: readonly AlertEntity[] }) {
+export function AlertLog({
+  alerts,
+  counts,
+}: {
+  alerts: readonly AlertEntity[];
+  counts?: AlertCounts;
+}) {
   const headingId = useId();
   return (
     <section className="panel alert-log" aria-labelledby={headingId}>
-      <h2 id={headingId}>
-        Alert log{" "}
-        {alerts.length > 0 && (
-          <span className="heading__count">
-            · {alerts.length} {alerts.length === 1 ? "alert" : "alerts"}
-          </span>
+      <div className="alert-log__heading">
+        <h2 id={headingId}>
+          Alert log{" "}
+          {alerts.length > 0 && (
+            <span className="heading__count">
+              · {alerts.length} {alerts.length === 1 ? "alert" : "alerts"}
+            </span>
+          )}
+        </h2>
+        {counts && (
+          <dl className="alert-summary">
+            <div>
+              <dt>Alerts</dt>
+              <dd>{counts.total}</dd>
+            </div>
+            <div>
+              <dt>Open</dt>
+              <dd>{counts.received}</dd>
+            </div>
+            <div>
+              <dt>Acknowledged</dt>
+              <dd>{counts.acknowledged}</dd>
+            </div>
+          </dl>
         )}
-      </h2>
+      </div>
       <ErrorBoundary name="The alert log">
         <DataTable
           rows={alerts}

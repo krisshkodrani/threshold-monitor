@@ -1,0 +1,474 @@
+<section class="page" id="simulator" aria-labelledby="simulator-title" hidden>
+  <header class="sim-workspace-heading">
+    <div>
+      <h1 id="simulator-title">Live simulator</h1>
+      <span>Illustrative model · offline</span>
+    </div>
+    <div class="sim-workspace-actions">
+      <label for="sim-case-picker" class="sr-only">Simulation case</label
+      ><select id="sim-case-picker" aria-label="Simulation case">
+        <option value="crossings">Cross both directions · 2 alerts</option>
+        <option value="noise">Ignore threshold noise · 0 alerts</option>
+        <option value="zero">Zero hysteresis · 3 alerts</option>
+        <option value="edges">Exact band edges · 2 alerts</option>
+        <option value="initial">Start above threshold · 1 alert</option>
+        <option value="configure">Monitor configures alarm · 1 alert</option>
+        <option value="hysteresis">Adjust hysteresis band · 2 alerts</option>
+        <option value="custom">Custom sequence…</option></select
+      ><button
+        class="plain-button"
+        id="sim-open-settings"
+        type="button"
+        aria-haspopup="dialog"
+      >
+        <svg class="icon" aria-hidden="true">
+          <use href="#i-layers" /></svg
+        >Settings</button
+      ><button
+        class="plain-button"
+        id="sim-open-details"
+        type="button"
+        aria-haspopup="dialog"
+      >
+        Inspect <span aria-hidden="true">↗</span>
+      </button>
+    </div>
+  </header>
+  <div class="panel sim-player sim-workspace">
+    <div class="sim-controls">
+      <button
+        class="solid-button"
+        id="sim-next"
+        type="button"
+        aria-describedby="sim-step-help"
+      >
+        <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg
+        ><span>Step</span>
+      </button>
+      <button class="sim-restart" id="sim-restart" type="button">
+        <svg class="icon" aria-hidden="true"><use href="#i-loop" /></svg>Restart
+      </button>
+      <span class="sim-run-status" id="sim-run-status">Ready to explore</span>
+    </div>
+    <p class="sim-step-help" id="sim-step-help">
+      One click advances one stage. Routes stay highlighted until you step
+      again. Acknowledge sends a request; use Step to follow its confirmation.
+    </p>
+    <div
+      class="sim-config-status"
+      aria-label="Live configuration and local save status"
+    >
+      <span id="sim-live-config"></span><span id="sim-settings-progress"></span
+      ><small id="sim-local-save">Saved in this browser</small>
+    </div>
+    <div class="sim-mobile-tabs" role="group" aria-label="Workspace view">
+      <button type="button" data-workspace-view="chart" aria-pressed="true">
+        Chart</button
+      ><button type="button" data-workspace-view="map" aria-pressed="false">
+        Map</button
+      ><button type="button" data-workspace-view="control" aria-pressed="false">
+        Control room <span id="sim-mobile-alarm-count">0</span>
+      </button>
+    </div>
+    <div class="sim-main-grid" data-workspace-view="chart">
+      <div class="panel sim-chart-panel">
+        <div class="panel-top">
+          <div class="panel-title">
+            <svg class="icon" aria-hidden="true">
+              <use href="#i-pulse" />
+            </svg>
+            <h2>Sensor samples to Monitor</h2>
+          </div>
+          <span class="caption" id="sim-sample-counter">0 / 7 SAMPLES</span>
+        </div>
+        <div class="sim-chart-wrap">
+          <svg
+            id="sim-chart"
+            viewBox="0 0 680 250"
+            role="img"
+            aria-label="No samples processed yet. Threshold 25 degrees Celsius; hysteresis edges 24.7 and 25.3."
+          ></svg>
+        </div>
+        <div class="sim-chart-key">
+          <span><i class="sim-swatch"></i>Temperature</span
+          ><span><i class="sim-swatch band"></i>Hysteresis band</span
+          ><span><i class="sim-swatch event"></i>Crossing</span>
+        </div>
+        <div
+          class="sim-sequence"
+          id="sim-sequence-chips"
+          tabindex="0"
+          role="region"
+          aria-label="Configured reading sequence"
+        ></div>
+      </div>
+      <div class="panel sim-map-column sim-live-map">
+        <div class="sim-map-label">
+          <strong>System map</strong
+          ><span id="sim-map-selection">Waiting for the first reading</span>
+        </div>
+        <svg
+          id="sim-message-svg"
+          viewBox="0 0 620 430"
+          role="img"
+          aria-label="Sensor, relay, SQLite, monitor and control-room map"
+        ></svg>
+        <div class="sim-message-legend">
+          <span><i class="sim-message-line"></i>WebSocket</span
+          ><span><i class="sim-message-line local"></i>Local storage</span
+          ><span
+            ><i class="sim-message-state-dot"></i>Current / selected route</span
+          >
+        </div>
+      </div>
+      <article class="panel sim-view sim-control-panel">
+        <div class="panel-top">
+          <div class="panel-title">
+            <svg class="icon" aria-hidden="true">
+              <use href="#i-check" />
+            </svg>
+            <h2>Control Room</h2>
+          </div>
+          <span class="caption"
+            >ALEX · <span id="sim-open-alarms">0 open</span></span
+          >
+        </div>
+        <div
+          class="sim-records"
+          id="sim-control-records"
+          tabindex="0"
+          role="region"
+          aria-label="Simulated control-room alarms"
+        ></div>
+        <div class="sim-operator-tools">
+          <span id="sim-operator-hint"
+            >When an alarm arrives, press Acknowledge to send your confirmation
+            to the relay.</span
+          >
+        </div>
+      </article>
+    </div>
+    <div class="sim-workspace-summary">
+      <div
+        class="sim-explanation"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <span class="eyebrow" id="sim-stage-label"
+          >Ready / a successful delivery path</span
+        >
+        <h3 id="sim-decision-title">What will the next number do?</h3>
+        <p id="sim-decision-reason">
+          The first sample establishes the detector state. It never creates an
+          alert. Press Step to advance one stage at a time.
+        </p>
+      </div>
+      <div
+        class="sim-prediction"
+        id="sim-prediction"
+        aria-label="Expected and observed results"
+      ></div>
+    </div>
+  </div>
+  <dialog
+    class="sim-dialog sim-settings-dialog"
+    id="sim-settings-dialog"
+    aria-labelledby="sim-settings-title"
+  >
+    <header class="sim-dialog-heading">
+      <div>
+        <h2 id="sim-settings-title">Experiment settings</h2>
+        <p>Choose a case or edit a custom sequence.</p>
+      </div>
+      <button
+        type="button"
+        class="icon-button"
+        data-close-dialog="sim-settings-dialog"
+        aria-label="Close settings"
+      >
+        <svg class="icon" aria-hidden="true">
+          <use href="#i-close" />
+        </svg>
+      </button>
+    </header>
+    <form class="panel sim-config" id="sim-config" novalidate>
+      <div class="panel-top">
+        <div class="panel-title">
+          <svg class="icon" aria-hidden="true">
+            <use href="#i-layers" />
+          </svg>
+          <h2>Experiment settings</h2>
+        </div>
+        <span class="caption">Choose a case or edit your own</span>
+      </div>
+      <fieldset id="sim-fields">
+        <legend class="sr-only">Simulation configuration</legend>
+        <div class="sim-config-group">
+          <label for="sim-preset">Scenario</label
+          ><select id="sim-preset">
+            <option value="crossings">Up & down crossings</option>
+            <option value="noise">Noise inside the band</option>
+            <option value="zero">Zero hysteresis</option>
+            <option value="edges">Exact band edges</option>
+            <option value="initial">First sample above threshold</option>
+            <option value="configure">Monitor configures alarm</option>
+            <option value="hysteresis">Adjust hysteresis band</option>
+            <option value="custom">Custom sequence</option>
+          </select>
+        </div>
+        <div class="sim-config-row">
+          <div>
+            <label for="sim-threshold">Threshold (°C)</label
+            ><input
+              id="sim-threshold"
+              type="number"
+              min="-40"
+              max="80"
+              step="any"
+              value="25"
+              required
+            />
+          </div>
+          <div>
+            <label for="sim-hysteresis">Hysteresis (°C)</label
+            ><input
+              id="sim-hysteresis"
+              type="number"
+              min="0"
+              max="2"
+              step="any"
+              value="0.6"
+              required
+            />
+          </div>
+        </div>
+        <div class="sim-config-group sim-sequence-group">
+          <label for="sim-sequence">Temperature sequence (°C)</label
+          ><textarea
+            id="sim-sequence"
+            rows="2"
+            spellcheck="false"
+            aria-describedby="sim-input-hint sim-input-error"
+          >
+24, 25.1, 25.3, 25.4, 25.1, 24.7, 24.6</textarea>
+        </div>
+        <p class="sim-hint" id="sim-input-hint">
+          Separate readings with commas, spaces, or new lines. Use decimal
+          points. Up to 100 readings, each between −1,000,000 and 1,000,000.
+        </p>
+      </fieldset>
+      <p id="sim-input-error" class="sim-error" role="alert" hidden></p>
+      <div class="sim-config-bottom">
+        <div class="sim-band-preview">
+          <span>Lower edge<strong id="sim-lower">24.7°C</strong></span
+          ><span>Threshold<strong id="sim-center">25°C</strong></span
+          ><span>Upper edge<strong id="sim-upper">25.3°C</strong></span>
+        </div>
+        <p class="sim-hint sim-config-help" id="sim-lock-hint">
+          Edit first, then play. Restart unlocks editing. Choosing a case starts
+          a fresh run.
+        </p>
+      </div>
+    </form>
+    <details class="sim-preset-library">
+      <summary>Browse the five predicted cases</summary>
+      <div
+        class="sim-case-grid"
+        id="sim-case-grid"
+        role="group"
+        aria-label="Choose a predefined simulation case"
+      ></div>
+    </details>
+  </dialog>
+  <dialog
+    class="sim-dialog sim-inspect-dialog"
+    id="sim-inspect-dialog"
+    aria-labelledby="sim-inspect-title"
+  >
+    <header class="sim-dialog-heading">
+      <div>
+        <h2 id="sim-inspect-title">Inside this step</h2>
+        <p>Inspect freely. Nothing advances until you press Step.</p>
+      </div>
+      <button
+        type="button"
+        class="icon-button"
+        data-close-dialog="sim-inspect-dialog"
+        aria-label="Close inspector"
+      >
+        <svg class="icon" aria-hidden="true">
+          <use href="#i-close" />
+        </svg>
+      </button>
+    </header>
+    <div class="sim-inspect-tabs" role="group" aria-label="Inspector section">
+      <button type="button" data-inspect-tab="trace" aria-pressed="true">
+        Trace & payload</button
+      ><button type="button" data-inspect-tab="state" aria-pressed="false">
+        Internal state</button
+      ><button type="button" data-inspect-tab="log" aria-pressed="false">
+        Event log
+      </button>
+    </div>
+    <div class="sim-inspect-content" id="sim-inspect-trace">
+      <div class="sim-message-map">
+        <div class="sim-message-heading">
+          <div>
+            <span class="eyebrow">One sample, every boundary</span>
+            <h2>Follow the signal through the system.</h2>
+          </div>
+          <span class="caption" id="sim-message-context">READY · SAMPLE 1</span>
+        </div>
+        <ol class="sim-message-progress" aria-label="Simulation stages">
+          <li data-message-stage="1">1 · Sensor</li>
+          <li data-message-stage="2">2 · Relay</li>
+          <li data-message-stage="3">3 · Browser apps</li>
+        </ol>
+        <p class="sim-message-intro">
+          The chart and map advance together above. Select a trace step below to
+          highlight its component or message route and inspect the data.
+        </p>
+        <div class="sim-map-and-trace">
+          <div class="sim-trace-column">
+            <div class="sim-map-label">
+              <strong>Step-by-step trace</strong
+              ><span id="sim-trace-count">0 steps</span>
+            </div>
+            <div
+              class="sim-message-cards"
+              id="sim-message-cards"
+              role="group"
+              aria-label="Select a trace step to inspect its route and payload"
+            ></div>
+          </div>
+        </div>
+        <div class="sim-payload-inspector">
+          <div>
+            <span class="eyebrow" id="sim-payload-status">Not reached yet</span>
+            <h3 id="sim-payload-title">reading</h3>
+            <p id="sim-payload-route">Sensor → Relay</p>
+            <p id="sim-payload-description">
+              The sensor sends its sample to the relay.
+            </p>
+            <span class="sim-payload-transport" id="sim-payload-transport"
+              >WebSocket · JSON</span
+            >
+          </div>
+          <pre
+            id="sim-payload-json"
+            tabindex="0"
+            aria-label="Selected trace step payload"
+          >
+Advance the simulation to inspect this payload.</pre>
+        </div>
+      </div>
+    </div>
+    <div class="sim-inspect-content" id="sim-inspect-state" hidden>
+      <div class="sim-internal-grid">
+        <article class="panel sim-view">
+          <div class="panel-top">
+            <div class="panel-title">
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-pulse" />
+              </svg>
+              <h2>Inside the sensor</h2>
+            </div>
+            <span class="caption">DETECTION</span>
+          </div>
+          <dl class="sim-readouts">
+            <div>
+              <dt>Current sample</dt>
+              <dd id="sim-sensor-value">—</dd>
+            </div>
+            <div>
+              <dt>Remembered state</dt>
+              <dd id="sim-detector-state">Not initialized</dd>
+            </div>
+            <div>
+              <dt>Previous state</dt>
+              <dd id="sim-previous-state">—</dd>
+            </div>
+            <div>
+              <dt>Waiting for accepted</dt>
+              <dd id="sim-outbox-count">0 alerts</dd>
+            </div>
+          </dl>
+          <div class="sim-mini-note">
+            A reading is sent before crossing detection in the agent. Here, the
+            sensor stage groups those operations to explain one sample.
+          </div>
+        </article>
+        <article class="panel sim-view">
+          <div class="panel-top">
+            <div class="panel-title">
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-database" />
+              </svg>
+              <h2>Relay alert store</h2>
+            </div>
+            <span class="caption" id="sim-db-count">0 RECORDS</span>
+          </div>
+          <div
+            class="sim-records"
+            id="sim-relay-records"
+            tabindex="0"
+            role="region"
+            aria-label="Simulated relay alert records"
+          ></div>
+          <div class="sim-mini-note">
+            A model of SQLite records, held in this page’s memory. Ordinary
+            temperature samples are not stored durably.
+          </div>
+        </article>
+        <article class="panel sim-view">
+          <div class="panel-top">
+            <div class="panel-title">
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-monitor" />
+              </svg>
+              <h2>Live Monitor</h2>
+            </div>
+            <span class="caption">BROWSER VIEW</span>
+          </div>
+          <div class="sim-monitor-current">
+            <strong id="sim-monitor-value">—</strong
+            ><span id="sim-monitor-side">Waiting for a reading</span>
+          </div>
+          <div
+            class="sim-records"
+            id="sim-monitor-records"
+            tabindex="0"
+            role="region"
+            aria-label="Simulated monitor alert records"
+          ></div>
+          <div class="sim-mini-note">
+            Above / Below compares directly to the threshold. It can differ from
+            the detector’s remembered hysteresis state.
+          </div>
+        </article>
+      </div>
+    </div>
+    <div class="sim-inspect-content" id="sim-inspect-log" hidden>
+      <details class="panel sim-event-log" id="sim-event-log">
+        <summary>
+          <span
+            ><svg class="icon" aria-hidden="true">
+              <use href="#i-code" /></svg
+            >Event & message log</span
+          ><span class="caption" id="sim-log-count">0 EVENTS</span>
+        </summary>
+        <p class="sim-log-note">
+          Deterministic timestamps and IDs are illustrative. Open an entry to
+          inspect its payload. No network requests are made.
+        </p>
+        <ol id="sim-events">
+          <li class="sim-empty">
+            Events appear as you advance the simulation.
+          </li>
+        </ol>
+      </details>
+    </div>
+  </dialog>
+  <div class="sim-print-summary" id="sim-print-summary"></div>
+</section>

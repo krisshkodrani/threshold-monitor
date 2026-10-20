@@ -1,22 +1,19 @@
-/*
- * Tokens and base rules copied from apps/monitor/src/styles.css, so both apps
- * look alike without a shared package. Control room rules are at the end.
- */
+/* Shared theme tokens come from @app/ui; alarm styling stays local. */
 /* Tokens: components use these names only, never raw colors. */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
-  --bg: #f4f6f8;
-  --surface: #ffffff;
-  --border: #d9dee4;
-  --text: #17202a;
-  --text-muted: #5b6573;
+  --bg: var(--project-bg);
+  --surface: var(--project-surface);
+  --border: var(--project-border);
+  --text: var(--project-text);
+  --text-muted: var(--project-muted);
 
-  --accent: #2563c9;
+  --accent: var(--project-accent);
   --on-accent: #ffffff;
   --ok: #1d7a46;
   --warn: #a35a00;
-  --alarm: #b42318;
+  --alarm: var(--project-danger);
   --info: #3d5a80;
   --muted: #6b7280;
 
@@ -30,32 +27,10 @@
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
-  --radius: 6px;
+  --radius: var(--project-radius);
   --shadow: 0 1px 2px rgb(16 24 40 / 0.06);
 
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1419;
-    --surface: #171d24;
-    --border: #2b3440;
-    --text: #e6eaef;
-    --text-muted: #9aa5b1;
-
-    --accent: #6ea2ff;
-    --on-accent: #0f1419; /* white on the light dark-mode blue is too faint */
-    --ok: #4cc38a;
-    --warn: #f0a640;
-    --alarm: #ff6b5e;
-    --info: #8fb0d9;
-    --muted: #8b95a1;
-
-    --band: rgb(255 107 94 / 0.14);
-    --grid: #232b35;
-    --shadow: none;
-  }
+  --font: var(--project-font);
 }
 
 *,
@@ -68,7 +43,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.45 var(--font);
+  font: 14px/1.65 var(--font);
 }
 
 h1,
@@ -77,7 +52,8 @@ h2 {
   line-height: 1.2;
 }
 h1 {
-  font-size: 1.35rem;
+  font-size: 26px;
+  letter-spacing: -0.035em;
 }
 h2 {
   font-size: 1rem;
@@ -103,8 +79,9 @@ h2 {
 
 .app {
   max-width: 1200px;
+  grid-template-columns: minmax(0, 1fr);
   margin: 0 auto;
-  padding: var(--space-4);
+  padding: 8px var(--space-4) var(--space-4);
   display: grid;
   gap: var(--space-4);
 }
@@ -286,12 +263,87 @@ button:disabled {
   font-weight: 500;
 }
 
-/*
- * One screen: on a window that is high enough, the page is exactly the
- * window height, and the alarm table fills all the space under the header.
- * Lower windows scroll the page, and the table box keeps its maximum height.
- */
-@media (min-height: 560px) {
+.app__header {
+  padding: 0;
+  gap: 4px 16px;
+}
+.app__brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.app__brand h1 {
+  font-size: 14px;
+}
+.app__brand p {
+  font-size: 11px;
+}
+.app__header .project-navigation {
+  margin-left: auto;
+  gap: 16px;
+  font-size: 11px;
+}
+.app__header .project-navigation [aria-current] {
+  display: none;
+}
+.app__header .project-navigation a {
+  min-height: 28px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+.app__header .project-navigation a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.app__status {
+  gap: 14px;
+  font-size: 11px;
+}
+.app__status .account {
+  gap: 14px;
+}
+.app__status button {
+  min-height: 28px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+}
+.app__status button:hover {
+  text-decoration: underline;
+}
+.app__status .badge {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  gap: 6px;
+}
+.alarms > .panel__header,
+.alarms > .notice {
+  flex-shrink: 0;
+}
+@media (max-width: 620px) {
+  .app__header .project-navigation {
+    margin-left: 0;
+  }
+}
+button {
+  border-radius: 8px;
+}
+
+@media screen {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    overflow: hidden;
+  }
   .app {
     height: 100dvh;
     grid-template-rows: auto minmax(0, 1fr);
@@ -302,8 +354,8 @@ button:disabled {
     flex-direction: column;
   }
   .alarms .data-table {
+    min-height: 0;
     max-height: none;
     flex: 1 1 auto;
-    min-height: 0;
   }
 }

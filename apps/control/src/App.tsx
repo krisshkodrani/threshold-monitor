@@ -5,7 +5,7 @@ import {
   useRelay,
   type ConnectRelay,
 } from "@app/client";
-import { ErrorBoundary } from "@app/ui";
+import { ErrorBoundary, ProjectNavigation } from "@app/ui";
 import { useId, useReducer, useState } from "react";
 import { AlarmList } from "./components/AlarmList";
 import {
@@ -91,12 +91,13 @@ export function App({ connect, account }: AppProps) {
   return (
     <div className="app">
       <header className="app__header">
-        <div>
+        <div className="app__brand">
           <h1>Control Room</h1>
           <p className="muted">
             <span className="num">{open}</span> unacknowledged
           </p>
         </div>
+        <ProjectNavigation current="control" />
         <div className="app__status">
           <AccountBar
             displayName={account.displayName}

@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Threshold Monitor — Interview questions</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 18mm;
+      }
+      body {
+        max-width: 760px;
+        margin: 40px auto;
+        padding: 0 20px;
+        font:
+          14px/1.65 Arial,
+          sans-serif;
+        color: #192537;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.2;
+      }
+      h2 {
+        font-size: 18px;
+        line-height: 1.35;
+        margin: 0 0 12px;
+        break-after: avoid;
+      }
+      header {
+        border-bottom: 2px solid #256b50;
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+      }
+      .category {
+        color: #256b50;
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        margin: 0 0 5px;
+      }
+      article {
+        padding: 20px 0;
+        border-bottom: 1px solid #ddd;
+        break-inside: avoid;
+      }
+      .followup {
+        background: #f2f5f8;
+        padding: 12px 16px;
+        border-left: 3px solid #256b50;
+        font-size: 12px;
+      }
+      .followup p {
+        margin: 5px 0 0;
+      }
+      code {
+        font-size: 0.9em;
+      }
+      p {
+        margin: 0 0 12px;
+      }
+      @media print {
+        body {
+          max-width: none;
+          padding: 0;
+          margin: 0;
+          font-size: 10pt;
+        }
+        h1 {
+          font-size: 24pt;
+        }
+        h2 {
+          font-size: 13pt;
+        }
+        article {
+          padding: 14px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="category">Threshold Monitor / Architecture reference</p>
+      <h1>Interview questions</h1>
+      <p>
+        14 repository-specific questions with answers and follow-up prompts.
+      </p>
+      <p>
+        Start with a concise explanation, trace a concrete example, then name
+        the tradeoff.
+      </p>
+    </header>
+    <article>
+      <p class="category">Architecture</p>
+      <h2>1. Walk us through the system.</h2>
+      <p>
+        A separate Node sensor generates readings and detects crossings. A relay
+        validates and stores alerts and settings, then distributes updates over
+        WebSocket. The monitor displays live data and edits settings; operators
+        acknowledge alarms in the control room.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          Follow one reading all the way to the chart. Keep detection in the
+          sensor and durable shared state in the relay.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">Architecture</p>
+      <h2>2. Why is the sensor separate from the browser?</h2>
+      <p>
+        Detection must continue when no tab is open. One source also ensures
+        every monitor observes the same readings and alerts. The DataSource
+        interface allows replacing the simulation with a hardware adapter.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          What changes when you introduce multiple sensors? Consider message
+          identity, settings, connections, and source selection.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">Domain</p>
+      <h2>3. Explain hysteresis using actual numbers.</h2>
+      <p>
+        With a threshold of 25°C and hysteresis of 0.6°C, a below state switches
+        only above 25.3°C. An above state switches only below 24.7°C. Values
+        exactly on an edge do not switch. The first sample never alerts.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          What happens when settings change? The agent silently reclassifies the
+          previous value against the new threshold before evaluating the next
+          reading.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">Delivery</p>
+      <h2>4. What if the relay stores an alert but accepted is lost?</h2>
+      <p>
+        The sensor retries with the same UUID. The relay finds the stored record
+        and confirms it with duplicate: true, without broadcasting a second
+        alert. Duplicate transmission is expected; duplicate storage is
+        prevented.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          Where can alerts still be lost? Queue overflow, sensor process exit,
+          and terminal connection/configuration failures qualify the delivery
+          guarantee.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">Delivery</p>
+      <h2>5. Does reconnect recover everything?</h2>
+      <p>
+        No. welcome is a bounded snapshot of 100 recent alerts. The monitor
+        replaces its collection; the control room merges it. A missed
+        acknowledgement outside the snapshot can leave a retained alarm stale.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          A durable sequence of alert changes would support replay. Snapshot and
+          replay boundaries must be consistent, and clients must apply pages
+          before advancing a cursor.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">React</p>
+      <h2>6. Why is the connection in a ref and status in state?</h2>
+      <p>
+        Changing status should update the interface. The connection object is an
+        imperative resource used for sending and cleanup; replacing that
+        reference should not itself trigger rendering.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          Explain why creating a socket during render is unsafe and how effect
+          cleanup handles the development StrictMode setup/cleanup check.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">React</p>
+      <h2>7. Why use useEffectEvent in useRelay?</h2>
+      <p>
+        Connection callbacks need current handlers without reconnecting whenever
+        the component renders. Effect Events provide access to current handlers
+        while the connection effect depends on the stable connect function.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          A stale closure retains values from an older render. Effect Events are
+          not a general excuse to omit legitimate effect dependencies.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">React</p>
+      <h2>8. Why use useSyncExternalStore for readings?</h2>
+      <p>
+        Readings live in an external ring buffer. useSyncExternalStore
+        subscribes React to consistent snapshots. The chart reads the window;
+        the readout reads the latest value. Snapshots keep identity until data
+        changes.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          Redux could support this sampling rate too. The split deliberately
+          isolates frequent sample updates rather than proving Redux cannot
+          handle them.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">React</p>
+      <h2>9. Why Redux in one app and useReducer in the other?</h2>
+      <p>
+        The monitor has shared alert, setting, and sensor slices with derived
+        selectors. The control room has one central list with explicit
+        transitions, so a reducer is enough. Local input drafts stay in
+        component state.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          Avoid choosing a state library just because it is familiar. Explain
+          state scope, update frequency, and who subscribes.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">Storage</p>
+      <h2>10. Why SQLite, and what limits scaling?</h2>
+      <p>
+        It fits one relay process with simple durable storage and transactions.
+        Conditional updates enforce first acknowledgement wins. Synchronous
+        operations and local-file deployment need reassessment as workload
+        grows.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          Multiple relays also need shared event distribution and sensor
+          ownership coordination; replacing the database alone is insufficient.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">Security</p>
+      <h2>11. Where does the operator name come from?</h2>
+      <p>
+        The authenticated server session, never the ack message. The message
+        contains only the alert ID. Browser roles use a session cookie; the
+        sensor authenticates with a service token in hello.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          Explain password hashing, hashed session tokens, origin validation,
+          session expiry, and the difference between authentication and
+          authorization.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">Testing</p>
+      <h2>12. What do fake sockets fail to prove?</h2>
+      <p>
+        They make retry and timeout tests deterministic, but do not prove real
+        socket behavior, browser integration, or deployment configuration.
+        Real-relay integration, Playwright, and Docker checks cover other
+        boundaries.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          Use one concrete example from a test you understand. Explain what the
+          test asserts and what it leaves unverified.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">Tradeoffs</p>
+      <h2>13. What would you improve first?</h2>
+      <p>
+        Reconnect recovery is a correctness fix. Stale-data labels prevent old
+        temperatures looking current. A durable sensor outbox protects
+        unaccepted alerts across restarts. History and retention depend on the
+        product requirements.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          Describe one implementation path and one tradeoff. Clearly distinguish
+          proposed work from implemented behavior.
+        </p>
+      </div>
+    </article>
+    <article>
+      <p class="category">Tradeoffs</p>
+      <h2>14. Is the latency independent of clock skew?</h2>
+      <p>
+        The alert log subtracts the sensor event time from the relay receipt
+        time. It does not use the browser clock, but sensor/relay clock skew can
+        still affect the number.
+      </p>
+      <div class="followup">
+        <strong>Be ready for the follow-up</strong>
+        <p>
+          The readout above/below label also differs from detector state: it
+          compares directly with the threshold, while detection remembers state
+          and uses hysteresis.
+        </p>
+      </div>
+    </article>
+  </body>
+</html>

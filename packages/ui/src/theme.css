@@ -1,0 +1,60 @@
+/* Shared visual foundations for the monitor, control room, and field guide. */
+:root {
+  color-scheme: light;
+  --project-bg: #f5f6f8;
+  --project-surface: #ffffff;
+  --project-text: #192537;
+  --project-muted: #637083;
+  --project-border: #e1e6ed;
+  --project-accent: #256b50;
+  --project-accent-soft: #eaf5ee;
+  --project-focus: #459d79;
+  --project-danger: #b42318;
+  --project-radius: 12px;
+  --project-font:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --project-mono:
+    ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+.project-navigation {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font: 12px/1.4 var(--project-font);
+}
+.project-navigation a,
+.project-navigation [aria-current] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--project-border);
+  border-radius: 8px;
+  background: var(--project-surface);
+  color: var(--project-text);
+  text-decoration: none;
+}
+.project-navigation [aria-current] {
+  background: var(--project-accent-soft);
+  border-color: #b0cdbb;
+  color: var(--project-accent);
+  font-weight: 600;
+}
+.project-navigation a:hover {
+  border-color: var(--project-accent);
+  background: var(--project-accent-soft);
+}
+.project-navigation a:focus-visible {
+  outline: 3px solid var(--project-focus);
+  outline-offset: 3px;
+}
+.project-navigation__arrow {
+  color: var(--project-muted);
+}
+@media print {
+  .project-navigation {
+    display: none;
+  }
+}

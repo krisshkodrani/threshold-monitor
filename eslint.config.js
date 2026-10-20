@@ -42,6 +42,10 @@ export default defineConfig(
     languageOptions: { globals: globals.browser },
   },
   {
+    files: ["apps/architecture-guide/src/**/*.js"],
+    languageOptions: { globals: globals.browser },
+  },
+  {
     files: ["server/**/*.ts", "sensor/**/*.ts"],
     languageOptions: { globals: globals.node },
   },

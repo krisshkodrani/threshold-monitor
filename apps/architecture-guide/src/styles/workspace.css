@@ -1,0 +1,1172 @@
+/* Presentation workspace: primary views stay together, references are drawers. */
+.guide-nav-toggle {
+  flex-shrink: 0;
+}
+.topbar .breadcrumb {
+  margin-right: auto;
+}
+.sidebar {
+  transition: width 0.18s;
+}
+.main-shell {
+  transition: margin-left 0.18s;
+}
+.nav-collapsed .sidebar {
+  width: 64px;
+  padding: 20px 9px;
+}
+.nav-collapsed .main-shell {
+  margin-left: 64px;
+}
+.nav-collapsed .brand {
+  padding: 0;
+  justify-content: center;
+}
+.nav-collapsed .brand > div,
+.nav-collapsed .nav-caption,
+.nav-collapsed .sidebar-bottom,
+.nav-collapsed #project-navigation-target,
+.nav-collapsed .nav-link > span {
+  display: none;
+}
+.nav-collapsed .sidebar nav {
+  margin-top: 29px;
+}
+.nav-collapsed .nav-link {
+  padding: 12px;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 7px 0;
+}
+.nav-collapsed .nav-link .icon {
+  width: 19px;
+  height: 19px;
+}
+.guide-nav-backdrop {
+  display: none;
+}
+.is-simulator .topbar {
+  height: 48px;
+  padding: 0 20px;
+  gap: 12px;
+}
+.is-simulator .topbar .search-box {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.is-simulator main {
+  max-width: none;
+  padding: 14px 20px 14px;
+}
+.is-simulator .page-footer {
+  display: none;
+}
+#simulator:not([hidden]) {
+  height: calc(100dvh - 76px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.sim-workspace-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 39px;
+}
+.sim-workspace-heading > div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.sim-workspace-heading h1 {
+  font-size: 23px;
+  white-space: nowrap;
+}
+.sim-workspace-heading > div > span {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sim-workspace-actions {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+}
+.sim-workspace-actions > select {
+  min-width: 0;
+  max-width: 310px;
+  font-size: 11px;
+  border: 1px solid #cdd9d0;
+  border-radius: 6px;
+  padding: 7px 26px 7px 10px;
+  color: #2c5540;
+  background: white;
+}
+.sim-workspace-actions .plain-button {
+  padding: 7px 11px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.sim-workspace.sim-player {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.sim-workspace .sim-controls {
+  padding: 10px 13px;
+  min-height: 51px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.sim-workspace .sim-controls .solid-button,
+.sim-workspace .sim-controls .plain-button {
+  padding: 7px 11px;
+}
+.sim-workspace .sim-controls .sim-run-status {
+  font-size: 9px;
+}
+.sim-config-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 7px 13px;
+  border-bottom: 1px solid #dbe5de;
+  background: #f1f7f3;
+  color: #2c5540;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.sim-config-status > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sim-config-status .icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.sim-config-status small {
+  margin-left: auto;
+  color: #596e60;
+  font-size: 10px;
+}
+.sim-config-status [data-pending] {
+  color: #874819;
+}
+.sim-main-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.2fr) minmax(
+      240px,
+      0.82fr
+    );
+  gap: 12px;
+  padding: 12px;
+  background: #f5f8f6;
+}
+.sim-main-grid > .panel {
+  margin: 0;
+  min-height: 0;
+  min-width: 0;
+  border-radius: 9px;
+}
+.sim-main-grid .panel-top,
+.sim-main-grid .sim-map-label {
+  min-height: 47px;
+  padding: 12px 14px;
+  flex-shrink: 0;
+}
+.sim-main-grid h2,
+.sim-main-grid .sim-map-label strong {
+  font-size: 12px;
+}
+.sim-main-grid .caption,
+.sim-main-grid .sim-map-label > span {
+  font-size: 8px;
+}
+.sim-main-grid .sim-map-label {
+  align-items: center;
+}
+.sim-main-grid .sim-map-label > span {
+  max-width: 58%;
+}
+.sim-main-grid .sim-chart-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.sim-main-grid .sim-chart-wrap {
+  min-height: 0;
+  padding: 12px 5px;
+  overflow: hidden;
+}
+.sim-main-grid #sim-chart {
+  min-height: 0;
+  max-height: 100%;
+  width: 100%;
+}
+.sim-main-grid .sim-chart-key {
+  padding: 8px 10px;
+  gap: 8px;
+  font-size: 8px;
+  flex-shrink: 0;
+}
+.sim-main-grid .sim-sequence {
+  padding: 8px 10px;
+  min-height: 52px;
+  flex-shrink: 0;
+}
+.sim-main-grid .sim-sample-chip {
+  font-size: 10px;
+  padding: 5px 7px;
+  min-width: 38px;
+}
+.sim-main-grid .sim-sample-chip small {
+  font-size: 7px;
+}
+.sim-main-grid .sim-live-map {
+  display: flex;
+  flex-direction: column;
+}
+.sim-main-grid .sim-live-map > svg {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-height: none;
+  margin: 0;
+}
+.sim-main-grid .sim-message-legend {
+  padding: 10px;
+  font-size: 8px;
+  gap: 8px;
+  flex-shrink: 0;
+  border-top: 1px solid #e5ebe6;
+}
+.sim-main-grid .sim-control-panel {
+  display: flex;
+  flex-direction: column;
+}
+.sim-control-panel .sim-records {
+  min-height: 0;
+  max-height: none;
+  padding: 0 12px;
+  overflow: auto;
+  flex: 1;
+}
+.sim-control-panel .sim-empty {
+  font-size: 11px;
+  padding: 20px 2px;
+}
+.sim-control-panel .sim-record {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0;
+}
+.sim-control-panel .sim-record > div:nth-child(2) {
+  flex: 1;
+  min-width: 80px;
+}
+.sim-control-panel .sim-record strong {
+  font-size: 10px;
+}
+.sim-control-panel .sim-record small {
+  font-size: 9px;
+}
+.sim-control-panel .sim-record .sim-ack {
+  font-size: 9px;
+  padding: 6px 7px;
+}
+.sim-control-panel .sim-record-symbol {
+  width: 23px;
+  height: 23px;
+}
+.sim-control-panel .sim-record-status {
+  font-size: 9px;
+  max-width: 100%;
+}
+.sim-operator-tools {
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  background: #fafcfb;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.sim-operator-tools > button {
+  font-size: 10px;
+  background: white;
+  border-color: #bdd2c4;
+  color: #2c6344;
+}
+.sim-operator-tools label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #4d6557;
+}
+.sim-operator-tools input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+.sim-operator-tools > span {
+  font-size: 9px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.sim-workspace-summary {
+  flex-shrink: 0;
+  background: white;
+}
+.sim-workspace-summary .sim-explanation {
+  min-height: 0;
+  max-height: 94px;
+  padding: 10px 15px;
+  border-top: 1px solid var(--line);
+  overflow: auto;
+}
+.sim-workspace-summary .sim-explanation > .eyebrow {
+  display: none;
+}
+.sim-workspace-summary .sim-explanation h3 {
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  margin: 0 0 3px;
+  line-height: 1.5;
+}
+.sim-workspace-summary .sim-explanation p {
+  font-size: 10px;
+  line-height: 1.7;
+  max-width: none;
+}
+.sim-workspace-summary .sim-prediction {
+  display: flex;
+  margin: 0;
+  padding: 7px 15px;
+  border-top: 1px solid #e5ece7;
+  border-bottom: 0;
+  min-height: 32px;
+  align-items: center;
+}
+.sim-workspace-summary .sim-prediction > div:first-child {
+  display: none;
+}
+.sim-workspace-summary .sim-prediction > div:last-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 15px;
+}
+.sim-workspace-summary .sim-outcome-counts {
+  gap: 17px;
+  align-items: center;
+  text-align: left;
+}
+.sim-workspace-summary .sim-outcome-counts span {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 9px;
+  min-width: 0;
+}
+.sim-workspace-summary .sim-outcome-counts strong {
+  font-size: 11px;
+  display: inline;
+  line-height: 1.5;
+}
+.sim-workspace-summary .sim-expectation-result {
+  padding: 0;
+  font-size: 9px;
+}
+.sim-mobile-tabs {
+  display: none;
+}
+.sim-dialog {
+  border: 1px solid #cad6cf;
+  border-radius: 12px;
+  background: #f6f8f7;
+  color: var(--ink);
+  padding: 0;
+  box-shadow: 0 25px 90px #112b2533;
+  max-height: 85dvh;
+  max-width: calc(100vw - 32px);
+  overflow: auto;
+}
+.sim-dialog::backdrop {
+  background: #1425324d;
+  backdrop-filter: blur(2px);
+}
+.sim-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.sim-dialog-heading h2 {
+  font-size: 16px;
+}
+.sim-dialog-heading p {
+  font-size: 10px;
+  margin-top: 4px;
+}
+.sim-settings-dialog {
+  width: 760px;
+}
+.sim-settings-dialog .sim-config {
+  margin: 14px !important;
+  border-radius: 8px;
+}
+.sim-settings-dialog .sim-config .panel-top {
+  display: none;
+}
+#simulator .sim-settings-dialog .sim-config fieldset {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.sim-settings-dialog .sim-sequence-group {
+  grid-column: 1/-1;
+}
+.sim-preset-library {
+  margin: 16px;
+}
+.sim-preset-library > summary {
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0;
+}
+.sim-preset-library .sim-case-grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+.sim-preset-library .sim-case {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 45px 1fr auto;
+  gap: 3px 14px;
+  align-items: center;
+}
+.sim-preset-library .sim-case-label {
+  margin: 0;
+  grid-row: 1/3;
+}
+.sim-preset-library .sim-case-label > .icon {
+  display: none;
+}
+.sim-preset-library .sim-case strong {
+  margin: 0;
+}
+.sim-preset-library .sim-case-description {
+  grid-column: 2;
+  grid-row: 2;
+}
+.sim-preset-library .sim-case-outcome {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  grid-column: 3;
+  grid-row: 1;
+}
+.sim-preset-library .sim-case small {
+  grid-column: 3;
+  margin: 0;
+}
+.sim-inspect-dialog {
+  width: min(1160px, calc(100vw - 100px));
+  margin: 0 20px 18px auto;
+  inset: auto 0 0 auto;
+  max-height: 64dvh;
+}
+.sim-inspect-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: white;
+  position: sticky;
+  top: 74px;
+  z-index: 1;
+}
+.sim-inspect-tabs button {
+  font-size: 11px;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.sim-inspect-tabs button[aria-pressed="true"] {
+  background: #e7f2ea;
+  color: #225b3e;
+  border-color: #b4cdbd;
+}
+.sim-inspect-content {
+  min-width: 0;
+}
+.sim-inspect-dialog .sim-message-heading,
+.sim-inspect-dialog .sim-message-progress,
+.sim-inspect-dialog .sim-message-intro,
+.sim-inspect-dialog .sim-map-label {
+  display: none;
+}
+.sim-inspect-dialog .sim-message-map {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border: 0;
+}
+.sim-inspect-dialog .sim-map-and-trace {
+  border: 0;
+}
+.sim-inspect-dialog .sim-message-cards {
+  display: flex;
+  flex-direction: column;
+  max-height: 390px;
+  padding: 12px;
+  gap: 8px;
+}
+.sim-inspect-dialog .sim-message-card {
+  height: auto;
+  flex-shrink: 0;
+  margin: 0;
+}
+.sim-inspect-dialog .sim-payload-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 18px;
+  border-left: 1px solid var(--line);
+}
+.sim-inspect-dialog .sim-payload-inspector pre {
+  max-height: 215px;
+  min-height: 100px;
+}
+.sim-internal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+.sim-internal-grid .sim-view {
+  min-width: 0;
+}
+.sim-internal-grid .sim-view .panel-top {
+  padding: 14px;
+}
+.sim-internal-grid .sim-readouts {
+  padding: 17px;
+  gap: 14px;
+}
+.sim-inspect-dialog .sim-event-log {
+  margin: 14px;
+}
+.sim-inspect-dialog .sim-event-log ol {
+  max-height: 330px;
+}
+.sim-record.is-ack-pending {
+  background: #fff8ed;
+  border-color: #c69d60;
+}
+.sim-record.is-acknowledged {
+  background: #edf7f0;
+  border-color: #79a18a;
+}
+.sim-record.is-acknowledged .sim-record-symbol {
+  color: #26704d;
+}
+.sim-record-symbol .icon {
+  width: 17px;
+  height: 17px;
+}
+.sim-control-panel.has-new-alarm {
+  border-color: #79a18a;
+}
+.sim-control-panel .sim-record.new-alarm {
+  background: #edf7f0;
+}
+.guide-nav-backdrop[hidden] {
+  display: none !important;
+}
+@media (min-width: 1600px) {
+  .sim-main-grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr) minmax(
+        280px,
+        0.8fr
+      );
+  }
+}
+@media (max-width: 1100px) and (min-width: 951px) {
+  .sim-main-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(220px, 0.78fr);
+  }
+  .sim-workspace-heading > div:first-child > span {
+    display: none;
+  }
+  .sim-main-grid .sim-message-legend {
+    font-size: 7px;
+  }
+  .sim-main-grid .panel-title > .icon {
+    width: 14px;
+  }
+}
+@media (max-width: 950px) {
+  .sidebar,
+  .nav-collapsed .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 220px;
+    padding: 22px 15px;
+    display: flex;
+    flex-direction: column;
+    z-index: 60;
+  }
+  .sidebar .brand {
+    padding: 0 7px;
+    justify-content: flex-start;
+  }
+  .sidebar .brand > div {
+    display: block;
+  }
+  .sidebar nav {
+    display: block !important;
+    overflow: auto;
+    margin: 27px 0 0 !important;
+    padding: 0;
+  }
+  .sidebar .nav-link {
+    display: flex;
+    width: auto;
+    height: auto;
+    margin: 5px 0;
+    padding: 12px;
+    justify-content: flex-start;
+    font-size: 12px;
+  }
+  .sidebar .nav-link > span {
+    display: inline;
+  }
+  .sidebar .nav-num {
+    display: none;
+  }
+  .sidebar-bottom {
+    display: block;
+  }
+  .nav-collapsed .sidebar {
+    display: none;
+  }
+  .main-shell,
+  .nav-collapsed .main-shell {
+    margin-left: 0;
+  }
+  .guide-nav-backdrop:not([hidden]) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: #13233455;
+    z-index: 50;
+  }
+  .is-simulator .topbar {
+    padding: 0 14px;
+  }
+  .is-simulator main {
+    padding: 12px 14px;
+  }
+  #simulator:not([hidden]) {
+    height: calc(100dvh - 72px);
+    gap: 10px;
+  }
+  .sim-workspace-heading > div:first-child > span {
+    display: none;
+  }
+  .sim-workspace-heading h1 {
+    font-size: 21px;
+  }
+  .sim-main-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr) minmax(210px, 0.8fr);
+    gap: 9px;
+    padding: 9px;
+  }
+  .sim-workspace-actions > select {
+    max-width: 240px;
+  }
+  .sim-workspace-summary .sim-explanation {
+    max-height: 84px;
+  }
+  .sim-main-grid .sim-message-legend {
+    font-size: 7px;
+  }
+  .sim-inspect-dialog {
+    width: calc(100vw - 28px);
+    margin: 0 14px 14px;
+  }
+  .sim-inspect-dialog .sim-message-map {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .sim-workspace-heading {
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+  .sim-workspace-heading h1 {
+    font-size: 20px;
+  }
+  .sim-workspace-heading > div:first-child > span {
+    display: none;
+  }
+  .sim-workspace-actions {
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .sim-workspace-actions > select {
+    max-width: 220px;
+    font-size: 10px;
+  }
+  #simulator:not([hidden]) {
+    min-height: 590px;
+  }
+  .sim-main-grid {
+    display: block;
+    position: relative;
+    padding: 9px;
+    flex: 1;
+  }
+  .sim-main-grid > .panel {
+    height: 100%;
+  }
+  .sim-main-grid[data-workspace-view="chart"] > .sim-live-map,
+  .sim-main-grid[data-workspace-view="chart"] > .sim-control-panel,
+  .sim-main-grid[data-workspace-view="map"] > .sim-chart-panel,
+  .sim-main-grid[data-workspace-view="map"] > .sim-control-panel,
+  .sim-main-grid[data-workspace-view="control"] > .sim-chart-panel,
+  .sim-main-grid[data-workspace-view="control"] > .sim-live-map {
+    display: none !important;
+  }
+  .sim-mobile-tabs {
+    display: flex;
+    gap: 5px;
+    padding: 8px 10px 0;
+    background: #f5f8f6;
+    flex-shrink: 0;
+  }
+  .sim-mobile-tabs > button {
+    flex: 1;
+    font-size: 10px;
+    padding: 7px;
+    border: 1px solid #d6e2da;
+    border-radius: 5px;
+    color: #516c5c;
+    background: white;
+  }
+  .sim-mobile-tabs > button[aria-pressed="true"] {
+    background: #e5f1e8;
+    border-color: #93b6a0;
+    color: #235c3c;
+  }
+  .sim-mobile-tabs span {
+    font: 9px var(--mono);
+    margin-left: 4px;
+  }
+  .sim-control-panel .sim-records {
+    min-height: 110px;
+  }
+  .sim-control-panel .sim-record {
+    flex-wrap: nowrap;
+  }
+  .sim-control-panel .sim-operator-tools {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 9px;
+  }
+  .sim-control-panel .sim-operator-tools > span {
+    grid-column: 1/-1;
+  }
+  .sim-control-panel .sim-record .sim-ack {
+    font-size: 10px;
+  }
+  .sim-main-grid .sim-chart-wrap {
+    max-height: none;
+  }
+  .sim-workspace .sim-controls {
+    gap: 7px;
+    padding: 9px;
+  }
+  .sim-workspace .sim-controls .sim-run-status {
+    font-size: 8px;
+    width: 100%;
+    margin: 0;
+  }
+  .sim-workspace .sim-controls .solid-button,
+  .sim-workspace .sim-controls .plain-button {
+    font-size: 10px;
+    padding: 7px 10px;
+  }
+  .sim-workspace-summary .sim-explanation {
+    max-height: 94px;
+  }
+  .sim-workspace-summary .sim-explanation h3 {
+    font-size: 11px;
+  }
+  .sim-workspace-summary .sim-prediction > div:last-child {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .sim-workspace-summary .sim-outcome-counts {
+    gap: 12px;
+  }
+  .sim-workspace-summary .sim-outcome-counts span {
+    font-size: 8px;
+  }
+  .sim-workspace-summary .sim-expectation-result {
+    font-size: 8px;
+  }
+  .sim-inspect-dialog {
+    max-height: 74dvh;
+  }
+  .sim-inspect-dialog .sim-message-map {
+    display: block;
+  }
+  .sim-inspect-dialog .sim-message-cards {
+    max-height: 210px;
+  }
+  .sim-inspect-dialog .sim-payload-inspector {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .sim-internal-grid {
+    grid-template-columns: 1fr;
+  }
+  .sim-dialog-heading {
+    padding: 13px 16px;
+  }
+  .sim-inspect-tabs {
+    top: 69px;
+  }
+  .sim-inspect-dialog .sim-payload-inspector pre {
+    max-height: 190px;
+  }
+  #simulator .sim-settings-dialog .sim-config fieldset {
+    grid-template-columns: 1fr;
+  }
+  .sim-preset-library .sim-case {
+    grid-template-columns: 35px 1fr;
+  }
+  .sim-preset-library .sim-case-outcome,
+  .sim-preset-library .sim-case small {
+    grid-column: 2;
+  }
+  .is-simulator .top-actions .search-box input {
+    width: 110px;
+  }
+  .is-simulator .breadcrumb {
+    font-size: 10px;
+  }
+  .sim-main-grid .sim-chart-key {
+    font-size: 9px;
+  }
+}
+@media (max-width: 480px) {
+  .sim-workspace-heading {
+    display: block;
+  }
+  .sim-workspace-actions {
+    margin-top: 8px;
+    justify-content: flex-start;
+  }
+  .sim-workspace-actions > select {
+    flex: 1;
+    max-width: none;
+  }
+  .is-simulator .topbar {
+    gap: 9px;
+    padding: 0 12px;
+  }
+  .is-simulator .topbar .top-actions {
+    gap: 7px;
+  }
+  .is-simulator .topbar .search-box {
+    display: none;
+  }
+  .sim-workspace-heading h1 {
+    font-size: 19px;
+  }
+  .sim-workspace .sim-controls .sim-restart {
+    padding: 7px 4px;
+  }
+  .is-simulator main {
+    padding: 10px;
+  }
+  #simulator:not([hidden]) {
+    height: calc(100dvh - 68px);
+  }
+  .sim-main-grid .sim-map-label > span {
+    font-size: 8px;
+  }
+  .sim-main-grid .sim-message-legend {
+    font-size: 8px;
+  }
+  .sim-main-grid .sim-map-column > svg {
+    min-height: 150px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .main-shell {
+    transition: none;
+  }
+}
+@media print {
+  .guide-nav-toggle,
+  .guide-nav-backdrop,
+  .sim-workspace-heading,
+  .sim-mobile-tabs,
+  .sim-operator-tools,
+  .sim-dialog {
+    display: none !important;
+  }
+  .is-simulator main {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+  }
+  #simulator:not([hidden]) {
+    height: auto;
+    display: block;
+    min-height: 0;
+  }
+  .sim-workspace.sim-player {
+    display: block;
+    overflow: visible;
+  }
+  .sim-main-grid {
+    display: block;
+    padding: 0;
+  }
+  .sim-main-grid > .panel {
+    height: auto;
+    min-height: 0;
+    margin: 15px 0;
+  }
+  .sim-main-grid .sim-chart-panel,
+  .sim-main-grid .sim-live-map,
+  .sim-main-grid .sim-control-panel {
+    display: block !important;
+  }
+  .sim-main-grid .sim-live-map > svg {
+    height: 280px;
+  }
+  .sim-main-grid .sim-chart-wrap {
+    display: block;
+    max-height: none;
+  }
+  .sim-main-grid #sim-chart {
+    height: 220px;
+  }
+  .sim-workspace-summary .sim-explanation {
+    max-height: none;
+  }
+  .sim-workspace-summary .sim-prediction > div:first-child {
+    display: block;
+  }
+  .sim-workspace-summary .sim-prediction {
+    display: block;
+  }
+  .sim-workspace-summary .sim-prediction > div:last-child {
+    margin-top: 12px;
+  }
+  .sim-print-summary {
+    display: block;
+  }
+  .sim-control-panel .sim-records {
+    max-height: none;
+    overflow: visible;
+  }
+}
+#simulator .sim-main-grid .sim-chart-wrap {
+  align-items: stretch;
+}
+#simulator .sim-main-grid #sim-chart {
+  width: 100%;
+  height: 100%;
+}
+@media print {
+  .nav-collapsed .main-shell {
+    margin-left: 0;
+  }
+  #simulator .sim-main-grid .sim-live-map {
+    display: block !important;
+  }
+}
+.sim-inspectable-route {
+  cursor: help;
+}
+.sim-route-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 25;
+  pointer-events: stroke;
+}
+.sim-inspectable-route:focus {
+  outline: none;
+}
+.sim-inspectable-route:focus .sim-route-path,
+.sim-inspectable-route.is-inspected .sim-route-path {
+  stroke: #1c6240;
+  stroke-width: 3.5;
+}
+.sim-inspectable-route:focus .sim-route-label,
+.sim-inspectable-route.is-inspected .sim-route-label {
+  fill: #174f34;
+  font-weight: 700;
+}
+.sim-message-tooltip {
+  position: fixed;
+  z-index: 160;
+  width: min(370px, calc(100vw - 24px));
+  max-height: min(430px, calc(100dvh - 80px));
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #b4cdbd;
+  border-radius: 10px;
+  box-shadow: 0 14px 45px #132c2b2e;
+  color: var(--ink);
+}
+.sim-tooltip-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: #f4faf6;
+}
+.sim-tooltip-heading h2 {
+  font-size: 13px;
+}
+.sim-tooltip-heading .icon-button {
+  width: 25px;
+  height: 25px;
+  background: transparent;
+}
+.sim-tooltip-heading .icon {
+  width: 13px;
+  height: 13px;
+}
+.sim-tooltip-messages {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 10px 13px 0;
+}
+.sim-tooltip-messages button {
+  font: 10px var(--mono);
+  padding: 5px 7px;
+  border: 1px solid #d9e4dd;
+  border-radius: 4px;
+  background: #f7f9f8;
+  color: #48604f;
+}
+.sim-tooltip-messages button[aria-pressed="true"] {
+  border-color: #74a286;
+  background: #e7f2ea;
+  color: #1f583b;
+}
+.sim-tooltip-meta {
+  font: 9px/1.8 var(--mono);
+  color: #526b5c;
+  padding: 9px 14px 0;
+}
+.sim-tooltip-description {
+  font-size: 10px;
+  line-height: 1.7;
+  padding: 5px 14px 11px;
+  color: #5b6e7c;
+}
+.sim-message-tooltip pre {
+  margin: 0 12px 12px;
+  padding: 13px;
+  border-radius: 7px;
+  max-height: 225px;
+  overflow: auto;
+  background: #142637;
+  color: #d5eadc;
+  font: 10px/1.85 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 760px) {
+  .sim-workspace .sim-controls {
+    column-gap: 6px;
+  }
+  .sim-workspace .sim-controls .plain-button,
+  .sim-workspace .sim-controls .solid-button {
+    padding: 7px 8px;
+  }
+  .sim-workspace .sim-restart {
+    font-size: 10px;
+  }
+}
+@media print {
+  .sim-message-tooltip {
+    display: none !important;
+  }
+}
+
+/* Keep navigation outside the scroll area on every guide view. */
+@media screen {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    overflow: hidden;
+  }
+  .main-shell {
+    height: 100dvh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .main-shell > .topbar {
+    flex: 0 0 auto;
+  }
+  main#main {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    margin: 0 auto;
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+  .sidebar {
+    overflow-y: auto;
+  }
+  #simulator:not([hidden]) {
+    height: 100%;
+  }
+}
+@media screen and (min-width: 951px) {
+  #code .file-browser {
+    top: 0;
+    max-height: calc(100dvh - 188px);
+  }
+}

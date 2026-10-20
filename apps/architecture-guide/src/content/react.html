@@ -1,0 +1,156 @@
+<section class="page" id="react" aria-labelledby="react-title" hidden>
+  <div class="page-heading">
+    <span class="eyebrow">Chapter 3 · The browser view</span>
+    <div class="heading-line">
+      <h1 id="react-title">From a message to the screen.</h1>
+    </div>
+    <p>App receives messages, updates state, and passes data to components.</p>
+  </div>
+  {{learning-path}}
+  <div class="panel" id="react-composition" tabindex="-1">
+    <div class="panel-top"><h2>Three responsibilities</h2></div>
+    <div class="detail-grid chapter-panel-body">
+      <article class="detail-block">
+        <h3>main.tsx</h3>
+        <p>Creates stores and supplies the connection factory.</p>
+      </article>
+      <article class="detail-block">
+        <h3>App.tsx</h3>
+        <p>Turns messages into state updates and selects data for the views.</p>
+      </article>
+      <article class="detail-block">
+        <h3>Components</h3>
+        <p>Display data and send user actions through callbacks.</p>
+      </article>
+    </div>
+  </div>
+  <div class="section-row"><h2>Two paths for incoming data</h2></div>
+  <div class="panel" id="react-message-paths" tabindex="-1">
+    <div class="react-path" id="react-state-boundaries" tabindex="-1">
+      <div class="react-lane">
+        <h3>Readings</h3>
+        <p>
+          A separate readings store feeds the chart and readout through custom
+          hooks.
+        </p>
+        <button class="text-button" data-open-code="readings">
+          Inspect the reading hooks →
+        </button>
+      </div>
+      <svg class="icon" aria-hidden="true"><use href="#i-layers" /></svg>
+      <div class="react-lane secondary">
+        <h3>Alerts and settings</h3>
+        <p>
+          The monitor uses Redux Toolkit. The control room uses useReducer for
+          its alarm list.
+        </p>
+        <button class="text-button" data-open-code="alerts">
+          Inspect the Redux path →
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="section-row"><h2>Sending is not confirmation</h2></div>
+  <div class="detail-grid" id="react-confirmation" tabindex="-1">
+    <article class="detail-block">
+      <h3>Change a setting</h3>
+      <p>
+        The form keeps a local draft. App sends setSettings; the confirmed value
+        comes back from the relay.
+      </p>
+    </article>
+    <article class="detail-block">
+      <h3>Acknowledge an alarm</h3>
+      <p>
+        The control room marks the request as pending. Its alarm changes only
+        when acknowledged arrives from the relay.
+      </p>
+      <a href="#state" data-guide-target="state-reconnect"
+        >Reconnect recovery is bounded →</a
+      >
+    </article>
+  </div>
+  <details class="chapter-details" id="react-hooks" tabindex="-1">
+    <summary>Custom hooks: connection and subscriptions</summary>
+    <div class="hook-grid" tabindex="-1">
+      <article class="panel hook-card">
+        <span class="eyebrow">Own the connection lifecycle</span>
+        <h3>useRelay(connect, handlers)</h3>
+        <p>
+          Shared by the monitor and control room. An effect creates the
+          connection and cleanup disposes it. The connection layer handles
+          transport and reconnection.
+        </p>
+        <ul>
+          <li>
+            useState exposes connection status; useRef holds the connection
+            object.
+          </li>
+          <li>
+            useEffect performs setup and cleanup; connect must have a stable
+            identity.
+          </li>
+          <li>
+            useEffectEvent reads current handlers without reconnecting on each
+            render.
+          </li>
+          <li>useCallback supplies a stable send function.</li>
+        </ul>
+        <button class="text-button" data-open-code="hook">
+          Read useRelay →
+        </button>
+      </article>
+      <article class="panel hook-card">
+        <span class="eyebrow">Subscribe to readings</span>
+        <h3>useReadings / useLatestReading</h3>
+        <p>
+          Both wrap useSyncExternalStore. One exposes the whole rolling window;
+          the other exposes the newest sample. A snapshot keeps its reference
+          until the underlying data changes.
+        </p>
+        <ul>
+          <li>The same readings store supplies the chart and readout.</li>
+          <li>Subscription cleanup removes the listener on unmount.</li>
+          <li>
+            useAppDispatch and useAppSelector are separate, typed React Redux
+            hooks.
+          </li>
+        </ul>
+        <button class="text-button" data-open-code="readings">
+          Read the subscription hooks →
+        </button>
+      </article>
+    </div>
+  </details>
+  <details class="chapter-details">
+    <summary>
+      Supporting React boundaries: cleanup, loading, and failures
+    </summary>
+    <div class="detail-grid">
+      <article class="detail-block">
+        <h3>StrictMode checks cleanup</h3>
+        <p>
+          In development, the browser apps exercise an extra effect
+          setup/cleanup cycle. Disposing the owned connection closes its socket
+          and cancels retries. Setup → cleanup → setup must be safe.
+        </p>
+        <button class="text-button" data-open-code="hook">
+          Inspect connection cleanup →
+        </button>
+      </article>
+      <article class="detail-block">
+        <h3>Load and fail in small boundaries</h3>
+        <p>
+          The monitor lazy-loads the chart with a Suspense fallback. Root and
+          panel Error Boundaries isolate render failures. Event-handler and
+          asynchronous errors still need explicit handling.
+        </p>
+      </article>
+    </div>
+  </details>
+  <div class="chapter-links">
+    <a href="#code">Revisit the code →</a
+    ><a href="#state">Review the guarantees →</a
+    ><a href="#simulator">Explore message delivery in the simulator →</a>
+  </div>
+</section>

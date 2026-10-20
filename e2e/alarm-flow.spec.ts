@@ -108,6 +108,7 @@ test("two monitor tabs show the same data and share the settings", async ({
   await input.press("Enter");
   await expect(readout(second, "Threshold")).toHaveText("23.4 °C");
   await expect(second.getByLabel("Threshold (°C)")).toHaveValue("23.4");
+  await second.getByText("Sensor details", { exact: true }).click();
   await expect(
     second.getByText(/Settings changed by Demo Monitor/),
   ).toBeVisible();

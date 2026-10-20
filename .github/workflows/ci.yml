@@ -31,6 +31,7 @@ jobs:
       # End to end against the production build just made.
       - run: pnpm --filter @app/e2e exec playwright install --with-deps chromium
       - run: pnpm --filter @app/e2e e2e
+      - run: pnpm --filter @app/e2e e2e:guide
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

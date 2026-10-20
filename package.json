@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "start": "node server/dist/index.js",
-    "test:e2e": "pnpm build && pnpm --filter @app/e2e e2e"
+    "test:e2e": "pnpm build && pnpm --filter @app/e2e e2e",
+    "test:guide": "pnpm --filter @app/architecture-guide build && pnpm --filter @app/e2e e2e:guide"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

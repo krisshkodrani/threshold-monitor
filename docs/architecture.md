@@ -4,6 +4,12 @@ This document describes the parts of the system, where each piece of state
 lives, the message flow, and the limits of the current design. The ADRs in
 [docs/adr](adr) give the reasons for each decision.
 
+Open the [interactive architecture guide](architecture-guide.html) in a browser
+for the system map, playable temperature simulation, and source excerpts.
+Its React app and simulator reducer live in
+[apps/architecture-guide](../apps/architecture-guide); the HTML is a generated
+offline export.
+
 [Proposed improvements](proposed-improvements.md) explains possible code changes
 for recovery, durable delivery, freshness, and history. Those proposals are not
 part of the current implementation described here.

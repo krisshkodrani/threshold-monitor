@@ -176,6 +176,17 @@ the alarms).
 
 ## Architecture
 
+Open [the interactive architecture guide](docs/architecture-guide.html) locally
+in a browser for an explorable map, playable temperature simulation, and source
+excerpts. The self-contained HTML file works offline.
+
+The guide source lives in [apps/architecture-guide](apps/architecture-guide).
+Run `pnpm --filter @app/architecture-guide dev` to edit it, and
+`pnpm --filter @app/architecture-guide build` to regenerate the offline HTML.
+
+The former notebook is available separately as
+[interview questions and answers (PDF)](docs/interview-questions.pdf).
+
 Refer to [docs/architecture.md](docs/architecture.md) for the design and its
 limits, [docs/adr](docs/adr) for the main decisions, and
 [docs/roadmap.md](docs/roadmap.md) for the milestones.

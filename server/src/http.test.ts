@@ -30,6 +30,17 @@ beforeAll(async () => {
     path.join(root, "control", "dist", "assets", "app.js"),
     "console.log(1)",
   );
+  mkdirSync(path.join(root, "architecture-guide", "dist", "assets"), {
+    recursive: true,
+  });
+  writeFileSync(
+    path.join(root, "architecture-guide", "dist", "index.html"),
+    "<p>architecture guide</p>",
+  );
+  writeFileSync(
+    path.join(root, "architecture-guide", "dist", "assets", "guide.js"),
+    "console.log(2)",
+  );
   writeFileSync(path.join(root, "secret.txt"), "TOP SECRET");
 
   server = createHttpServer({
@@ -92,6 +103,21 @@ describe("http server", () => {
     expect(res.headers.get("location")).toBe("/control/");
   });
 
+  test("serves the architecture guide and its assets under its own prefix", async () => {
+    expect(await (await fetch(`${base}/architecture/`)).text()).toBe(
+      "<p>architecture guide</p>",
+    );
+    const redirect = await fetch(`${base}/architecture`, {
+      redirect: "manual",
+    });
+    expect(redirect.status).toBe(301);
+    expect(redirect.headers.get("location")).toBe("/architecture/");
+    const asset = await fetch(`${base}/architecture/assets/guide.js`);
+    expect(asset.status).toBe(200);
+    expect(asset.headers.get("content-type")).toMatch(/javascript/);
+    expect(await asset.text()).toBe("console.log(2)");
+  });
+
   test("serves control assets with a content type", async () => {
     const res = await fetch(`${base}/control/assets/app.js`);
     expect(res.status).toBe(200);
@@ -99,7 +125,12 @@ describe("http server", () => {
   });
 
   test("the app pages have security headers and must be checked again", async () => {
-    for (const page of ["/", "/control/", "/control/some/route"]) {
+    for (const page of [
+      "/",
+      "/control/",
+      "/control/some/route",
+      "/architecture/",
+    ]) {
       const res = await fetch(`${base}${page}`);
       expect(res.headers.get("content-security-policy")).toBe(
         APP_HEADERS["content-security-policy"],

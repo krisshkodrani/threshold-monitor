@@ -9,6 +9,7 @@ WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/monitor/package.json apps/monitor/
 COPY apps/control/package.json apps/control/
+COPY apps/architecture-guide/package.json apps/architecture-guide/
 COPY server/package.json server/
 COPY sensor/package.json sensor/
 COPY packages/protocol/package.json packages/protocol/
@@ -34,6 +35,7 @@ COPY --from=build /repo/server/dist ./dist
 # The server finds the apps at ../../apps from dist/index.js (STATIC_DIR default).
 COPY --from=build /repo/apps/monitor/dist /app/apps/monitor/dist
 COPY --from=build /repo/apps/control/dist /app/apps/control/dist
+COPY --from=build /repo/apps/architecture-guide/dist /app/apps/architecture-guide/dist
 # The sensor agent: one file with its dependencies bundled. The same image runs
 # it as a second container: node /app/sensor/dist/index.js (docker-compose.yml).
 COPY --from=build /repo/sensor/dist /app/sensor/dist

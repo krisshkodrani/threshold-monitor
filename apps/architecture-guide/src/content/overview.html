@@ -1,0 +1,361 @@
+<section class="page" id="overview" aria-labelledby="overview-title">
+  <div class="page-heading">
+    <span class="eyebrow">Architecture Guide</span>
+    <div class="heading-line">
+      <h1 id="overview-title">Threshold Monitor architecture</h1>
+      <span class="badge"
+        ><span class="badge-dot"></span>Current implementation · Protocol
+        v3</span
+      >
+    </div>
+    <p>
+      A sensor detects a change. A relay makes it durable. Two browser apps give
+      people a live view and a way to respond. Explore how the pieces fit
+      together.
+    </p>
+  </div>
+  <div class="facts">
+    <div class="fact">
+      <svg class="icon" aria-hidden="true">
+        <use href="#i-layers" />
+      </svg>
+      <div><strong>4</strong><small>Runtime applications</small></div>
+    </div>
+    <div class="fact">
+      <svg class="icon" aria-hidden="true"><use href="#i-flow" /></svg>
+      <div>
+        <strong>WebSocket</strong><small>One bidirectional channel</small>
+      </div>
+    </div>
+    <div class="fact">
+      <svg class="icon" aria-hidden="true">
+        <use href="#i-database" />
+      </svg>
+      <div><strong>SQLite</strong><small>Durable shared state</small></div>
+    </div>
+    <div class="fact">
+      <svg class="icon" aria-hidden="true">
+        <use href="#i-shield" />
+      </svg>
+      <div>
+        <strong>Role-based</strong><small>Sessions + sensor token</small>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-top">
+      <div class="panel-title">
+        <svg class="icon" aria-hidden="true">
+          <use href="#i-graph" />
+        </svg>
+        <h2>System map</h2>
+      </div>
+      <p>Select a component to explore its responsibilities</p>
+    </div>
+    <p class="mobile-map-hint">
+      Swipe horizontally to explore the map. Tap a component for details.
+    </p>
+    <div class="diagram-scroll">
+      <svg
+        class="system-map"
+        viewBox="0 0 1000 440"
+        role="group"
+        aria-label="Interactive architecture map: sensor connects to relay, relay connects to monitor, control room, and SQLite"
+      >
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="8"
+            markerHeight="8"
+            refX="7"
+            refY="4"
+            orient="auto"
+          >
+            <path
+              d="M1 1 7 4 1 7"
+              fill="none"
+              stroke="#9aafa3"
+              stroke-width="1.2"
+            />
+          </marker>
+        </defs>
+        <text x="40" y="36" class="map-section">EDGE / NODE.JS</text>
+        <text x="365" y="36" class="map-section">BACKEND / NODE.JS</text>
+        <text x="740" y="36" class="map-section">BROWSER / REACT</text>
+        <path class="map-edge" d="M240 176H365" />
+        <text x="255" y="160" class="map-label">reading · alert</text>
+        <path class="map-edge return" d="M365 220H240" />
+        <text x="252" y="241" class="map-label">accepted · settings</text>
+        <path class="map-edge" d="M595 173H660V101H740" />
+        <text x="610" y="62" class="map-label">readings · alerts</text>
+        <path class="map-edge return" d="M740 127H684V199H595" />
+        <text x="690" y="186" class="map-label">setSettings</text>
+        <path class="map-edge" d="M595 227H660V312H740" />
+        <text x="610" y="270" class="map-label">alerts · ack updates</text>
+        <path class="map-edge return" d="M740 340H635V247H595" />
+        <text x="659" y="363" class="map-label">ack</text>
+        <path class="map-edge" d="M480 252V335" />
+        <text x="493" y="298" class="map-label">store · query</text>
+        <g
+          class="map-node"
+          data-node="sensor"
+          role="button"
+          tabindex="0"
+          aria-label="Explore sensor service"
+          aria-pressed="false"
+        >
+          <rect
+            class="node-bg"
+            x="40"
+            y="142"
+            width="200"
+            height="110"
+            rx="12"
+          />
+          <rect
+            class="node-bubble"
+            x="56"
+            y="158"
+            width="32"
+            height="32"
+            rx="8"
+          />
+          <svg x="63" y="165" width="18" height="18" class="icon node-icon">
+            <use href="#i-pulse" />
+          </svg>
+          <text class="node-title" x="100" y="176">Sensor service</text>
+          <text class="node-meta" x="57" y="208">Read → detect → send</text>
+          <rect
+            class="node-chip"
+            x="57"
+            y="221"
+            width="67"
+            height="18"
+            rx="4"
+          />
+          <text class="chip-label" x="65" y="233">sensor/</text>
+        </g>
+        <g
+          class="map-node selected"
+          data-node="relay"
+          role="button"
+          tabindex="0"
+          aria-label="Explore relay server"
+          aria-pressed="true"
+        >
+          <rect
+            class="node-bg"
+            x="365"
+            y="142"
+            width="230"
+            height="110"
+            rx="12"
+          />
+          <rect
+            class="node-bubble"
+            x="381"
+            y="158"
+            width="32"
+            height="32"
+            rx="8"
+          />
+          <svg x="388" y="165" width="18" height="18" class="icon node-icon">
+            <use href="#i-server" />
+          </svg>
+          <text class="node-title" x="425" y="176">Relay server</text>
+          <text class="node-meta" x="382" y="208">
+            Validate → store → route
+          </text>
+          <rect
+            class="node-chip"
+            x="382"
+            y="221"
+            width="64"
+            height="18"
+            rx="4"
+          />
+          <text class="chip-label" x="390" y="233">server/</text>
+        </g>
+        <g
+          class="map-node"
+          data-node="monitor"
+          role="button"
+          tabindex="0"
+          aria-label="Explore monitor app"
+          aria-pressed="false"
+        >
+          <rect
+            class="node-bg"
+            x="740"
+            y="55"
+            width="220"
+            height="110"
+            rx="12"
+          />
+          <rect
+            class="node-bubble"
+            x="756"
+            y="71"
+            width="32"
+            height="32"
+            rx="8"
+          />
+          <svg x="763" y="78" width="18" height="18" class="icon node-icon">
+            <use href="#i-monitor" />
+          </svg>
+          <text class="node-title" x="800" y="89">Live Monitor</text>
+          <text class="node-meta" x="757" y="121">Chart · log · settings</text>
+          <rect
+            class="node-chip"
+            x="757"
+            y="134"
+            width="108"
+            height="18"
+            rx="4"
+          />
+          <text class="chip-label" x="765" y="146">apps/monitor/</text>
+        </g>
+        <g
+          class="map-node"
+          data-node="control"
+          role="button"
+          tabindex="0"
+          aria-label="Explore control room"
+          aria-pressed="false"
+        >
+          <rect
+            class="node-bg"
+            x="740"
+            y="280"
+            width="220"
+            height="110"
+            rx="12"
+          />
+          <rect
+            class="node-bubble"
+            x="756"
+            y="296"
+            width="32"
+            height="32"
+            rx="8"
+          />
+          <svg x="763" y="303" width="18" height="18" class="icon node-icon">
+            <use href="#i-check" />
+          </svg>
+          <text class="node-title" x="800" y="314">Control Room</text>
+          <text class="node-meta" x="757" y="346">Review · acknowledge</text>
+          <rect
+            class="node-chip"
+            x="757"
+            y="359"
+            width="108"
+            height="18"
+            rx="4"
+          />
+          <text class="chip-label" x="765" y="371">apps/control/</text>
+        </g>
+        <g
+          class="map-node"
+          data-node="database"
+          role="button"
+          tabindex="0"
+          aria-label="Explore SQLite storage"
+          aria-pressed="false"
+        >
+          <rect
+            class="node-bg"
+            x="365"
+            y="335"
+            width="230"
+            height="78"
+            rx="12"
+          />
+          <rect
+            class="node-bubble"
+            x="381"
+            y="352"
+            width="32"
+            height="32"
+            rx="8"
+          />
+          <svg x="388" y="359" width="18" height="18" class="icon node-icon">
+            <use href="#i-database" />
+          </svg>
+          <text class="node-title" x="425" y="366">SQLite</text>
+          <text class="node-meta" x="425" y="388">
+            Alerts · settings · auth
+          </text>
+        </g>
+        <text x="40" y="398" class="map-label">
+          Shared contract: packages/protocol
+        </text>
+        <text x="40" y="417" class="map-label">
+          Acknowledgements reach all clients.
+        </text>
+      </svg>
+    </div>
+    <div class="map-footer">
+      <span><i class="legend-line"></i>Data / events</span
+      ><span><i class="legend-line dashed"></i>Commands / responses</span
+      ><span class="hint">Keyboard: Tab to a node, then Enter</span>
+    </div>
+    <div id="node-inspector" class="inspector" aria-live="polite"></div>
+  </div>
+  <div class="section-row">
+    <h2>Three boundaries worth remembering</h2>
+    <a class="text-button" href="#simulator"
+      >Explore the live simulator
+      <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg
+    ></a>
+  </div>
+  <div class="three-col">
+    <article class="principle">
+      <div class="principle-number">
+        01 / DETECTION
+        <svg class="icon" aria-hidden="true">
+          <use href="#i-pulse" />
+        </svg>
+      </div>
+      <h3>The sensor makes the decision.</h3>
+      <p>
+        Crossings are detected once, in a standalone service. Closing a browser
+        does not stop monitoring. The current data source is simulated.
+      </p>
+    </article>
+    <article class="principle">
+      <div class="principle-number">
+        02 / AUTHORITY
+        <svg class="icon" aria-hidden="true">
+          <use href="#i-database" />
+        </svg>
+      </div>
+      <h3>The relay owns shared state.</h3>
+      <p>
+        Alerts, acknowledgements, settings, users, and sessions live in SQLite.
+        The relay checks identity and role before routing messages.
+      </p>
+    </article>
+    <article class="principle">
+      <div class="principle-number">
+        03 / PRESENTATION
+        <svg class="icon" aria-hidden="true">
+          <use href="#i-monitor" />
+        </svg>
+      </div>
+      <h3>Browsers project that state.</h3>
+      <p>
+        The monitor combines a fast reading buffer with Redux. The control room
+        uses a reducer for its alarm list and acknowledgement actions.
+      </p>
+    </article>
+  </div>
+  <div class="note-strip">
+    <svg class="icon" aria-hidden="true"><use href="#i-book" /></svg>
+    <p>
+      <strong>How to use this guide.</strong> Start with the map, step through a
+      message journey, then inspect the code that implements it. All examples
+      describe the repository; animations illustrate behavior and are not live
+      telemetry.
+    </p>
+  </div>
+</section>

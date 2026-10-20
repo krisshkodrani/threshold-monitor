@@ -3,3 +3,6 @@ pnpm-lock.yaml
 coverage
 playwright-report
 test-results
+
+# Generated standalone guide; format the source app instead.
+docs/architecture-guide.html
