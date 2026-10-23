@@ -15,8 +15,8 @@
     "@app/protocol": "workspace:*",
     "@app/ui": "workspace:*",
     "@reduxjs/toolkit": "2.13.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "react-redux": "9.3.0",
     "recharts": "3.10.1"
   },
@@ -30,7 +30,7 @@
     "@vitejs/plugin-react": "6.1.2",
     "axe-core": "4.14.0",
     "fast-check": "4.10.2",
-    "jsdom": "30.1.2",
+    "jsdom": "30.1.3",
     "vite": "8.3.4"
   }
 }
